@@ -36,9 +36,9 @@ export default function Header() {
               {link.label}
             </a>
           ))}
-          <a href="/#upcoming-classes" className="btn-primary text-sm">
+          <Link to="/book" className="btn-primary text-sm">
             Book a Class
-          </a>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -74,13 +74,13 @@ export default function Header() {
               {link.label}
             </a>
           ))}
-          <a
-            href="/#upcoming-classes"
+          <Link
+            to="/book"
             onClick={() => setMenuOpen(false)}
-            className="btn-primary text-sm w-full"
+            className="btn-primary text-sm w-full text-center"
           >
             Book a Class
-          </a>
+          </Link>
           <Link
             to="/admin"
             onClick={() => setMenuOpen(false)}

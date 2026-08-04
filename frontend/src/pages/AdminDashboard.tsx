@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, authToken, ClassItem, NewExtraVideo } from '../lib/api';
+import { api, authToken, Booking, ClassItem, NewExtraVideo } from '../lib/api';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ThemeToggle from '../components/ThemeToggle';
 
@@ -17,10 +17,12 @@ const emptyForm = {
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | undefined>(undefined);
   const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState<ClassItem | null>(null);
+  const [pendingBookingDelete, setPendingBookingDelete] = useState<Booking | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,9 +32,13 @@ export default function AdminDashboard() {
   }, [navigate]);
 
   const load = () => api.listClasses().then(setClasses);
+  const loadBookings = () => api.listBookings().then(setBookings);
 
   useEffect(() => {
-    if (authed) load();
+    if (authed) {
+      load();
+      loadBookings();
+    }
   }, [authed]);
 
   const submit = async (e: React.FormEvent) => {
@@ -68,6 +74,13 @@ export default function AdminDashboard() {
     await api.deleteClass(pendingDelete.id);
     setPendingDelete(null);
     load();
+  };
+
+  const confirmBookingDelete = async () => {
+    if (!pendingBookingDelete) return;
+    await api.deleteBooking(pendingBookingDelete.id);
+    setPendingBookingDelete(null);
+    loadBookings();
   };
 
   if (authed === undefined) return null;
@@ -325,6 +338,65 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-10 sm:pb-14">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-xl text-ink">Class booking requests</h2>
+          <span className="text-xs font-mono text-ink/50">{bookings.length} total</span>
+        </div>
+        <div className="space-y-3">
+          {bookings.map((b) => (
+            <div key={b.id} className="bg-surface border border-line rounded-sm p-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-ink">{b.name}</p>
+                  <p className="text-xs text-ink/50 font-mono mt-0.5">
+                    {b.email} · {b.phone}
+                  </p>
+                  <p className="text-xs text-ink/50 font-mono mt-0.5">
+                    Wants:{' '}
+                    {new Date(b.preferredSchedule).toLocaleString('en-US', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setPendingBookingDelete(b)}
+                  className="btn-danger-outline text-xs px-2 py-1 flex-shrink-0"
+                >
+                  Dismiss
+                </button>
+              </div>
+              <p className="text-sm text-ink/70 mt-3 whitespace-pre-line">{b.description}</p>
+              {b.zoomLink && (
+                <p className="text-xs font-mono text-ink/60 mt-2">
+                  Zoom:{' '}
+                  <a href={b.zoomLink} className="text-amber hover:text-coral">
+                    {b.zoomLink}
+                  </a>
+                </p>
+              )}
+            </div>
+          ))}
+          {bookings.length === 0 && (
+            <div className="bg-surface border border-dashed border-line rounded-sm p-10 text-center">
+              <p className="text-ink/50 text-sm">No class requests yet.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {pendingBookingDelete && (
+        <ConfirmDialog
+          title="Dismiss this request?"
+          message={`The booking request from "${pendingBookingDelete.name}" will be removed. This can't be undone.`}
+          confirmLabel="Dismiss"
+          danger
+          onConfirm={confirmBookingDelete}
+          onCancel={() => setPendingBookingDelete(null)}
+        />
+      )}
 
       {pendingDelete && (
         <ConfirmDialog

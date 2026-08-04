@@ -33,6 +33,17 @@ export interface ClassItem {
   registeredNames?: string[];
 }
 
+export interface Booking {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  description: string;
+  preferredSchedule: string;
+  zoomLink: string;
+  createdAt: string;
+}
+
 export const authToken = {
   get: () => localStorage.getItem(TOKEN_KEY),
   set: (token: string) => localStorage.setItem(TOKEN_KEY, token),
@@ -141,4 +152,27 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, text }),
     }).then((r) => handle<VideoComment>(r)),
+
+  createBooking: (data: {
+    name: string;
+    email: string;
+    phone: string;
+    description: string;
+    preferredSchedule: string;
+    zoomLink: string;
+  }) =>
+    fetch(`${BASE_URL}/bookings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then((r) => handle<Booking>(r)),
+
+  listBookings: () =>
+    fetch(`${BASE_URL}/bookings`, { headers: authHeader() }).then((r) => handle<Booking[]>(r)),
+
+  deleteBooking: (id: string) =>
+    fetch(`${BASE_URL}/bookings/${id}`, {
+      method: 'DELETE',
+      headers: authHeader(),
+    }).then((r) => handle<void>(r)),
 };
