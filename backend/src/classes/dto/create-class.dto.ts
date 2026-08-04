@@ -1,4 +1,15 @@
-import { IsBoolean, IsDateString, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUrl,
+  ValidateNested,
+} from 'class-validator';
+import { ExtraVideoDto } from './extra-video.dto';
 
 export class CreateClassDto {
   @IsString()
@@ -15,6 +26,12 @@ export class CreateClassDto {
   @IsOptional()
   @IsUrl()
   videoUrl?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ExtraVideoDto)
+  extraVideos?: ExtraVideoDto[];
 
   @IsDateString()
   classDate: string;

@@ -11,6 +11,7 @@ export interface ClassWithCount {
   description: string;
   imageUrl: string;
   videoUrl?: string;
+  extraVideos?: { title: string; url: string }[];
   classDate: Date;
   zoomLink: string;
   isPast: boolean;
@@ -96,6 +97,7 @@ export class ClassesService {
       description: row.description,
       imageUrl: row.imageUrl,
       videoUrl: row.videoUrl,
+      extraVideos: row.extraVideos,
       classDate: row.classDate,
       zoomLink: row.isPast ? row.zoomLink : undefined, // hide link publicly pre-registration
       isPast: row.isPast,

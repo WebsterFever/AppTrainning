@@ -1,12 +1,18 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 const TOKEN_KEY = 'classboard_token';
 
+export interface ExtraVideo {
+  title: string;
+  url: string;
+}
+
 export interface ClassItem {
   id: string;
   title: string;
   description: string;
   imageUrl: string;
   videoUrl?: string;
+  extraVideos?: ExtraVideo[];
   classDate: string;
   zoomLink?: string;
   isPast: boolean;
@@ -60,6 +66,7 @@ export const api = {
     description: string;
     imageUrl: string;
     videoUrl?: string;
+    extraVideos?: ExtraVideo[];
     classDate: string;
     zoomLink: string;
   }) =>

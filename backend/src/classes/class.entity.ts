@@ -25,6 +25,9 @@ export class TrainingClass {
   @Column({ name: 'video_url', nullable: true })
   videoUrl?: string;
 
+  @Column('simple-json', { name: 'extra_videos', nullable: true })
+  extraVideos?: { title: string; url: string }[];
+
   @Column({ name: 'class_date', type: 'timestamptz' })
   classDate: Date;
 

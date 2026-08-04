@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, authToken, ClassItem } from '../lib/api';
+import { api, authToken, ClassItem, ExtraVideo } from '../lib/api';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ThemeToggle from '../components/ThemeToggle';
 
@@ -9,6 +9,7 @@ const emptyForm = {
   description: '',
   imageUrl: '',
   videoUrl: '',
+  extraVideos: [{ title: '', url: '' }] as ExtraVideo[],
   classDate: '',
   zoomLink: '',
 };
@@ -39,7 +40,15 @@ export default function AdminDashboard() {
     setSaving(true);
     setError('');
     try {
-      await api.createClass({ ...form, videoUrl: form.videoUrl.trim() || undefined });
+      const extraVideos = form.extraVideos
+        .map((v) => ({ title: v.title.trim(), url: v.url.trim() }))
+        .filter((v) => v.url)
+        .map((v, i) => ({ title: v.title || `Video ${i + 2}`, url: v.url }));
+      await api.createClass({
+        ...form,
+        videoUrl: form.videoUrl.trim() || undefined,
+        extraVideos: extraVideos.length ? extraVideos : undefined,
+      });
       setForm(emptyForm);
       await load();
     } catch (err) {
@@ -164,6 +173,69 @@ export default function AdminDashboard() {
               />
               <p className="text-[11px] text-ink/40 mt-1">
                 Shown instead of the image on the class page when set.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
+                Additional videos <span className="normal-case text-ink/30">(optional)</span>
+              </label>
+              <div className="space-y-3">
+                {form.extraVideos.map((video, i) => (
+                  <div key={i} className="flex gap-2 items-start">
+                    <div className="flex-1 space-y-1.5">
+                      <input
+                        placeholder={`Title (e.g. "Behind the scenes")`}
+                        value={video.title}
+                        onChange={(e) => {
+                          const next = [...form.extraVideos];
+                          next[i] = { ...next[i], title: e.target.value };
+                          setForm({ ...form, extraVideos: next });
+                        }}
+                        className="input"
+                      />
+                      <input
+                        placeholder="YouTube, Vimeo, or direct .mp4 link"
+                        value={video.url}
+                        onChange={(e) => {
+                          const next = [...form.extraVideos];
+                          next[i] = { ...next[i], url: e.target.value };
+                          setForm({ ...form, extraVideos: next });
+                        }}
+                        className="input"
+                      />
+                    </div>
+                    {form.extraVideos.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm({
+                            ...form,
+                            extraVideos: form.extraVideos.filter((_, j) => j !== i),
+                          })
+                        }
+                        aria-label="Remove this video"
+                        className="btn-outline text-xs px-2.5 flex-shrink-0"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setForm({
+                    ...form,
+                    extraVideos: [...form.extraVideos, { title: '', url: '' }],
+                  })
+                }
+                className="text-xs font-semibold text-amber hover:text-coral mt-2"
+              >
+                + Add another video
+              </button>
+              <p className="text-[11px] text-ink/40 mt-1">
+                Appear as an expandable section below the main video on the class page.
               </p>
             </div>
             <div>
