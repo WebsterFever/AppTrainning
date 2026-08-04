@@ -164,7 +164,7 @@ export default function Home() {
         {/* Aside + classes */}
         <section
           id="upcoming-classes"
-          className="mx-auto w-full max-w-[1500px] px-4 pb-14 sm:px-6 lg:px-8"
+          className="mx-auto w-full max-w-[1500px] px-4 pb-14 sm:px-6 lg:px-8 scroll-mt-24"
         >
           <div className="min-w-0">
               {loading ? (
@@ -218,7 +218,7 @@ export default function Home() {
                   )}
 
                   {past.length > 0 && (
-                    <section className="mt-12 border-t border-line pt-10">
+                    <section id="past-classes" className="mt-12 border-t border-line pt-10 scroll-mt-24">
                       <div className="mb-5 flex items-center justify-between">
                         <p className="font-mono text-xs uppercase tracking-widest text-ink/40">
                           Past classes
