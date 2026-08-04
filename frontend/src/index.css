@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --c-ink: 21 27 59; /* #151B3B — primary text/accent in light mode */
+  --c-chalk: 245 243 238; /* #F5F3EE — page background in light mode */
+  --c-line: 218 213 199; /* #DAD5C7 — borders in light mode */
+  --c-surface: 255 255 255; /* #FFFFFF — card surfaces in light mode */
+  color-scheme: light;
+}
+
+.dark {
+  --c-ink: 232 234 244; /* #E8EAF4 — near-white text in dark mode */
+  --c-chalk: 10 13 28; /* #0A0D1C — near-black page background in dark mode */
+  --c-line: 45 51 89; /* #2D3359 — subtle borders in dark mode */
+  --c-surface: 21 25 53; /* #151935 — elevated card surfaces in dark mode */
+  color-scheme: dark;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  @apply bg-chalk text-ink transition-colors duration-200;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: #e8a33d;
+  color: #151b3b;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm font-semibold transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-amber text-ink px-6 py-2.5 hover:bg-amber/90;
+  }
+  .btn-dark {
+    @apply btn bg-ink text-chalk px-6 py-2.5 hover:bg-ink/90;
+  }
+  .btn-outline {
+    @apply btn border border-line text-ink/70 px-4 py-2 hover:border-ink/40 hover:text-ink;
+  }
+  .btn-danger-outline {
+    @apply btn border border-line text-coral px-4 py-2 hover:border-coral/50 hover:bg-coral/5;
+  }
+  .input {
+    @apply w-full border border-line rounded-sm px-3 py-2 bg-surface text-sm placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-amber/60 focus:border-amber transition-shadow;
+  }
+  .badge {
+    @apply inline-flex items-center font-mono text-[11px] tracking-wide px-2 py-1 rounded-sm;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.35s ease-out;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
