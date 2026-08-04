@@ -71,26 +71,29 @@ export default function TechnologyAside() {
           alt={banner.technology}
           className="absolute inset-0 w-full h-full object-cover animate-fade-in"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-chalk via-chalk/70 to-chalk/20" />
 
         <div className="relative h-full flex flex-col justify-between p-5">
           <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-white/90 bg-white/10 backdrop-blur-sm rounded-full px-2.5 py-1">
+            <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-ink/90 bg-surface/70 backdrop-blur-sm rounded-full px-2.5 py-1 border border-line">
               <span className="w-1.5 h-1.5 rounded-full bg-amber" />
               {banner.label}
             </span>
-            <span className="font-mono text-[10px] text-white/60">
+            <span className="font-mono text-[10px] text-ink/60 bg-surface/70 backdrop-blur-sm rounded-full px-2 py-1 border border-line">
               {String(currentBanner + 1).padStart(2, '0')} / {String(banners.length).padStart(2, '0')}
             </span>
           </div>
 
-          <div key={`body-${currentBanner}`} className="animate-fade-in">
+          <div
+            key={`body-${currentBanner}`}
+            className="animate-fade-in bg-surface/85 backdrop-blur-sm rounded-sm p-3 -mx-1"
+          >
             <p className="font-mono text-xs text-amber tracking-wide">{banner.technology}</p>
-            <h2 className="font-display text-2xl leading-tight text-white mt-2">{banner.title}</h2>
-            <p className="text-sm text-white/75 mt-2 leading-relaxed">{banner.description}</p>
+            <h2 className="font-display text-2xl leading-tight text-ink mt-2">{banner.title}</h2>
+            <p className="text-sm text-ink/75 mt-2 leading-relaxed">{banner.description}</p>
             <a
               href="#upcoming-classes"
-              className="inline-flex items-center gap-2 mt-4 bg-amber text-ink text-sm font-semibold px-4 py-2 rounded-sm hover:bg-amber/90 transition-colors"
+              className="inline-flex items-center gap-2 mt-4 bg-amber text-midnight text-sm font-semibold px-4 py-2 rounded-sm hover:bg-amber/90 transition-colors"
             >
               {banner.action}
               <span aria-hidden="true">→</span>
@@ -106,7 +109,7 @@ export default function TechnologyAside() {
                   aria-label={`Open banner ${index + 1}`}
                   onClick={() => setCurrentBanner(index)}
                   className={`h-1.5 rounded-full transition-all ${
-                    index === currentBanner ? 'w-5 bg-amber' : 'w-1.5 bg-white/40'
+                    index === currentBanner ? 'w-5 bg-amber' : 'w-1.5 bg-ink/30'
                   }`}
                 />
               ))}
@@ -116,7 +119,7 @@ export default function TechnologyAside() {
                 type="button"
                 onClick={previousBanner}
                 aria-label="Previous announcement"
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-surface/70 border border-line text-ink hover:bg-surface transition-colors"
               >
                 ←
               </button>
@@ -124,7 +127,7 @@ export default function TechnologyAside() {
                 type="button"
                 onClick={nextBanner}
                 aria-label="Next announcement"
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-surface/70 border border-line text-ink hover:bg-surface transition-colors"
               >
                 →
               </button>
