@@ -13,7 +13,8 @@ export interface ClassWithCount {
   description: string;
   imageUrl: string;
   videoUrl?: string;
-  extraVideos?: { id: string; title: string; url: string }[];
+  videoNotes?: string;
+  extraVideos?: { id: string; title: string; url: string; notes?: string }[];
   classDate: Date;
   zoomLink: string;
   isPast: boolean;
@@ -77,8 +78,13 @@ export class ClassesService {
 
   private withVideoIds(
     extraVideos?: ExtraVideoDto[],
-  ): { id: string; title: string; url: string }[] | undefined {
-    return extraVideos?.map((v) => ({ id: v.id ?? randomUUID(), title: v.title, url: v.url }));
+  ): { id: string; title: string; url: string; notes?: string }[] | undefined {
+    return extraVideos?.map((v) => ({
+      id: v.id ?? randomUUID(),
+      title: v.title,
+      url: v.url,
+      notes: v.notes,
+    }));
   }
 
   async videoExists(classId: string, videoRef: string): Promise<boolean> {
@@ -113,6 +119,7 @@ export class ClassesService {
       description: row.description,
       imageUrl: row.imageUrl,
       videoUrl: row.videoUrl,
+      videoNotes: row.videoNotes,
       extraVideos: row.extraVideos,
       classDate: row.classDate,
       zoomLink: row.isPast ? row.zoomLink : undefined, // hide link publicly pre-registration

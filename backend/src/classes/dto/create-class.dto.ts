@@ -28,6 +28,10 @@ export class CreateClassDto {
   videoUrl?: string;
 
   @IsOptional()
+  @IsString()
+  videoNotes?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ExtraVideoDto)

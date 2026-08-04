@@ -5,11 +5,13 @@ export interface ExtraVideo {
   id: string;
   title: string;
   url: string;
+  notes?: string;
 }
 
 export interface NewExtraVideo {
   title: string;
   url: string;
+  notes?: string;
 }
 
 export interface VideoComment {
@@ -25,6 +27,7 @@ export interface ClassItem {
   description: string;
   imageUrl: string;
   videoUrl?: string;
+  videoNotes?: string;
   extraVideos?: ExtraVideo[];
   classDate: string;
   zoomLink?: string;
@@ -111,6 +114,7 @@ export const api = {
     description: string;
     imageUrl: string;
     videoUrl?: string;
+    videoNotes?: string;
     extraVideos?: NewExtraVideo[];
     classDate: string;
     zoomLink: string;

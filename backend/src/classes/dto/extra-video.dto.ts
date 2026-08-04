@@ -11,4 +11,8 @@ export class ExtraVideoDto {
 
   @IsUrl()
   url: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

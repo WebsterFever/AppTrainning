@@ -222,6 +222,17 @@ export default function ClassDetail() {
               />
             )}
 
+            {item.videoNotes && (
+              <div className="mt-4 bg-surface border border-line rounded-sm p-4">
+                <p className="font-mono text-xs tracking-widest text-ink/40 uppercase mb-2">
+                  Study notes
+                </p>
+                <p className="text-sm text-ink/80 leading-relaxed whitespace-pre-line">
+                  {item.videoNotes}
+                </p>
+              </div>
+            )}
+
             {item.videoUrl && <VideoComments classId={item.id} videoRef="main" />}
 
             <p className="text-ink/70 mt-4 leading-relaxed whitespace-pre-line">
@@ -280,6 +291,16 @@ export default function ClassDetail() {
                               It needs to be a specific YouTube/Vimeo video link, or a direct
                               .mp4 file — not just the site's homepage.
                             </p>
+                          )}
+                          {video.notes && (
+                            <div className="mt-3 bg-chalk border border-line rounded-sm p-3">
+                              <p className="font-mono text-xs tracking-widest text-ink/40 uppercase mb-1.5">
+                                Study notes
+                              </p>
+                              <p className="text-sm text-ink/80 leading-relaxed whitespace-pre-line">
+                                {video.notes}
+                              </p>
+                            </div>
                           )}
                           <VideoComments classId={item.id} videoRef={video.id} />
                         </div>

@@ -9,7 +9,8 @@ const emptyForm = {
   description: '',
   imageUrl: '',
   videoUrl: '',
-  extraVideos: [{ title: '', url: '' }] as NewExtraVideo[],
+  videoNotes: '',
+  extraVideos: [{ title: '', url: '', notes: '' }] as NewExtraVideo[],
   classDate: '',
   zoomLink: '',
 };
@@ -47,12 +48,17 @@ export default function AdminDashboard() {
     setError('');
     try {
       const extraVideos = form.extraVideos
-        .map((v) => ({ title: v.title.trim(), url: v.url.trim() }))
+        .map((v) => ({ title: v.title.trim(), url: v.url.trim(), notes: (v.notes ?? '').trim() }))
         .filter((v) => v.url)
-        .map((v, i) => ({ title: v.title || `Video ${i + 2}`, url: v.url }));
+        .map((v, i) => ({
+          title: v.title || `Video ${i + 2}`,
+          url: v.url,
+          notes: v.notes || undefined,
+        }));
       await api.createClass({
         ...form,
         videoUrl: form.videoUrl.trim() || undefined,
+        videoNotes: form.videoNotes.trim() || undefined,
         extraVideos: extraVideos.length ? extraVideos : undefined,
       });
       setForm(emptyForm);
@@ -190,6 +196,18 @@ export default function AdminDashboard() {
             </div>
             <div>
               <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
+                Study notes for this video{' '}
+                <span className="normal-case text-ink/30">(optional)</span>
+              </label>
+              <textarea
+                placeholder="Documentation, links, or reading material for students to study alongside the video"
+                value={form.videoNotes}
+                onChange={(e) => setForm({ ...form, videoNotes: e.target.value })}
+                className="input h-20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
                 Additional videos <span className="normal-case text-ink/30">(optional)</span>
               </label>
               <div className="space-y-3">
@@ -216,6 +234,16 @@ export default function AdminDashboard() {
                         }}
                         className="input"
                       />
+                      <textarea
+                        placeholder="Study notes for this video (optional)"
+                        value={video.notes ?? ''}
+                        onChange={(e) => {
+                          const next = [...form.extraVideos];
+                          next[i] = { ...next[i], notes: e.target.value };
+                          setForm({ ...form, extraVideos: next });
+                        }}
+                        className="input h-16 text-sm"
+                      />
                     </div>
                     {form.extraVideos.length > 1 && (
                       <button
@@ -240,7 +268,7 @@ export default function AdminDashboard() {
                 onClick={() =>
                   setForm({
                     ...form,
-                    extraVideos: [...form.extraVideos, { title: '', url: '' }],
+                    extraVideos: [...form.extraVideos, { title: '', url: '', notes: '' }],
                   })
                 }
                 className="text-xs font-semibold text-amber hover:text-coral mt-2"
