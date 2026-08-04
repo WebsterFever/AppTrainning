@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, authToken, ClassItem, ExtraVideo } from '../lib/api';
+import { api, authToken, ClassItem, NewExtraVideo } from '../lib/api';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ThemeToggle from '../components/ThemeToggle';
 
@@ -9,7 +9,7 @@ const emptyForm = {
   description: '',
   imageUrl: '',
   videoUrl: '',
-  extraVideos: [{ title: '', url: '' }] as ExtraVideo[],
+  extraVideos: [{ title: '', url: '' }] as NewExtraVideo[],
   classDate: '',
   zoomLink: '',
 };

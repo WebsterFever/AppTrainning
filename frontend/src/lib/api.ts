@@ -2,8 +2,21 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 const TOKEN_KEY = 'classboard_token';
 
 export interface ExtraVideo {
+  id: string;
   title: string;
   url: string;
+}
+
+export interface NewExtraVideo {
+  title: string;
+  url: string;
+}
+
+export interface VideoComment {
+  id: string;
+  name: string;
+  text: string;
+  createdAt: string;
 }
 
 export interface ClassItem {
@@ -24,6 +37,27 @@ export const authToken = {
   get: () => localStorage.getItem(TOKEN_KEY),
   set: (token: string) => localStorage.setItem(TOKEN_KEY, token),
   clear: () => localStorage.removeItem(TOKEN_KEY),
+};
+
+export interface VisitorIdentity {
+  name: string;
+  email: string;
+}
+
+export const visitorIdentity = {
+  key: (classId: string) => `classboard_registered_${classId}`,
+  get: (classId: string): VisitorIdentity | null => {
+    const raw = localStorage.getItem(visitorIdentity.key(classId));
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as VisitorIdentity;
+    } catch {
+      return null;
+    }
+  },
+  set: (classId: string, identity: VisitorIdentity) => {
+    localStorage.setItem(visitorIdentity.key(classId), JSON.stringify(identity));
+  },
 };
 
 function authHeader(): Record<string, string> {
@@ -66,7 +100,7 @@ export const api = {
     description: string;
     imageUrl: string;
     videoUrl?: string;
-    extraVideos?: ExtraVideo[];
+    extraVideos?: NewExtraVideo[];
     classDate: string;
     zoomLink: string;
   }) =>
@@ -95,4 +129,16 @@ export const api = {
       method: 'DELETE',
       headers: authHeader(),
     }).then((r) => handle<void>(r)),
+
+  listComments: (classId: string, videoRef: string) =>
+    fetch(`${BASE_URL}/classes/${classId}/videos/${videoRef}/comments`).then((r) =>
+      handle<VideoComment[]>(r),
+    ),
+
+  addComment: (classId: string, videoRef: string, name: string, email: string, text: string) =>
+    fetch(`${BASE_URL}/classes/${classId}/videos/${videoRef}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, text }),
+    }).then((r) => handle<VideoComment>(r)),
 };

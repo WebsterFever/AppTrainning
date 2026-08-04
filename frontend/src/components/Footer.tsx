@@ -6,12 +6,12 @@ export default function Footer() {
           <img
             src="/logoLightMode.png"
             alt="Webster Technology School"
-            className="h-12 w-auto dark:hidden"
+            className="h-20 w-auto dark:hidden"
           />
           <img
             src="/logoDarkMode.png"
             alt="Webster Technology School"
-            className="h-12 w-auto hidden dark:block"
+            className="h-20 w-auto hidden dark:block"
           />
           <p className="text-xs text-ink/50">Live training, hosted on Zoom.</p>
         </div>

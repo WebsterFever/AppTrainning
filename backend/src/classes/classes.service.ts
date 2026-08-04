@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
 import { TrainingClass } from './class.entity';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
+import { ExtraVideoDto } from './dto/extra-video.dto';
 
 export interface ClassWithCount {
   id: string;
@@ -11,7 +13,7 @@ export interface ClassWithCount {
   description: string;
   imageUrl: string;
   videoUrl?: string;
-  extraVideos?: { title: string; url: string }[];
+  extraVideos?: { id: string; title: string; url: string }[];
   classDate: Date;
   zoomLink: string;
   isPast: boolean;
@@ -55,6 +57,7 @@ export class ClassesService {
   async create(dto: CreateClassDto): Promise<TrainingClass> {
     const entity = this.classesRepo.create({
       ...dto,
+      extraVideos: this.withVideoIds(dto.extraVideos),
       classDate: new Date(dto.classDate),
     });
     return this.classesRepo.save(entity);
@@ -66,9 +69,22 @@ export class ClassesService {
 
     Object.assign(existing, {
       ...dto,
+      ...(dto.extraVideos ? { extraVideos: this.withVideoIds(dto.extraVideos) } : {}),
       classDate: dto.classDate ? new Date(dto.classDate) : existing.classDate,
     });
     return this.classesRepo.save(existing);
+  }
+
+  private withVideoIds(
+    extraVideos?: ExtraVideoDto[],
+  ): { id: string; title: string; url: string }[] | undefined {
+    return extraVideos?.map((v) => ({ id: v.id ?? randomUUID(), title: v.title, url: v.url }));
+  }
+
+  async videoExists(classId: string, videoRef: string): Promise<boolean> {
+    if (videoRef === 'main') return true;
+    const row = await this.classesRepo.findOne({ where: { id: classId } });
+    return !!row?.extraVideos?.some((v) => v.id === videoRef);
   }
 
   async markPast(id: string, isPast: boolean): Promise<TrainingClass> {

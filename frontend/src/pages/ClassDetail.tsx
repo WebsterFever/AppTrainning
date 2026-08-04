@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, ClassItem } from '../lib/api';
+import { api, ClassItem, visitorIdentity } from '../lib/api';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ClassDetailSkeleton } from '../components/Skeletons';
 import { getVideoEmbed } from '../lib/video';
+import VideoComments from '../components/VideoComments';
 
-const registeredKey = (id: string) => `classboard_registered_${id}`;
 const ALREADY_REGISTERED_MESSAGE = 'This email is already registered for this class';
 
 export default function ClassDetail() {
@@ -34,7 +34,12 @@ export default function ClassDetail() {
 
   useEffect(() => {
     if (!id) return;
-    if (localStorage.getItem(registeredKey(id))) setUnlocked(true);
+    const saved = visitorIdentity.get(id);
+    if (saved) {
+      setUnlocked(true);
+      setName(saved.name);
+      setEmail(saved.email);
+    }
     api
       .getClass(id)
       .then(setItem)
@@ -48,7 +53,7 @@ export default function ClassDetail() {
     setError('');
     try {
       const res = await api.register(id, name, email);
-      localStorage.setItem(registeredKey(id), '1');
+      visitorIdentity.set(id, { name, email });
       setZoomLink(res.zoomLink);
       setItem((current) =>
         current
@@ -63,7 +68,7 @@ export default function ClassDetail() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong';
       if (message === ALREADY_REGISTERED_MESSAGE) {
-        localStorage.setItem(registeredKey(id), '1');
+        visitorIdentity.set(id, { name, email });
         setUnlocked(true);
       } else {
         setStatus('error');
@@ -217,6 +222,8 @@ export default function ClassDetail() {
               />
             )}
 
+            {item.videoUrl && <VideoComments classId={item.id} videoRef="main" />}
+
             <p className="text-ink/70 mt-4 leading-relaxed whitespace-pre-line">
               {item.description}
             </p>
@@ -230,7 +237,10 @@ export default function ClassDetail() {
                   const embed = getVideoEmbed(video.url);
                   const isOpen = openVideos.has(i);
                   return (
-                    <div key={i} className="border border-line rounded-sm overflow-hidden bg-surface">
+                    <div
+                      key={video.id}
+                      className="border border-line rounded-sm overflow-hidden bg-surface"
+                    >
                       <button
                         type="button"
                         onClick={() => toggleVideo(i)}
@@ -271,6 +281,7 @@ export default function ClassDetail() {
                               .mp4 file — not just the site's homepage.
                             </p>
                           )}
+                          <VideoComments classId={item.id} videoRef={video.id} />
                         </div>
                       )}
                     </div>
