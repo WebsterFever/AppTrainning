@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, ChatMessage, chatIdentity, SCHOOL_NAME, VisitorIdentity } from '../lib/api';
+import { api, ChatMessage, chatIdentity, SCHOOL_NAME, visitorIdentity, VisitorIdentity } from '../lib/api';
 import { getSocket } from '../lib/socket';
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [identity, setIdentity] = useState<VisitorIdentity | null>(null);
+  // A name/email already known from registering for a class — lets us skip
+  // asking the student to register with the chat separately.
+  const [detectedIdentity, setDetectedIdentity] = useState<VisitorIdentity | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
 
-  // Registration form state (first-time chatters).
+  // Registration form state (first-time chatters with no known identity).
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [showResume, setShowResume] = useState(false);
@@ -20,7 +23,9 @@ export default function ChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setIdentity(chatIdentity.get());
+    const existing = chatIdentity.get();
+    setIdentity(existing);
+    if (!existing) setDetectedIdentity(visitorIdentity.findAny());
   }, []);
 
   useEffect(() => {
@@ -60,6 +65,24 @@ export default function ChatWidget() {
       const newIdentity = { name: name.trim(), email: email.trim() };
       chatIdentity.set(newIdentity);
       setIdentity(newIdentity);
+      setMessages([message]);
+      setText('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send your message.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const startChatWithDetected = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!detectedIdentity || !text.trim()) return;
+    setSending(true);
+    try {
+      const message = await api.sendChatMessage(detectedIdentity.name, detectedIdentity.email, text.trim());
+      chatIdentity.set(detectedIdentity);
+      setIdentity(detectedIdentity);
       setMessages([message]);
       setText('');
     } catch (err) {
@@ -133,7 +156,36 @@ export default function ChatWidget() {
 
           {!identity ? (
             <div className="flex-1 overflow-y-auto px-4 py-4">
-              {!showResume ? (
+              {detectedIdentity && !showResume ? (
+                <form onSubmit={startChatWithDetected} className="space-y-3">
+                  <p className="text-xs text-ink/60">
+                    Continuing as <span className="font-medium text-ink">{detectedIdentity.name}</span>{' '}
+                    ({detectedIdentity.email})
+                  </p>
+                  <textarea
+                    required
+                    placeholder="How can we help?"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    className="input h-20 text-sm"
+                    autoFocus
+                  />
+                  {error && <p className="text-coral text-xs">{error}</p>}
+                  <button disabled={sending} className="btn-primary w-full text-sm">
+                    {sending ? 'Sending…' : 'Start chat'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDetectedIdentity(null);
+                      setError('');
+                    }}
+                    className="w-full text-center text-xs text-ink/50 hover:text-ink"
+                  >
+                    Not you? Use a different name/email
+                  </button>
+                </form>
+              ) : !showResume ? (
                 <form onSubmit={startChat} className="space-y-3">
                   <p className="text-xs text-ink/60">
                     Send us a message and we'll get back to you here.
@@ -250,13 +302,20 @@ export default function ChatWidget() {
         </div>
       )}
 
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? 'Close chat' : 'Open chat'}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-amber text-midnight shadow-lg transition hover:-translate-y-0.5 hover:bg-coral"
-      >
-        {open ? '✕' : '💬'}
-      </button>
+      <div className="flex items-center justify-end gap-2.5">
+        {!open && (
+          <span className="hidden rounded-full border border-line bg-chalk px-3.5 py-2 text-xs font-medium text-ink shadow-md sm:inline-block">
+            Have a question? Chat with us
+          </span>
+        )}
+        <button
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? 'Close chat' : 'Open chat'}
+          className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-amber text-midnight shadow-lg transition hover:-translate-y-0.5 hover:bg-coral"
+        >
+          {open ? '✕' : '💬'}
+        </button>
+      </div>
     </div>
   );
 }

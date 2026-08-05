@@ -113,6 +113,20 @@ export const visitorIdentity = {
   set: (classId: string, identity: VisitorIdentity) => {
     localStorage.setItem(visitorIdentity.key(classId), JSON.stringify(identity));
   },
+  // Find any class the visitor has already registered for, regardless of
+  // which one, so other features (like chat) can skip asking again.
+  findAny: (): VisitorIdentity | null => {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith('classboard_registered_')) continue;
+      try {
+        return JSON.parse(localStorage.getItem(key) ?? '') as VisitorIdentity;
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  },
 };
 
 const CHAT_IDENTITY_KEY = 'classboard_chat_identity';
