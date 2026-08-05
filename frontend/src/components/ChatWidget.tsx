@@ -302,9 +302,9 @@ export default function ChatWidget() {
         </div>
       )}
 
-      <div className="flex items-center justify-end gap-2.5">
+      <div className="flex items-center justify-end gap-2 sm:gap-2.5">
         {!open && (
-          <span className="hidden rounded-full border border-line bg-chalk px-3.5 py-2 text-xs font-medium text-ink shadow-md sm:inline-block">
+          <span className="rounded-full border border-line bg-chalk px-2.5 py-1.5 text-[11px] font-medium text-ink shadow-md sm:px-3.5 sm:py-2 sm:text-xs">
             Have a question? Chat with us
           </span>
         )}
