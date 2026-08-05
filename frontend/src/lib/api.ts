@@ -9,9 +9,21 @@ export interface ExtraVideo {
 }
 
 export interface NewExtraVideo {
+  id?: string;
   title: string;
   url: string;
   notes?: string;
+}
+
+export interface ClassFormData {
+  title: string;
+  description: string;
+  imageUrl: string;
+  videoUrl?: string;
+  videoNotes?: string;
+  extraVideos?: NewExtraVideo[];
+  classDate: string;
+  zoomLink: string;
 }
 
 export interface VideoComment {
@@ -107,6 +119,13 @@ export const api = {
 
   getClass: (id: string) => fetch(`${BASE_URL}/classes/${id}`).then((r) => handle<ClassItem>(r)),
 
+  // Admin only: same as listClasses, but always includes the Zoom link
+  // (never redacted for upcoming classes) — needed for editing.
+  listClassesAdmin: () =>
+    fetch(`${BASE_URL}/admin/classes`, { headers: authHeader() }).then((r) =>
+      handle<ClassItem[]>(r),
+    ),
+
   register: (classId: string, name: string, email: string) =>
     fetch(`${BASE_URL}/classes/${classId}/register`, {
       method: 'POST',
@@ -121,23 +140,14 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }).then((r) => handle<{ accessToken: string }>(r)),
 
-  createClass: (data: {
-    title: string;
-    description: string;
-    imageUrl: string;
-    videoUrl?: string;
-    videoNotes?: string;
-    extraVideos?: NewExtraVideo[];
-    classDate: string;
-    zoomLink: string;
-  }) =>
+  createClass: (data: ClassFormData) =>
     fetch(`${BASE_URL}/classes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeader() },
       body: JSON.stringify(data),
     }).then((r) => handle<ClassItem>(r)),
 
-  updateClass: (id: string, data: Partial<ClassItem>) =>
+  updateClass: (id: string, data: ClassFormData) =>
     fetch(`${BASE_URL}/classes/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeader() },

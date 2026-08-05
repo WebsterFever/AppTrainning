@@ -42,6 +42,18 @@ export class ClassesService {
     return rows.map((row) => this.toPublicShape(row));
   }
 
+  // Admin only: same as findAll, but always includes the Zoom link (never
+  // redacted) so the admin can see/edit it regardless of isPast.
+  async findAllForAdmin(): Promise<ClassWithCount[]> {
+    const rows = await this.classesRepo
+      .createQueryBuilder('class')
+      .loadRelationCountAndMap('class.registrationCount', 'class.registrations')
+      .orderBy('class.classDate', 'DESC')
+      .getMany();
+
+    return rows.map((row) => this.toPublicShape(row, false, true));
+  }
+
   async findOne(id: string): Promise<ClassWithCount> {
     const row = await this.classesRepo
       .createQueryBuilder('class')
@@ -111,6 +123,7 @@ export class ClassesService {
   private toPublicShape(
     row: TrainingClass & { registrationCount?: number },
     includeNames = false,
+    revealZoomLink = false,
   ): ClassWithCount {
     const names = includeNames ? (row.registrations ?? []).map((r) => r.name) : undefined;
     return {
@@ -122,7 +135,8 @@ export class ClassesService {
       videoNotes: row.videoNotes,
       extraVideos: row.extraVideos,
       classDate: row.classDate,
-      zoomLink: row.isPast ? row.zoomLink : undefined, // hide link publicly pre-registration
+      // Hide link publicly pre-registration, unless explicitly revealed (admin views).
+      zoomLink: row.isPast || revealZoomLink ? row.zoomLink : undefined,
       isPast: row.isPast,
       registrationCount: includeNames ? (names?.length ?? 0) : (row.registrationCount ?? 0),
       ...(names ? { registeredNames: names } : {}),

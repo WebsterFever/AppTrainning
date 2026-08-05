@@ -16,11 +16,20 @@ const emptyForm = {
   zoomLink: '',
 };
 
+// Convert an ISO date string to the local "YYYY-MM-DDTHH:mm" format a
+// datetime-local input expects, using the browser's local timezone.
+function toDatetimeLocal(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | undefined>(undefined);
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState<ClassItem | null>(null);
@@ -33,7 +42,7 @@ export default function AdminDashboard() {
     if (!hasToken) navigate('/admin');
   }, [navigate]);
 
-  const load = () => api.listClasses().then(setClasses);
+  const load = () => api.listClassesAdmin().then(setClasses);
   const loadBookings = () => api.listBookings().then(setBookings);
 
   useEffect(() => {
@@ -43,29 +52,65 @@ export default function AdminDashboard() {
     }
   }, [authed]);
 
+  const startEdit = (c: ClassItem) => {
+    setEditingId(c.id);
+    setError('');
+    setForm({
+      title: c.title,
+      description: c.description,
+      imageUrl: c.imageUrl,
+      videoUrl: c.videoUrl ?? '',
+      videoNotes: c.videoNotes ?? '',
+      extraVideos: c.extraVideos?.length
+        ? c.extraVideos.map((v) => ({ id: v.id, title: v.title, url: v.url, notes: v.notes ?? '' }))
+        : [{ title: '', url: '', notes: '' }],
+      classDate: toDatetimeLocal(c.classDate),
+      zoomLink: c.zoomLink ?? '',
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setError('');
+    setForm(emptyForm);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError('');
     try {
       const extraVideos = form.extraVideos
-        .map((v) => ({ title: v.title.trim(), url: v.url.trim(), notes: (v.notes ?? '').trim() }))
+        .map((v) => ({
+          id: v.id,
+          title: v.title.trim(),
+          url: v.url.trim(),
+          notes: (v.notes ?? '').trim(),
+        }))
         .filter((v) => v.url)
         .map((v, i) => ({
+          id: v.id,
           title: v.title || `Video ${i + 2}`,
           url: v.url,
           notes: v.notes || undefined,
         }));
-      await api.createClass({
+      const payload = {
         ...form,
         videoUrl: form.videoUrl.trim() || undefined,
         videoNotes: form.videoNotes.trim() || undefined,
         extraVideos: extraVideos.length ? extraVideos : undefined,
-      });
+      };
+      if (editingId) {
+        await api.updateClass(editingId, payload);
+      } else {
+        await api.createClass(payload);
+      }
+      setEditingId(null);
       setForm(emptyForm);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create class');
+      setError(err instanceof Error ? err.message : 'Failed to save class');
     } finally {
       setSaving(false);
     }
@@ -79,6 +124,7 @@ export default function AdminDashboard() {
   const confirmDelete = async () => {
     if (!pendingDelete) return;
     await api.deleteClass(pendingDelete.id);
+    if (editingId === pendingDelete.id) cancelEdit();
     setPendingDelete(null);
     load();
   };
@@ -133,8 +179,25 @@ export default function AdminDashboard() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10 grid md:grid-cols-[320px_1fr] gap-6 md:gap-10">
         <form onSubmit={submit} className="bg-surface border border-line rounded-sm p-5 h-fit md:sticky md:top-24">
-          <h2 className="font-display text-xl text-ink mb-1">Add a class</h2>
-          <p className="text-xs text-ink/50 mb-4">Publishes immediately to the public site.</p>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-display text-xl text-ink">
+              {editingId ? 'Edit class' : 'Add a class'}
+            </h2>
+            {editingId && (
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="text-xs font-mono text-ink/50 hover:text-ink"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-ink/50 mb-4">
+            {editingId
+              ? 'Changes are saved to the live class page.'
+              : 'Publishes immediately to the public site.'}
+          </p>
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
@@ -306,7 +369,7 @@ export default function AdminDashboard() {
             </div>
             {error && <p className="text-coral text-xs">{error}</p>}
             <button disabled={saving} className="btn-primary w-full text-sm">
-              {saving ? 'Publishing…' : 'Publish class'}
+              {saving ? 'Saving…' : editingId ? 'Save changes' : 'Publish class'}
             </button>
           </div>
         </form>
@@ -322,7 +385,9 @@ export default function AdminDashboard() {
             {classes.map((c) => (
               <div
                 key={c.id}
-                className="bg-surface border border-line rounded-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:border-ink/20 transition-colors"
+                className={`bg-surface border rounded-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 transition-colors ${
+                  editingId === c.id ? 'border-amber' : 'border-line hover:border-ink/20'
+                }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <img
@@ -344,6 +409,12 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 sm:flex-shrink-0">
+                  <button
+                    onClick={() => startEdit(c)}
+                    className="btn-outline text-xs px-2 py-1 flex-1 sm:flex-initial"
+                  >
+                    Edit
+                  </button>
                   <button
                     onClick={() => togglePast(c)}
                     className="btn-outline text-xs px-2 py-1 flex-1 sm:flex-initial"
