@@ -18,8 +18,20 @@ export interface VideoComment {
   id: string;
   name: string;
   text: string;
+  reply?: string;
+  repliedAt?: string;
   createdAt: string;
 }
+
+export interface AdminComment extends VideoComment {
+  classId: string;
+  classTitle: string;
+  videoRef: string;
+  videoLabel: string;
+  email: string;
+}
+
+export const SCHOOL_NAME = 'Webster Technology School';
 
 export interface ClassItem {
   id: string;
@@ -176,6 +188,24 @@ export const api = {
 
   deleteBooking: (id: string) =>
     fetch(`${BASE_URL}/bookings/${id}`, {
+      method: 'DELETE',
+      headers: authHeader(),
+    }).then((r) => handle<void>(r)),
+
+  listAllComments: () =>
+    fetch(`${BASE_URL}/admin/comments`, { headers: authHeader() }).then((r) =>
+      handle<AdminComment[]>(r),
+    ),
+
+  replyToComment: (id: string, reply: string) =>
+    fetch(`${BASE_URL}/admin/comments/${id}/reply`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify({ reply }),
+    }).then((r) => handle<{ id: string; reply: string; repliedAt: string }>(r)),
+
+  deleteComment: (id: string) =>
+    fetch(`${BASE_URL}/admin/comments/${id}`, {
       method: 'DELETE',
       headers: authHeader(),
     }).then((r) => handle<void>(r)),

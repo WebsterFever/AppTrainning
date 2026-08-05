@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, authToken, Booking, ClassItem, NewExtraVideo } from '../lib/api';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ThemeToggle from '../components/ThemeToggle';
+import AdminComments from '../components/AdminComments';
 
 const emptyForm = {
   title: '',
@@ -414,6 +415,8 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      <AdminComments />
 
       {pendingBookingDelete && (
         <ConfirmDialog

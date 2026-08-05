@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, VideoComment, visitorIdentity } from '../lib/api';
+import { api, SCHOOL_NAME, VideoComment, visitorIdentity } from '../lib/api';
 
 export default function VideoComments({ classId, videoRef }: { classId: string; videoRef: string }) {
   const identity = visitorIdentity.get(classId);
@@ -53,6 +53,19 @@ export default function VideoComments({ classId, videoRef }: { classId: string; 
                 </span>
               </div>
               <p className="text-ink/70 mt-0.5 whitespace-pre-line">{c.text}</p>
+              {c.reply && (
+                <div className="mt-2 ml-3 pl-3 border-l-2 border-amber">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-medium text-amber">{SCHOOL_NAME}</span>
+                    {c.repliedAt && (
+                      <span className="text-[11px] font-mono text-ink/40">
+                        {new Date(c.repliedAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-ink/70 mt-0.5 whitespace-pre-line">{c.reply}</p>
+                </div>
+              )}
             </div>
           ))}
           {comments.length === 0 && <p className="text-sm text-ink/40">No comments yet — be the first.</p>}

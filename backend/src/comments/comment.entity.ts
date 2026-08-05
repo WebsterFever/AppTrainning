@@ -21,6 +21,12 @@ export class VideoComment {
   @Column({ type: 'text' })
   text: string;
 
+  @Column({ type: 'text', name: 'reply', nullable: true })
+  reply?: string;
+
+  @Column({ name: 'replied_at', type: 'timestamptz', nullable: true })
+  repliedAt?: Date;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

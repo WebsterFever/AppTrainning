@@ -40,7 +40,7 @@ export default function Home() {
       <main className="flex-1">
         {/* Main hero */}
         <section className="mx-auto w-full max-w-[1500px] px-4 pb-10 pt-6 sm:px-6 sm:pt-8 lg:px-8">
-          <div className="relative min-h-[460px] overflow-hidden rounded-2xl border border-line bg-white shadow-lg dark:bg-slate-950 sm:min-h-[520px] sm:rounded-3xl">
+          <div className="relative min-h-[620px] overflow-hidden rounded-2xl border border-line bg-white shadow-lg dark:bg-slate-950 sm:min-h-[660px] sm:rounded-3xl lg:min-h-[700px]">
             <img
               src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1800&q=85"
               alt="Modern technology and software development"
@@ -62,21 +62,21 @@ export default function Home() {
               }}
             />
 
-            <div className="relative grid min-h-[460px] items-center gap-8 px-5 py-8 sm:min-h-[520px] sm:px-10 sm:py-10 lg:grid-cols-[minmax(0,58%)_minmax(340px,42%)] lg:px-12 xl:px-16">
+            <div className="relative grid min-h-[620px] items-center gap-10 px-5 py-8 sm:min-h-[660px] sm:px-10 sm:py-10 lg:min-h-[700px] lg:grid-cols-[minmax(0,52%)_minmax(420px,48%)] lg:px-12 xl:px-16">
               <div className="max-w-4xl">
                 <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white/75 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-ink shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-white sm:text-xs">
                   <span className="h-2 w-2 rounded-full bg-sage" />
                   Live technology training
                 </span>
 
-                <h1 className="mt-6 max-w-4xl font-display text-4xl font-bold leading-[1.05] text-ink dark:text-white sm:text-5xl md:text-6xl xl:text-7xl">
+                <h1 className="mt-6 max-w-3xl font-display text-4xl font-bold leading-[1.05] text-ink dark:text-white sm:text-5xl md:text-6xl xl:text-6xl">
                   Build the technology
                   <span className="block text-amber">skills of tomorrow.</span>
                 </h1>
 
                 <p className="mt-5 max-w-2xl text-sm leading-7 text-ink/65 dark:text-white/75 sm:text-lg sm:leading-8">
                   Join practical live classes in artificial intelligence,
-                  software development, cloud computing, DevOps, data science,
+                  
                   and modern technology.
                 </p>
 
@@ -101,8 +101,8 @@ export default function Home() {
                 </a>
               </div>
 
-              <div className="flex justify-center lg:justify-end">
-                <div className="w-full max-w-[430px] [&>aside]:w-full [&>aside]:max-w-none [&>aside>div]:h-[380px] sm:[&>aside>div]:h-[420px] [&>aside>div]:min-h-0 [&>aside>div]:rounded-2xl">
+              <div className="flex w-full justify-center lg:justify-end">
+                <div className="w-full max-w-[560px] [&>aside]:w-full [&>aside]:max-w-none">
                   <TechnologyAside />
                 </div>
               </div>

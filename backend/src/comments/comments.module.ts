@@ -4,11 +4,12 @@ import { VideoComment } from './comment.entity';
 import { Registration } from '../registrations/registration.entity';
 import { CommentsService } from './comments.service';
 import { CommentsController } from './comments.controller';
+import { AdminCommentsController } from './admin-comments.controller';
 import { ClassesModule } from '../classes/classes.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([VideoComment, Registration]), ClassesModule],
-  controllers: [CommentsController],
+  controllers: [CommentsController, AdminCommentsController],
   providers: [CommentsService],
 })
 export class CommentsModule {}

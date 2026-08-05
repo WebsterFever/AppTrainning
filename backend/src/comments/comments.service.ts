@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { VideoComment } from './comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { ReplyCommentDto } from './dto/reply-comment.dto';
 import { ClassesService } from '../classes/classes.service';
 import { Registration } from '../registrations/registration.entity';
 
@@ -26,7 +27,14 @@ export class CommentsService {
       order: { createdAt: 'ASC' },
     });
 
-    return comments.map((c) => ({ id: c.id, name: c.name, text: c.text, createdAt: c.createdAt }));
+    return comments.map((c) => ({
+      id: c.id,
+      name: c.name,
+      text: c.text,
+      reply: c.reply,
+      repliedAt: c.repliedAt,
+      createdAt: c.createdAt,
+    }));
   }
 
   async create(classId: string, videoRef: string, dto: CreateCommentDto) {
@@ -51,5 +59,49 @@ export class CommentsService {
     });
     const saved = await this.commentsRepo.save(comment);
     return { id: saved.id, name: saved.name, text: saved.text, createdAt: saved.createdAt };
+  }
+
+  async listAll() {
+    const comments = await this.commentsRepo.find({
+      relations: ['trainingClass'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return comments.map((c) => ({
+      id: c.id,
+      classId: c.trainingClass.id,
+      classTitle: c.trainingClass.title,
+      videoRef: c.videoRef,
+      videoLabel: this.videoLabel(c.trainingClass, c.videoRef),
+      name: c.name,
+      email: c.email,
+      text: c.text,
+      reply: c.reply,
+      repliedAt: c.repliedAt,
+      createdAt: c.createdAt,
+    }));
+  }
+
+  async reply(commentId: string, dto: ReplyCommentDto) {
+    const comment = await this.commentsRepo.findOne({ where: { id: commentId } });
+    if (!comment) throw new NotFoundException('Comment not found');
+
+    comment.reply = dto.reply;
+    comment.repliedAt = new Date();
+    const saved = await this.commentsRepo.save(comment);
+    return { id: saved.id, reply: saved.reply, repliedAt: saved.repliedAt };
+  }
+
+  async remove(commentId: string): Promise<void> {
+    const result = await this.commentsRepo.delete(commentId);
+    if (!result.affected) throw new NotFoundException('Comment not found');
+  }
+
+  private videoLabel(
+    trainingClass: { videoUrl?: string; extraVideos?: { id: string; title: string }[] },
+    videoRef: string,
+  ): string {
+    if (videoRef === 'main') return 'Main video';
+    return trainingClass.extraVideos?.find((v) => v.id === videoRef)?.title ?? 'Video';
   }
 }
