@@ -4,6 +4,7 @@ import { api, authToken, Booking, ClassItem, NewExtraVideo } from '../lib/api';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ThemeToggle from '../components/ThemeToggle';
 import AdminComments from '../components/AdminComments';
+import AdminChat from '../components/AdminChat';
 
 const emptyForm = {
   title: '',
@@ -486,6 +487,8 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      <AdminChat />
 
       <AdminComments />
 

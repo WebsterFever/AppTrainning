@@ -5,6 +5,7 @@ import { ClassCardSkeleton } from '../components/Skeletons';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import TechnologyAside from '../components/TechnologyAside';
+import ChatWidget from '../components/ChatWidget';
 
 export default function Home() {
   const [upcoming, setUpcoming] = useState<ClassItem[]>([]);
@@ -244,6 +245,7 @@ export default function Home() {
       </main>
 
       <Footer />
+      <ChatWidget />
     </div>
   );
 }

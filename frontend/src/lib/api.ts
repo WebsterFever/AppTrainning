@@ -60,6 +60,23 @@ export interface ClassItem {
   registeredNames?: string[];
 }
 
+export interface ChatMessage {
+  id: string;
+  name: string;
+  email: string;
+  sender: 'student' | 'admin';
+  text: string;
+  createdAt: string;
+}
+
+export interface ChatThread {
+  email: string;
+  name: string;
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCount: number;
+}
+
 export interface Booking {
   id: string;
   name: string;
@@ -95,6 +112,23 @@ export const visitorIdentity = {
   },
   set: (classId: string, identity: VisitorIdentity) => {
     localStorage.setItem(visitorIdentity.key(classId), JSON.stringify(identity));
+  },
+};
+
+const CHAT_IDENTITY_KEY = 'classboard_chat_identity';
+
+export const chatIdentity = {
+  get: (): VisitorIdentity | null => {
+    const raw = localStorage.getItem(CHAT_IDENTITY_KEY);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as VisitorIdentity;
+    } catch {
+      return null;
+    }
+  },
+  set: (identity: VisitorIdentity) => {
+    localStorage.setItem(CHAT_IDENTITY_KEY, JSON.stringify(identity));
   },
 };
 
@@ -219,4 +253,35 @@ export const api = {
       method: 'DELETE',
       headers: authHeader(),
     }).then((r) => handle<void>(r)),
+
+  sendChatMessage: (name: string, email: string, text: string) =>
+    fetch(`${BASE_URL}/chat/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, text }),
+    }).then((r) => handle<ChatMessage>(r)),
+
+  getChatThread: (email: string) =>
+    fetch(`${BASE_URL}/chat/messages?email=${encodeURIComponent(email)}`).then((r) =>
+      handle<ChatMessage[]>(r),
+    ),
+
+  listChatThreads: () =>
+    fetch(`${BASE_URL}/admin/chat/threads`, { headers: authHeader() }).then((r) =>
+      handle<ChatThread[]>(r),
+    ),
+
+  getAdminChatThread: (email: string) =>
+    fetch(`${BASE_URL}/admin/chat/threads/${encodeURIComponent(email)}/messages`, {
+      headers: authHeader(),
+    }).then((r) => handle<ChatMessage[]>(r)),
+
+  replyChat: (email: string, text: string) =>
+    fetch(`${BASE_URL}/admin/chat/threads/${encodeURIComponent(email)}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify({ text }),
+    }).then((r) => handle<ChatMessage>(r)),
 };
+
+export { BASE_URL };
