@@ -36,4 +36,20 @@ export class RegistrationsService {
 
     return { success: true, registrationCount: count, zoomLink: trainingClass.zoomLink };
   }
+
+  // Admin only: full registrant list for a class, including email and
+  // registration date (never exposed on the public endpoints).
+  async listForClass(classId: string) {
+    const registrations = await this.registrationsRepo.find({
+      where: { trainingClass: { id: classId } },
+      order: { registeredAt: 'ASC' },
+    });
+
+    return registrations.map((r) => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      registeredAt: r.registeredAt,
+    }));
+  }
 }

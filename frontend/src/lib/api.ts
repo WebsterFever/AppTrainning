@@ -77,6 +77,13 @@ export interface ChatThread {
   unreadCount: number;
 }
 
+export interface RegistrationDetail {
+  id: string;
+  name: string;
+  email: string;
+  registeredAt: string;
+}
+
 export interface Booking {
   id: string;
   name: string;
@@ -180,6 +187,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email }),
     }).then((r) => handle<{ success: boolean; registrationCount: number; zoomLink: string }>(r)),
+
+  // Admin only: full registrant list (name, email, registration date) for a class.
+  listRegistrations: (classId: string) =>
+    fetch(`${BASE_URL}/admin/classes/${classId}/registrations`, { headers: authHeader() }).then(
+      (r) => handle<RegistrationDetail[]>(r),
+    ),
 
   login: (email: string, password: string) =>
     fetch(`${BASE_URL}/auth/login`, {

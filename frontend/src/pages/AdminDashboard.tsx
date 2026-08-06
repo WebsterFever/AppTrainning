@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, authToken, Booking, ClassItem, NewExtraVideo } from '../lib/api';
+import { api, authToken, Booking, ClassItem, NewExtraVideo, RegistrationDetail } from '../lib/api';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ThemeToggle from '../components/ThemeToggle';
 import AdminComments from '../components/AdminComments';
@@ -25,6 +25,20 @@ function toDatetimeLocal(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function formatCountdown(classDate: string, now: Date): string {
+  const diffMs = new Date(classDate).getTime() - now.getTime();
+  if (diffMs <= 0) return 'Starting now';
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+  const parts: string[] = [];
+  if (days) parts.push(`${days}d`);
+  if (days || hours) parts.push(`${hours}h`);
+  parts.push(`${minutes}m`);
+  return `Starts in ${parts.join(' ')}`;
+}
+
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | undefined>(undefined);
   const [classes, setClasses] = useState<ClassItem[]>([]);
@@ -35,6 +49,10 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState<ClassItem | null>(null);
   const [pendingBookingDelete, setPendingBookingDelete] = useState<Booking | null>(null);
+  const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
+  const [registrantsByClass, setRegistrantsByClass] = useState<Record<string, RegistrationDetail[]>>({});
+  const [loadingRegistrants, setLoadingRegistrants] = useState<string | null>(null);
+  const [now, setNow] = useState(() => new Date());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +60,28 @@ export default function AdminDashboard() {
     setAuthed(hasToken);
     if (!hasToken) navigate('/admin');
   }, [navigate]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const toggleRegistrants = async (classId: string) => {
+    if (expandedClassId === classId) {
+      setExpandedClassId(null);
+      return;
+    }
+    setExpandedClassId(classId);
+    if (!registrantsByClass[classId]) {
+      setLoadingRegistrants(classId);
+      try {
+        const list = await api.listRegistrations(classId);
+        setRegistrantsByClass((current) => ({ ...current, [classId]: list }));
+      } finally {
+        setLoadingRegistrants(null);
+      }
+    }
+  };
 
   const load = () => api.listClassesAdmin().then(setClasses);
   const loadBookings = () => api.listBookings().then(setBookings);
@@ -386,49 +426,93 @@ export default function AdminDashboard() {
             {classes.map((c) => (
               <div
                 key={c.id}
-                className={`bg-surface border rounded-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 transition-colors ${
+                className={`bg-surface border rounded-sm p-4 transition-colors ${
                   editingId === c.id ? 'border-amber' : 'border-line hover:border-ink/20'
                 }`}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <img
-                    src={c.imageUrl}
-                    alt=""
-                    className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-sm border border-line flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-ink truncate">{c.title}</p>
-                    <p className="text-xs text-ink/50 font-mono mt-0.5">
-                      {new Date(c.classDate).toLocaleString('en-US', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
-                      {' · '}
-                      {c.registrationCount} registered
-                      {c.isPast && <span className="text-sage"> · PAST</span>}
-                    </p>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={c.imageUrl}
+                      alt=""
+                      className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-sm border border-line flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-ink truncate">{c.title}</p>
+                      <p className="text-xs text-ink/50 font-mono mt-0.5">
+                        {new Date(c.classDate).toLocaleString('en-US', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                        {' · '}
+                        {c.registrationCount} registered
+                        {c.isPast && <span className="text-sage"> · PAST</span>}
+                      </p>
+                      {!c.isPast && (
+                        <p className="text-xs text-amber font-mono mt-0.5">
+                          {formatCountdown(c.classDate, now)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 sm:flex-shrink-0">
+                    <button
+                      onClick={() => toggleRegistrants(c.id)}
+                      className="btn-outline text-xs px-2 py-1 flex-1 sm:flex-initial"
+                    >
+                      {expandedClassId === c.id ? 'Hide' : 'Registrants'}
+                    </button>
+                    <button
+                      onClick={() => startEdit(c)}
+                      className="btn-outline text-xs px-2 py-1 flex-1 sm:flex-initial"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => togglePast(c)}
+                      className="btn-outline text-xs px-2 py-1 flex-1 sm:flex-initial"
+                    >
+                      {c.isPast ? 'Mark upcoming' : 'Mark past'}
+                    </button>
+                    <button
+                      onClick={() => setPendingDelete(c)}
+                      className="btn-danger-outline text-xs px-2 py-1 flex-1 sm:flex-initial"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 sm:flex-shrink-0">
-                  <button
-                    onClick={() => startEdit(c)}
-                    className="btn-outline text-xs px-2 py-1 flex-1 sm:flex-initial"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => togglePast(c)}
-                    className="btn-outline text-xs px-2 py-1 flex-1 sm:flex-initial"
-                  >
-                    {c.isPast ? 'Mark upcoming' : 'Mark past'}
-                  </button>
-                  <button
-                    onClick={() => setPendingDelete(c)}
-                    className="btn-danger-outline text-xs px-2 py-1 flex-1 sm:flex-initial"
-                  >
-                    Delete
-                  </button>
-                </div>
+
+                {expandedClassId === c.id && (
+                  <div className="mt-3 pt-3 border-t border-line">
+                    {loadingRegistrants === c.id ? (
+                      <p className="text-xs text-ink/40">Loading registrants…</p>
+                    ) : (registrantsByClass[c.id]?.length ?? 0) === 0 ? (
+                      <p className="text-xs text-ink/40">No one has registered yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {registrantsByClass[c.id].map((r) => (
+                          <div
+                            key={r.id}
+                            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2 text-sm"
+                          >
+                            <div className="min-w-0">
+                              <span className="font-medium text-ink">{r.name}</span>{' '}
+                              <span className="text-ink/50 font-mono text-xs">{r.email}</span>
+                            </div>
+                            <span className="text-xs text-ink/40 font-mono flex-shrink-0">
+                              Registered{' '}
+                              {new Date(r.registeredAt).toLocaleString('en-US', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short',
+                              })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
             {classes.length === 0 && (

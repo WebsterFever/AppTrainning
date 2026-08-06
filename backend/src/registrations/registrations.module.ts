@@ -3,11 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Registration } from './registration.entity';
 import { RegistrationsService } from './registrations.service';
 import { RegistrationsController } from './registrations.controller';
+import { AdminRegistrationsController } from './admin-registrations.controller';
 import { ClassesModule } from '../classes/classes.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Registration]), ClassesModule],
-  controllers: [RegistrationsController],
+  controllers: [RegistrationsController, AdminRegistrationsController],
   providers: [RegistrationsService],
 })
 export class RegistrationsModule {}
