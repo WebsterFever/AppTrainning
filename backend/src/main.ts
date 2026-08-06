@@ -8,7 +8,13 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
   app.enableCors({
-    origin: config.get<string>('FRONTEND_URL') ?? '*',
+    origin: [
+      'http://localhost:5173',
+      'https://app-trainning.vercel.app',
+      'https://app-trainning-6x6nyl1qb-websterfevers-projects.vercel.app',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
 
@@ -21,8 +27,10 @@ async function bootstrap() {
   );
 
   const port = config.get<number>('PORT') ?? 3000;
-  await app.listen(port);
-  // eslint-disable-next-line no-console
-  console.log(`Webster Technology School API running on http://localhost:${port}`);
+
+  await app.listen(port, '0.0.0.0');
+
+  console.log(`Webster Technology School API running on port ${port}`);
 }
+
 bootstrap();
