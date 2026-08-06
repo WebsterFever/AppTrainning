@@ -12,6 +12,8 @@ async function bootstrap() {
       'http://localhost:5173',
       'https://app-trainning.vercel.app',
       'https://app-trainning-6x6nyl1qb-websterfevers-projects.vercel.app',
+      'https://webstertechnologyschool.com',
+      'https://www.webstertechnologyschool.com',
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
