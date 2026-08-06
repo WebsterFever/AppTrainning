@@ -345,11 +345,9 @@ export default function ClassManager({
           </div>
           <div>
             <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-              Date &amp; time{' '}
-              {isPaid && <span className="normal-case text-ink/30">(optional)</span>}
+              Date &amp; time <span className="normal-case text-ink/30">(optional)</span>
             </label>
             <input
-              required={!isPaid}
               type="datetime-local"
               value={form.classDate}
               onChange={(e) => setForm({ ...form, classDate: e.target.value })}
@@ -358,11 +356,9 @@ export default function ClassManager({
           </div>
           <div>
             <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-              Zoom link{' '}
-              {isPaid && <span className="normal-case text-ink/30">(optional)</span>}
+              Zoom link <span className="normal-case text-ink/30">(optional)</span>
             </label>
             <input
-              required={!isPaid}
               placeholder="https://zoom.us/j/…"
               value={form.zoomLink}
               onChange={(e) => setForm({ ...form, zoomLink: e.target.value })}
