@@ -18,14 +18,14 @@ export default function Header() {
           <img
             src="/logoLightMode.png"
             alt="Webster Technology School"
-            className="h-14 sm:h-20 lg:h-32 w-auto dark:hidden"
+            className="h-34 sm:h-40 lg:h-54 w-auto dark:hidden"
           />
 
           {/* Dark Mode Logo */}
           <img
             src="/logoDarkMode.png"
             alt="Webster Technology School"
-            className="hidden h-14 sm:h-20 lg:h-32 w-auto dark:block"
+            className="hidden h-24 sm:h-26 lg:h-54 w-auto dark:block"
           />
         </Link>
 
