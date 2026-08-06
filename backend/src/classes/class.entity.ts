@@ -31,11 +31,12 @@ export class TrainingClass {
   @Column('simple-json', { name: 'extra_videos', nullable: true })
   extraVideos?: { id: string; title: string; url: string; notes?: string }[];
 
-  @Column({ name: 'class_date', type: 'timestamptz' })
-  classDate: Date;
+  // Optional: paid classes may not have a fixed live session (e.g. self-paced content).
+  @Column({ name: 'class_date', type: 'timestamptz', nullable: true })
+  classDate?: Date;
 
-  @Column({ name: 'zoom_link' })
-  zoomLink: string;
+  @Column({ name: 'zoom_link', nullable: true })
+  zoomLink?: string;
 
   @Column({ name: 'is_past', default: false })
   isPast: boolean;

@@ -18,7 +18,8 @@ function emptyForm() {
 
 // Convert an ISO date string to the local "YYYY-MM-DDTHH:mm" format a
 // datetime-local input expects, using the browser's local timezone.
-function toDatetimeLocal(iso: string): string {
+function toDatetimeLocal(iso?: string): string {
+  if (!iso) return '';
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -133,8 +134,8 @@ export default function ClassManager({
         title: form.title,
         description: form.description,
         imageUrl: form.imageUrl,
-        classDate: form.classDate,
-        zoomLink: form.zoomLink,
+        classDate: form.classDate || undefined,
+        zoomLink: form.zoomLink.trim() || undefined,
         videoUrl: form.videoUrl.trim() || undefined,
         videoNotes: form.videoNotes.trim() || undefined,
         extraVideos: extraVideos.length ? extraVideos : undefined,
@@ -344,10 +345,11 @@ export default function ClassManager({
           </div>
           <div>
             <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-              Date &amp; time
+              Date &amp; time{' '}
+              {isPaid && <span className="normal-case text-ink/30">(optional)</span>}
             </label>
             <input
-              required
+              required={!isPaid}
               type="datetime-local"
               value={form.classDate}
               onChange={(e) => setForm({ ...form, classDate: e.target.value })}
@@ -356,10 +358,11 @@ export default function ClassManager({
           </div>
           <div>
             <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-              Zoom link
+              Zoom link{' '}
+              {isPaid && <span className="normal-case text-ink/30">(optional)</span>}
             </label>
             <input
-              required
+              required={!isPaid}
               placeholder="https://zoom.us/j/…"
               value={form.zoomLink}
               onChange={(e) => setForm({ ...form, zoomLink: e.target.value })}
@@ -451,15 +454,17 @@ export default function ClassManager({
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-ink truncate">{c.title}</p>
                     <p className="text-xs text-ink/50 font-mono mt-0.5">
-                      {new Date(c.classDate).toLocaleString('en-US', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
+                      {c.classDate
+                        ? new Date(c.classDate).toLocaleString('en-US', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })
+                        : 'No fixed date'}
                       {' · '}
                       {c.registrationCount} registered
                       {c.isPast && <span className="text-sage"> · PAST</span>}
                     </p>
-                    {!c.isPast && (
+                    {!c.isPast && c.classDate && (
                       <p className="text-xs text-amber font-mono mt-0.5">
                         {formatCountdown(c.classDate, now)}
                       </p>

@@ -38,11 +38,13 @@ export class CreateClassDto {
   @Type(() => ExtraVideoDto)
   extraVideos?: ExtraVideoDto[];
 
+  @IsOptional()
   @IsDateString()
-  classDate: string;
+  classDate?: string;
 
+  @IsOptional()
   @IsUrl({ require_tld: false })
-  zoomLink: string;
+  zoomLink?: string;
 
   @IsOptional()
   @IsBoolean()

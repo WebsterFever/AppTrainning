@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import type { ClassItem } from '../lib/api';
 
-function formatDateParts(iso: string) {
+function formatDateParts(iso?: string) {
+  if (!iso) return null;
   const date = new Date(iso);
 
   return {
@@ -21,7 +22,7 @@ function formatDateParts(iso: string) {
 }
 
 export default function ClassCard({ item }: { item: ClassItem }) {
-  const { day, month, time } = formatDateParts(item.classDate);
+  const dateParts = formatDateParts(item.classDate);
 
   return (
     <Link
@@ -38,15 +39,17 @@ export default function ClassCard({ item }: { item: ClassItem }) {
 
         <div className="absolute inset-0 bg-gradient-to-t from-ink/30 via-transparent to-transparent" />
 
-        <div className="absolute left-3 top-3 -rotate-2 rounded-sm bg-ink text-center font-mono text-chalk shadow-md transition-transform duration-200 group-hover:rotate-0">
-          <div className="px-3 pt-2 text-2xl leading-none tabular-nums">
-            {day}
-          </div>
+        {dateParts && (
+          <div className="absolute left-3 top-3 -rotate-2 rounded-sm bg-ink text-center font-mono text-chalk shadow-md transition-transform duration-200 group-hover:rotate-0">
+            <div className="px-3 pt-2 text-2xl leading-none tabular-nums">
+              {dateParts.day}
+            </div>
 
-          <div className="px-3 pb-2 text-[10px] tracking-widest">
-            {month}
+            <div className="px-3 pb-2 text-[10px] tracking-widest">
+              {dateParts.month}
+            </div>
           </div>
-        </div>
+        )}
 
         {item.isPast && (
           <div className="absolute right-3 top-3 rounded-sm bg-sage px-2 py-1 font-mono text-[10px] tracking-wide text-chalk">
@@ -67,7 +70,7 @@ export default function ClassCard({ item }: { item: ClassItem }) {
         </h3>
 
         <p className="mt-1 font-mono text-sm text-ink/60">
-          {time}
+          {dateParts ? dateParts.time : 'Self-paced'}
         </p>
 
         <p className="mt-3 line-clamp-2 text-sm leading-6 text-ink/70">

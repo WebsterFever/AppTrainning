@@ -15,8 +15,8 @@ export interface ClassWithCount {
   videoUrl?: string;
   videoNotes?: string;
   extraVideos?: { id: string; title: string; url: string; notes?: string }[];
-  classDate: Date;
-  zoomLink: string;
+  classDate?: Date;
+  zoomLink?: string;
   isPast: boolean;
   isPaid: boolean;
   allowedEmails?: string[];
@@ -73,7 +73,7 @@ export class ClassesService {
     const entity = this.classesRepo.create({
       ...dto,
       extraVideos: this.withVideoIds(dto.extraVideos),
-      classDate: new Date(dto.classDate),
+      classDate: dto.classDate ? new Date(dto.classDate) : undefined,
       ...(dto.allowedEmails ? { allowedEmails: this.normalizeEmails(dto.allowedEmails) } : {}),
     });
     return this.classesRepo.save(entity);

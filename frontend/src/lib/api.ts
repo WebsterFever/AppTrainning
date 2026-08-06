@@ -22,8 +22,8 @@ export interface ClassFormData {
   videoUrl?: string;
   videoNotes?: string;
   extraVideos?: NewExtraVideo[];
-  classDate: string;
-  zoomLink: string;
+  classDate?: string;
+  zoomLink?: string;
   isPaid?: boolean;
   allowedEmails?: string[];
 }
@@ -55,7 +55,7 @@ export interface ClassItem {
   videoUrl?: string;
   videoNotes?: string;
   extraVideos?: ExtraVideo[];
-  classDate: string;
+  classDate?: string;
   zoomLink?: string;
   isPast: boolean;
   isPaid: boolean;
@@ -190,7 +190,7 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email }),
-    }).then((r) => handle<{ success: boolean; registrationCount: number; zoomLink: string }>(r)),
+    }).then((r) => handle<{ success: boolean; registrationCount: number; zoomLink?: string }>(r)),
 
   // Admin only: full registrant list (name, email, registration date) for a class.
   listRegistrations: (classId: string) =>

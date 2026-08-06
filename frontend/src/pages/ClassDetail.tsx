@@ -54,7 +54,7 @@ export default function ClassDetail() {
     try {
       const res = await api.register(id, name, email);
       visitorIdentity.set(id, { name, email });
-      setZoomLink(res.zoomLink);
+      setZoomLink(res.zoomLink ?? '');
       setItem((current) =>
         current
           ? {
@@ -110,7 +110,7 @@ export default function ClassDetail() {
     );
   }
 
-  const date = new Date(item.classDate);
+  const date = item.classDate ? new Date(item.classDate) : null;
   const videoEmbed = item.videoUrl ? getVideoEmbed(item.videoUrl) : null;
   const gated = !item.isPast && !unlocked;
 
@@ -124,12 +124,18 @@ export default function ClassDetail() {
         </Link>
 
         <div className="flex items-center gap-3 mt-4 flex-wrap">
-          <span className="badge bg-ink text-chalk">
-            {date.toLocaleDateString('en-US', { dateStyle: 'medium' })}
-          </span>
-          <span className="font-mono text-xs text-ink/60">
-            {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </span>
+          {date ? (
+            <>
+              <span className="badge bg-ink text-chalk">
+                {date.toLocaleDateString('en-US', { dateStyle: 'medium' })}
+              </span>
+              <span className="font-mono text-xs text-ink/60">
+                {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+              </span>
+            </>
+          ) : (
+            <span className="badge bg-ink text-chalk">Self-paced</span>
+          )}
           {item.isPast && <span className="badge bg-sage text-chalk">PAST</span>}
           {item.isPaid && <span className="badge bg-amber text-midnight">PAID</span>}
         </div>
