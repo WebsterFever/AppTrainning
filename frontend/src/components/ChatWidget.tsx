@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, ChatMessage, chatIdentity, SCHOOL_NAME, visitorIdentity, VisitorIdentity } from '../lib/api';
 import { getSocket } from '../lib/socket';
+import {
+  playNotificationSound,
+  primeNotificationSound,
+  requestBrowserNotificationPermission,
+  showBrowserNotification,
+} from '../lib/notify';
+import Toast from './Toast';
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -12,6 +19,8 @@ export default function ChatWidget() {
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [unread, setUnread] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   // Registration form state (first-time chatters with no known identity).
   const [name, setName] = useState('');
@@ -21,11 +30,17 @@ export default function ChatWidget() {
   const [error, setError] = useState('');
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const openRef = useRef(open);
+  useEffect(() => {
+    openRef.current = open;
+    if (open) setUnread(false);
+  }, [open]);
 
   useEffect(() => {
     const existing = chatIdentity.get();
     setIdentity(existing);
     if (!existing) setDetectedIdentity(visitorIdentity.findAny());
+    requestBrowserNotificationPermission();
   }, []);
 
   useEffect(() => {
@@ -36,6 +51,12 @@ export default function ChatWidget() {
       .getChatThread(identity.email)
       .then(setMessages)
       .finally(() => setLoading(false));
+  }, [open, identity]);
+
+  // Stay subscribed even while the widget is closed so a reply from the
+  // school still triggers a sound/notification.
+  useEffect(() => {
+    if (!identity) return;
 
     const socket = getSocket();
     socket.emit('join-student', { email: identity.email });
@@ -44,12 +65,20 @@ export default function ChatWidget() {
       setMessages((current) =>
         current.some((m) => m.id === message.id) ? current : [...current, message],
       );
+      if (message.sender === 'admin') {
+        playNotificationSound();
+        if (!openRef.current) {
+          setUnread(true);
+          setToast(message.text);
+          showBrowserNotification(SCHOOL_NAME, message.text);
+        }
+      }
     };
     socket.on('new-message', onNewMessage);
     return () => {
       socket.off('new-message', onNewMessage);
     };
-  }, [open, identity]);
+  }, [identity]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -309,13 +338,23 @@ export default function ChatWidget() {
           </span>
         )}
         <button
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => {
+            primeNotificationSound();
+            setOpen((v) => !v);
+          }}
           aria-label={open ? 'Close chat' : 'Open chat'}
-          className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-amber text-midnight shadow-lg transition hover:-translate-y-0.5 hover:bg-coral"
+          className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-amber text-midnight shadow-lg transition hover:-translate-y-0.5 hover:bg-coral"
         >
           {open ? '✕' : '💬'}
+          {!open && unread && (
+            <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-chalk bg-coral" />
+          )}
         </button>
       </div>
+
+      {toast && (
+        <Toast title={`New message from ${SCHOOL_NAME}`} message={toast} onClose={() => setToast(null)} />
+      )}
     </div>
   );
 }

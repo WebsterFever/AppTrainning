@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, authToken, ChatMessage, ChatThread, SCHOOL_NAME } from '../lib/api';
 import { getSocket } from '../lib/socket';
+import {
+  playNotificationSound,
+  primeNotificationSound,
+  requestBrowserNotificationPermission,
+  showBrowserNotification,
+} from '../lib/notify';
+import Toast from './Toast';
 
 export default function AdminChat() {
   const [threads, setThreads] = useState<ChatThread[]>([]);
@@ -9,6 +16,7 @@ export default function AdminChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [toast, setToast] = useState<{ name: string; text: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Lets the socket handler below read the latest activeEmail without re-subscribing.
   const activeEmailRef = useRef<string | null>(null);
@@ -21,22 +29,28 @@ export default function AdminChat() {
 
   useEffect(() => {
     loadThreads().finally(() => setLoading(false));
+    requestBrowserNotificationPermission();
 
     const socket = getSocket();
     const token = authToken.get();
     if (token) socket.emit('join-admin', { token });
 
     const onNewMessage = (message: ChatMessage) => {
+      if (message.sender !== 'student') return;
       loadThreads();
+      const isActiveThread =
+        !!activeEmailRef.current && message.email.toLowerCase() === activeEmailRef.current.toLowerCase();
+
       setMessages((current) => {
-        if (
-          !activeEmailRef.current ||
-          message.email.toLowerCase() !== activeEmailRef.current.toLowerCase()
-        ) {
-          return current;
-        }
+        if (!isActiveThread) return current;
         return current.some((m) => m.id === message.id) ? current : [...current, message];
       });
+
+      playNotificationSound();
+      if (!isActiveThread) {
+        setToast({ name: message.name, text: message.text });
+        showBrowserNotification(`New message from ${message.name}`, message.text);
+      }
     };
     socket.on('new-message', onNewMessage);
     return () => {
@@ -49,6 +63,7 @@ export default function AdminChat() {
   }, [messages]);
 
   const openThread = async (email: string) => {
+    primeNotificationSound();
     setActiveEmail(email);
     const thread = await api.getAdminChatThread(email);
     setMessages(thread);
@@ -154,6 +169,14 @@ export default function AdminChat() {
             )}
           </div>
         </div>
+      )}
+
+      {toast && (
+        <Toast
+          title={`New message from ${toast.name}`}
+          message={toast.text}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );
