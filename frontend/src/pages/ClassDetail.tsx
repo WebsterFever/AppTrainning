@@ -131,6 +131,7 @@ export default function ClassDetail() {
             {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
           </span>
           {item.isPast && <span className="badge bg-sage text-chalk">PAST</span>}
+          {item.isPaid && <span className="badge bg-amber text-midnight">PAID</span>}
         </div>
 
         <h1 className="font-display text-2xl sm:text-3xl md:text-4xl text-ink mt-4">
@@ -161,8 +162,9 @@ export default function ClassDetail() {
             ) : (
               <div className="bg-surface border border-line rounded-sm p-5">
                 <p className="text-ink/70 text-sm">
-                  Register with your name and email to see the full class details and get the
-                  Zoom link.
+                  {item.isPaid
+                    ? "This is a paid class. Enter the email you purchased access with to unlock the full class details and Zoom link."
+                    : 'Register with your name and email to see the full class details and get the Zoom link.'}
                 </p>
                 <form onSubmit={submit} className="mt-4 space-y-3">
                   <div>
@@ -188,7 +190,11 @@ export default function ClassDetail() {
                   </div>
                   {status === 'error' && <p className="text-coral text-sm">{error}</p>}
                   <button type="submit" disabled={status === 'loading'} className="btn-primary w-full">
-                    {status === 'loading' ? 'Registering…' : 'Register to unlock details'}
+                    {status === 'loading'
+                      ? 'Checking…'
+                      : item.isPaid
+                        ? 'Unlock this class'
+                        : 'Register to unlock details'}
                   </button>
                 </form>
               </div>

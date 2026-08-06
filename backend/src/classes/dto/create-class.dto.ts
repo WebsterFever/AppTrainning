@@ -1,8 +1,9 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
   IsDateString,
+  IsEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -46,4 +47,14 @@ export class CreateClassDto {
   @IsOptional()
   @IsBoolean()
   isPast?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isPaid?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) => (Array.isArray(value) ? value.map((v: string) => v.trim()) : value))
+  @IsEmail({}, { each: true })
+  allowedEmails?: string[];
 }

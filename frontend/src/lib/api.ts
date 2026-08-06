@@ -24,6 +24,8 @@ export interface ClassFormData {
   extraVideos?: NewExtraVideo[];
   classDate: string;
   zoomLink: string;
+  isPaid?: boolean;
+  allowedEmails?: string[];
 }
 
 export interface VideoComment {
@@ -56,6 +58,8 @@ export interface ClassItem {
   classDate: string;
   zoomLink?: string;
   isPast: boolean;
+  isPaid: boolean;
+  allowedEmails?: string[];
   registrationCount: number;
   registeredNames?: string[];
 }

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Registration } from './registration.entity';
@@ -15,9 +15,19 @@ export class RegistrationsService {
 
   async register(classId: string, dto: RegisterDto) {
     const trainingClass = await this.classesService.getEntity(classId);
+    const email = dto.email.toLowerCase();
+
+    if (trainingClass.isPaid) {
+      const allowed = (trainingClass.allowedEmails ?? []).map((e) => e.toLowerCase());
+      if (!allowed.includes(email)) {
+        throw new ForbiddenException(
+          "This is a paid class and this email hasn't been granted access. Contact Webster Technology School.",
+        );
+      }
+    }
 
     const existing = await this.registrationsRepo.findOne({
-      where: { trainingClass: { id: classId }, email: dto.email.toLowerCase() },
+      where: { trainingClass: { id: classId }, email },
     });
     if (existing) {
       throw new ConflictException('This email is already registered for this class');
@@ -26,7 +36,7 @@ export class RegistrationsService {
     const registration = this.registrationsRepo.create({
       trainingClass,
       name: dto.name,
-      email: dto.email.toLowerCase(),
+      email,
     });
     await this.registrationsRepo.save(registration);
 

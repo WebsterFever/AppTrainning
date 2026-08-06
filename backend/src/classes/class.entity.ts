@@ -40,6 +40,13 @@ export class TrainingClass {
   @Column({ name: 'is_past', default: false })
   isPast: boolean;
 
+  @Column({ name: 'is_paid', default: false })
+  isPaid: boolean;
+
+  // Admin-managed allowlist: only these emails can register for a paid class.
+  @Column('simple-json', { name: 'allowed_emails', nullable: true })
+  allowedEmails?: string[];
+
   @OneToMany(() => Registration, (registration) => registration.trainingClass)
   registrations: Registration[];
 

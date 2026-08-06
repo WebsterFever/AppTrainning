@@ -18,6 +18,8 @@ export interface ClassWithCount {
   classDate: Date;
   zoomLink: string;
   isPast: boolean;
+  isPaid: boolean;
+  allowedEmails?: string[];
   registrationCount: number;
   registeredNames?: string[];
 }
@@ -72,6 +74,7 @@ export class ClassesService {
       ...dto,
       extraVideos: this.withVideoIds(dto.extraVideos),
       classDate: new Date(dto.classDate),
+      ...(dto.allowedEmails ? { allowedEmails: this.normalizeEmails(dto.allowedEmails) } : {}),
     });
     return this.classesRepo.save(entity);
   }
@@ -83,9 +86,19 @@ export class ClassesService {
     Object.assign(existing, {
       ...dto,
       ...(dto.extraVideos ? { extraVideos: this.withVideoIds(dto.extraVideos) } : {}),
+      ...(dto.allowedEmails ? { allowedEmails: this.normalizeEmails(dto.allowedEmails) } : {}),
       classDate: dto.classDate ? new Date(dto.classDate) : existing.classDate,
     });
     return this.classesRepo.save(existing);
+  }
+
+  private normalizeEmails(emails: string[]): string[] {
+    const seen = new Set<string>();
+    for (const email of emails) {
+      const normalized = email.trim().toLowerCase();
+      if (normalized) seen.add(normalized);
+    }
+    return Array.from(seen);
   }
 
   private withVideoIds(
@@ -138,6 +151,9 @@ export class ClassesService {
       // Hide link publicly pre-registration, unless explicitly revealed (admin views).
       zoomLink: row.isPast || revealZoomLink ? row.zoomLink : undefined,
       isPast: row.isPast,
+      isPaid: row.isPaid,
+      // The allowlist itself is admin-only — never exposed to public/student views.
+      ...(revealZoomLink ? { allowedEmails: row.allowedEmails ?? [] } : {}),
       registrationCount: includeNames ? (names?.length ?? 0) : (row.registrationCount ?? 0),
       ...(names ? { registeredNames: names } : {}),
     } as ClassWithCount;

@@ -53,6 +53,12 @@ export default function ClassCard({ item }: { item: ClassItem }) {
             PAST
           </div>
         )}
+
+        {item.isPaid && (
+          <div className="absolute right-3 bottom-3 rounded-sm bg-amber px-2 py-1 font-mono text-[10px] tracking-wide text-midnight">
+            PAID
+          </div>
+        )}
       </div>
 
       <div className="p-4">
