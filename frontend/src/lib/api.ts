@@ -28,6 +28,56 @@ export interface ClassFormData {
   allowedEmails?: string[];
 }
 
+export interface ContestantEntry {
+  id: string;
+  name: string;
+  imageUrl: string;
+  points: number;
+  subscribedAt: string;
+}
+
+export interface Leaderboard {
+  goal: number;
+  contestants: ContestantEntry[];
+}
+
+export interface CurrentQuestion {
+  id: string;
+  subject: string;
+  questionText: string;
+  answered: boolean;
+  winnerName?: string;
+}
+
+export interface MonthlyWinnerEntry {
+  id: string;
+  periodMonth: string;
+  contestantName: string;
+  contestantImageUrl: string;
+  points: number;
+  createdAt: string;
+}
+
+export interface AdminQuestion {
+  id: string;
+  subject: string;
+  questionText: string;
+  correctAnswer: string;
+  winnerName?: string;
+  answeredAt?: string;
+  createdAt: string;
+}
+
+export interface AdminContestant {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  imageUrl: string;
+  points: number;
+  createdAt: string;
+}
+
 export interface VideoComment {
   id: string;
   name: string;
@@ -157,6 +207,30 @@ export const chatIdentity = {
   },
 };
 
+export interface ContestIdentity {
+  name: string;
+  email: string;
+  phone: string;
+  imageUrl: string;
+}
+
+const CONTEST_IDENTITY_KEY = 'classboard_contest_identity';
+
+export const contestIdentity = {
+  get: (): ContestIdentity | null => {
+    const raw = localStorage.getItem(CONTEST_IDENTITY_KEY);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as ContestIdentity;
+    } catch {
+      return null;
+    }
+  },
+  set: (identity: ContestIdentity) => {
+    localStorage.setItem(CONTEST_IDENTITY_KEY, JSON.stringify(identity));
+  },
+};
+
 function authHeader(): Record<string, string> {
   const token = authToken.get();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -167,7 +241,8 @@ async function handle<T>(res: Response): Promise<T> {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message || `Request failed (${res.status})`);
   }
-  return res.json();
+  const text = await res.text();
+  return (text ? JSON.parse(text) : null) as T;
 }
 
 export const api = {
@@ -313,6 +388,55 @@ export const api = {
       headers: { 'Content-Type': 'application/json', ...authHeader() },
       body: JSON.stringify({ text }),
     }).then((r) => handle<ChatMessage>(r)),
+
+  subscribeContest: (name: string, email: string, phone: string, imageUrl: string) =>
+    fetch(`${BASE_URL}/contest/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, phone, imageUrl }),
+    }).then((r) => handle<{ id: string }>(r)),
+
+  uploadContestPhoto: (file: File) => {
+    const form = new FormData();
+    form.append('photo', file);
+    return fetch(`${BASE_URL}/uploads/contest-photo`, {
+      method: 'POST',
+      body: form,
+    }).then((r) => handle<{ url: string }>(r));
+  },
+
+  getLeaderboard: () =>
+    fetch(`${BASE_URL}/contest/leaderboard`).then((r) => handle<Leaderboard>(r)),
+
+  getCurrentQuestion: () =>
+    fetch(`${BASE_URL}/contest/question`).then((r) => handle<CurrentQuestion | null>(r)),
+
+  submitContestAnswer: (email: string, answer: string) =>
+    fetch(`${BASE_URL}/contest/answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, answer }),
+    }).then((r) => handle<{ correct: boolean; won: boolean; points: number }>(r)),
+
+  getContestHistory: () =>
+    fetch(`${BASE_URL}/contest/history`).then((r) => handle<MonthlyWinnerEntry[]>(r)),
+
+  createContestQuestion: (subject: string, questionText: string, correctAnswer: string) =>
+    fetch(`${BASE_URL}/admin/contest/questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify({ subject, questionText, correctAnswer }),
+    }).then((r) => handle<AdminQuestion>(r)),
+
+  listContestQuestions: () =>
+    fetch(`${BASE_URL}/admin/contest/questions`, { headers: authHeader() }).then((r) =>
+      handle<AdminQuestion[]>(r),
+    ),
+
+  listContestants: () =>
+    fetch(`${BASE_URL}/admin/contest/contestants`, { headers: authHeader() }).then((r) =>
+      handle<AdminContestant[]>(r),
+    ),
 };
 
 export { BASE_URL };

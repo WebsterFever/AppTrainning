@@ -8,6 +8,8 @@ import { CommentsModule } from './comments/comments.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
+import { ContestModule } from './contest/contest.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -45,6 +47,8 @@ import { ChatModule } from './chat/chat.module';
     CommentsModule,
     BookingsModule,
     ChatModule,
+    ContestModule,
+    UploadsModule,
   ],
 })
 export class AppModule {}

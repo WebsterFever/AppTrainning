@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import TechnologyAside from '../components/TechnologyAside';
 import ChatWidget from '../components/ChatWidget';
+import WinnerOfMonth from '../components/WinnerOfMonth';
 
 export default function Home() {
   const [upcoming, setUpcoming] = useState<ClassItem[]>([]);
@@ -113,7 +114,7 @@ export default function Home() {
 
         {/* Section heading and statistics */}
         <section className="mx-auto w-full max-w-[1500px] px-4 pb-8 sm:px-6 lg:px-8">
-          <div className="grid gap-8 border-b border-line pb-10 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div className="grid gap-8 border-b border-line pb-10 lg:grid-cols-[1fr_360px] lg:items-start">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-widest text-amber sm:text-xs">
                 Learn live, hosted on Zoom
@@ -129,36 +130,40 @@ export default function Home() {
               </p>
             </div>
 
-            {!loading && (upcoming.length > 0 || past.length > 0) && (
-              <div className="grid grid-cols-3 gap-3">
-                <div className="min-w-[100px] rounded-xl border border-line bg-surface p-4 text-center shadow-sm">
-                  <strong className="block text-2xl text-ink">
-                    {upcoming.length}
-                  </strong>
-                  <span className="font-mono text-[10px] uppercase tracking-wide text-ink/50">
-                    upcoming
-                  </span>
-                </div>
+            <div className="space-y-4">
+              {!loading && (upcoming.length > 0 || past.length > 0) && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="min-w-0 rounded-xl border border-line bg-surface p-4 text-center shadow-sm">
+                    <strong className="block text-2xl text-ink">
+                      {upcoming.length}
+                    </strong>
+                    <span className="font-mono text-[10px] uppercase tracking-wide text-ink/50">
+                      upcoming
+                    </span>
+                  </div>
 
-                <div className="min-w-[100px] rounded-xl border border-line bg-surface p-4 text-center shadow-sm">
-                  <strong className="block text-2xl text-ink">
-                    {past.length}
-                  </strong>
-                  <span className="font-mono text-[10px] uppercase tracking-wide text-ink/50">
-                    completed
-                  </span>
-                </div>
+                  <div className="min-w-0 rounded-xl border border-line bg-surface p-4 text-center shadow-sm">
+                    <strong className="block text-2xl text-ink">
+                      {past.length}
+                    </strong>
+                    <span className="font-mono text-[10px] uppercase tracking-wide text-ink/50">
+                      completed
+                    </span>
+                  </div>
 
-                <div className="min-w-[100px] rounded-xl border border-line bg-surface p-4 text-center shadow-sm">
-                  <strong className="block text-2xl text-ink">
-                    {totalRegistered}
-                  </strong>
-                  <span className="font-mono text-[10px] uppercase tracking-wide text-ink/50">
-                    registrations
-                  </span>
+                  <div className="min-w-0 rounded-xl border border-line bg-surface p-4 text-center shadow-sm">
+                    <strong className="block text-2xl text-ink">
+                      {totalRegistered}
+                    </strong>
+                    <span className="font-mono text-[10px] uppercase tracking-wide text-ink/50">
+                      registrations
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              <WinnerOfMonth />
+            </div>
           </div>
         </section>
 

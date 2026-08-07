@@ -6,6 +6,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import AdminComments from '../components/AdminComments';
 import AdminChat from '../components/AdminChat';
 import ClassManager from '../components/ClassManager';
+import AdminContest from '../components/AdminContest';
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | undefined>(undefined);
@@ -148,6 +149,8 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      <AdminContest />
 
       <AdminChat />
 
