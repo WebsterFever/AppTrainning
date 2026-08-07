@@ -110,6 +110,36 @@ export default function ClassDetail() {
     );
   }
 
+  const renderResourceLinks = (pdfUrl?: string, imageUrl?: string) => {
+    if (!pdfUrl && !imageUrl) return null;
+    return (
+      <div className="mt-3 flex flex-wrap gap-2">
+        {pdfUrl && (
+          <a
+            href={pdfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download
+            className="btn-outline text-xs px-3 py-1.5"
+          >
+            📄 Download PDF
+          </a>
+        )}
+        {imageUrl && (
+          <a
+            href={imageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download
+            className="btn-outline text-xs px-3 py-1.5"
+          >
+            🖼️ Download picture
+          </a>
+        )}
+      </div>
+    );
+  };
+
   const date = item.classDate ? new Date(item.classDate) : null;
   const videoEmbed = item.videoUrl ? getVideoEmbed(item.videoUrl) : null;
   const gated = !item.isPast && !unlocked;
@@ -244,6 +274,7 @@ export default function ClassDetail() {
                 </p>
               </div>
             )}
+            {renderResourceLinks(item.videoPdfUrl, item.videoResourceImageUrl)}
 
             {item.videoUrl && <VideoComments classId={item.id} videoRef="main" />}
 
@@ -314,6 +345,7 @@ export default function ClassDetail() {
                               </p>
                             </div>
                           )}
+                          {renderResourceLinks(video.pdfUrl, video.imageUrl)}
                           <VideoComments classId={item.id} videoRef={video.id} />
                         </div>
                       )}

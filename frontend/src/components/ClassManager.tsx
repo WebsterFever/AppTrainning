@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import { api, ClassItem, NewExtraVideo, RegistrationDetail } from '../lib/api';
 import ConfirmDialog from './ConfirmDialog';
 
+type ExtraVideoForm = NewExtraVideo & { pdfFile?: File | null; imageFile?: File | null };
+
+function emptyExtraVideo(): ExtraVideoForm {
+  return { title: '', url: '', notes: '', pdfUrl: '', imageUrl: '', pdfFile: null, imageFile: null };
+}
+
 function emptyForm() {
   return {
     title: '',
@@ -9,11 +15,23 @@ function emptyForm() {
     imageUrl: '',
     videoUrl: '',
     videoNotes: '',
-    extraVideos: [{ title: '', url: '', notes: '' }] as NewExtraVideo[],
+    videoPdfUrl: '',
+    videoResourceImageUrl: '',
+    videoPdfFile: null as File | null,
+    videoImageFile: null as File | null,
+    extraVideos: [emptyExtraVideo()] as ExtraVideoForm[],
     classDate: '',
     zoomLink: '',
     allowedEmails: [''] as string[],
   };
+}
+
+async function resolveResourceUrl(
+  file: File | null | undefined,
+  existingUrl: string | undefined,
+): Promise<string | undefined> {
+  if (file) return (await api.uploadClassResource(file)).url;
+  return existingUrl || undefined;
 }
 
 // Convert an ISO date string to the local "YYYY-MM-DDTHH:mm" format a
@@ -95,9 +113,22 @@ export default function ClassManager({
       imageUrl: c.imageUrl,
       videoUrl: c.videoUrl ?? '',
       videoNotes: c.videoNotes ?? '',
+      videoPdfUrl: c.videoPdfUrl ?? '',
+      videoResourceImageUrl: c.videoResourceImageUrl ?? '',
+      videoPdfFile: null,
+      videoImageFile: null,
       extraVideos: c.extraVideos?.length
-        ? c.extraVideos.map((v) => ({ id: v.id, title: v.title, url: v.url, notes: v.notes ?? '' }))
-        : [{ title: '', url: '', notes: '' }],
+        ? c.extraVideos.map((v) => ({
+            id: v.id,
+            title: v.title,
+            url: v.url,
+            notes: v.notes ?? '',
+            pdfUrl: v.pdfUrl ?? '',
+            imageUrl: v.imageUrl ?? '',
+            pdfFile: null,
+            imageFile: null,
+          }))
+        : [emptyExtraVideo()],
       classDate: toDatetimeLocal(c.classDate),
       zoomLink: c.zoomLink ?? '',
       allowedEmails: c.allowedEmails?.length ? c.allowedEmails : [''],
@@ -116,19 +147,31 @@ export default function ClassManager({
     setSaving(true);
     setError('');
     try {
-      const extraVideos = form.extraVideos
-        .map((v) => ({
-          id: v.id,
-          title: v.title.trim(),
-          url: v.url.trim(),
-          notes: (v.notes ?? '').trim(),
-        }))
+      const [videoPdfUrl, videoResourceImageUrl] = await Promise.all([
+        resolveResourceUrl(form.videoPdfFile, form.videoPdfUrl),
+        resolveResourceUrl(form.videoImageFile, form.videoResourceImageUrl),
+      ]);
+
+      const extraVideos = (
+        await Promise.all(
+          form.extraVideos.map(async (v) => ({
+            id: v.id,
+            title: v.title.trim(),
+            url: v.url.trim(),
+            notes: (v.notes ?? '').trim(),
+            pdfUrl: await resolveResourceUrl(v.pdfFile, v.pdfUrl),
+            imageUrl: await resolveResourceUrl(v.imageFile, v.imageUrl),
+          })),
+        )
+      )
         .filter((v) => v.url)
         .map((v, i) => ({
           id: v.id,
           title: v.title || `Video ${i + 2}`,
           url: v.url,
           notes: v.notes || undefined,
+          pdfUrl: v.pdfUrl,
+          imageUrl: v.imageUrl,
         }));
       const payload = {
         title: form.title,
@@ -138,6 +181,8 @@ export default function ClassManager({
         zoomLink: form.zoomLink.trim() || undefined,
         videoUrl: form.videoUrl.trim() || undefined,
         videoNotes: form.videoNotes.trim() || undefined,
+        videoPdfUrl,
+        videoResourceImageUrl,
         extraVideos: extraVideos.length ? extraVideos : undefined,
         isPaid,
         ...(isPaid
@@ -270,6 +315,43 @@ export default function ClassManager({
               className="input h-20"
             />
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
+                PDF <span className="normal-case text-ink/30">(optional)</span>
+              </label>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setForm({ ...form, videoPdfFile: e.target.files?.[0] ?? null })}
+                className="input text-xs file:mr-2"
+              />
+              {(form.videoPdfFile || form.videoPdfUrl) && (
+                <p className="text-[11px] text-sage mt-1">
+                  ✓ {form.videoPdfFile?.name ?? 'PDF attached'}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
+                Picture <span className="normal-case text-ink/30">(optional)</span>
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setForm({ ...form, videoImageFile: e.target.files?.[0] ?? null })}
+                className="input text-xs file:mr-2"
+              />
+              {(form.videoImageFile || form.videoResourceImageUrl) && (
+                <p className="text-[11px] text-sage mt-1">
+                  ✓ {form.videoImageFile?.name ?? 'Picture attached'}
+                </p>
+              )}
+            </div>
+            <p className="col-span-2 text-[11px] text-ink/40">
+              Downloadable resources for students, shown with the main video.
+            </p>
+          </div>
           <div>
             <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
               Additional videos <span className="normal-case text-ink/30">(optional)</span>
@@ -308,6 +390,42 @@ export default function ClassManager({
                       }}
                       className="input h-16 text-sm"
                     />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          onChange={(e) => {
+                            const next = [...form.extraVideos];
+                            next[i] = { ...next[i], pdfFile: e.target.files?.[0] ?? null };
+                            setForm({ ...form, extraVideos: next });
+                          }}
+                          className="input text-xs file:mr-2"
+                        />
+                        {(video.pdfFile || video.pdfUrl) && (
+                          <p className="text-[11px] text-sage mt-1">
+                            ✓ {video.pdfFile?.name ?? 'PDF attached'}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const next = [...form.extraVideos];
+                            next[i] = { ...next[i], imageFile: e.target.files?.[0] ?? null };
+                            setForm({ ...form, extraVideos: next });
+                          }}
+                          className="input text-xs file:mr-2"
+                        />
+                        {(video.imageFile || video.imageUrl) && (
+                          <p className="text-[11px] text-sage mt-1">
+                            ✓ {video.imageFile?.name ?? 'Picture attached'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   {form.extraVideos.length > 1 && (
                     <button
@@ -332,7 +450,7 @@ export default function ClassManager({
               onClick={() =>
                 setForm({
                   ...form,
-                  extraVideos: [...form.extraVideos, { title: '', url: '', notes: '' }],
+                  extraVideos: [...form.extraVideos, emptyExtraVideo()],
                 })
               }
               className="text-xs font-semibold text-amber hover:text-coral mt-2"

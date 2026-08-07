@@ -6,6 +6,8 @@ export interface ExtraVideo {
   title: string;
   url: string;
   notes?: string;
+  pdfUrl?: string;
+  imageUrl?: string;
 }
 
 export interface NewExtraVideo {
@@ -13,6 +15,8 @@ export interface NewExtraVideo {
   title: string;
   url: string;
   notes?: string;
+  pdfUrl?: string;
+  imageUrl?: string;
 }
 
 export interface ClassFormData {
@@ -21,6 +25,8 @@ export interface ClassFormData {
   imageUrl: string;
   videoUrl?: string;
   videoNotes?: string;
+  videoPdfUrl?: string;
+  videoResourceImageUrl?: string;
   extraVideos?: NewExtraVideo[];
   classDate?: string;
   zoomLink?: string;
@@ -104,6 +110,8 @@ export interface ClassItem {
   imageUrl: string;
   videoUrl?: string;
   videoNotes?: string;
+  videoPdfUrl?: string;
+  videoResourceImageUrl?: string;
   extraVideos?: ExtraVideo[];
   classDate?: string;
   zoomLink?: string;
@@ -404,6 +412,17 @@ export const api = {
     form.append('photo', file);
     return fetch(`${BASE_URL}/uploads/contest-photo`, {
       method: 'POST',
+      body: form,
+    }).then((r) => handle<{ url: string }>(r));
+  },
+
+  // Admin only: PDF/picture resources attached to a class video.
+  uploadClassResource: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return fetch(`${BASE_URL}/uploads/class-resource`, {
+      method: 'POST',
+      headers: authHeader(),
       body: form,
     }).then((r) => handle<{ url: string }>(r));
   },

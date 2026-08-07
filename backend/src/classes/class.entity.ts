@@ -28,8 +28,22 @@ export class TrainingClass {
   @Column({ type: 'text', name: 'video_notes', nullable: true })
   videoNotes?: string;
 
+  // Downloadable resources attached to the main video.
+  @Column({ name: 'video_pdf_url', nullable: true })
+  videoPdfUrl?: string;
+
+  @Column({ name: 'video_resource_image_url', nullable: true })
+  videoResourceImageUrl?: string;
+
   @Column('simple-json', { name: 'extra_videos', nullable: true })
-  extraVideos?: { id: string; title: string; url: string; notes?: string }[];
+  extraVideos?: {
+    id: string;
+    title: string;
+    url: string;
+    notes?: string;
+    pdfUrl?: string;
+    imageUrl?: string;
+  }[];
 
   // Optional: paid classes may not have a fixed live session (e.g. self-paced content).
   @Column({ name: 'class_date', type: 'timestamptz', nullable: true })

@@ -15,4 +15,12 @@ export class ExtraVideoDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false })
+  pdfUrl?: string;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false })
+  imageUrl?: string;
 }

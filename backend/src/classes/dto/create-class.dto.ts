@@ -33,6 +33,14 @@ export class CreateClassDto {
   videoNotes?: string;
 
   @IsOptional()
+  @IsUrl({ require_tld: false })
+  videoPdfUrl?: string;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false })
+  videoResourceImageUrl?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ExtraVideoDto)

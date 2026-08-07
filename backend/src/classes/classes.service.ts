@@ -14,7 +14,16 @@ export interface ClassWithCount {
   imageUrl: string;
   videoUrl?: string;
   videoNotes?: string;
-  extraVideos?: { id: string; title: string; url: string; notes?: string }[];
+  videoPdfUrl?: string;
+  videoResourceImageUrl?: string;
+  extraVideos?: {
+    id: string;
+    title: string;
+    url: string;
+    notes?: string;
+    pdfUrl?: string;
+    imageUrl?: string;
+  }[];
   classDate?: Date;
   zoomLink?: string;
   isPast: boolean;
@@ -101,14 +110,14 @@ export class ClassesService {
     return Array.from(seen);
   }
 
-  private withVideoIds(
-    extraVideos?: ExtraVideoDto[],
-  ): { id: string; title: string; url: string; notes?: string }[] | undefined {
+  private withVideoIds(extraVideos?: ExtraVideoDto[]): TrainingClass['extraVideos'] {
     return extraVideos?.map((v) => ({
       id: v.id ?? randomUUID(),
       title: v.title,
       url: v.url,
       notes: v.notes,
+      pdfUrl: v.pdfUrl,
+      imageUrl: v.imageUrl,
     }));
   }
 
@@ -146,6 +155,8 @@ export class ClassesService {
       imageUrl: row.imageUrl,
       videoUrl: row.videoUrl,
       videoNotes: row.videoNotes,
+      videoPdfUrl: row.videoPdfUrl,
+      videoResourceImageUrl: row.videoResourceImageUrl,
       extraVideos: row.extraVideos,
       classDate: row.classDate,
       // Hide link publicly pre-registration, unless explicitly revealed (admin views).
