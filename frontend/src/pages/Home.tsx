@@ -78,7 +78,7 @@ export default function Home() {
 
                 <p className="mt-5 max-w-2xl text-sm leading-7 text-ink/65 dark:text-white/75 sm:text-lg sm:leading-8">
                   Join practical live classes in artificial intelligence,
-                  
+
                   and modern technology.
                 </p>
 
@@ -112,147 +112,230 @@ export default function Home() {
           </div>
         </section>
 
-      {/* Upcoming classes introduction + Winner of the Month */}
-<section className="mx-auto w-full max-w-[1500px] px-4 pb-10 sm:px-6 lg:px-8">
-  <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm sm:rounded-3xl">
-    <div className="grid items-stretch lg:grid-cols-[minmax(0,1fr)_400px]">
-      {/* Left content */}
-      <div className="relative flex min-h-full flex-col overflow-hidden p-5 sm:p-8 lg:p-10 xl:p-12">
-        {/* Decorative background */}
-        <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-amber/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-28 right-0 h-72 w-72 rounded-full bg-sage/10 blur-3xl" />
+        {/* Upcoming classes introduction + Winner of the Month */}
+        {/* Upcoming classes introduction + Winner of the Month */}
+        <section className="mx-auto w-full max-w-[1500px] px-4 pb-10 sm:px-6 lg:px-8">
+          <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm sm:rounded-3xl">
+            <div className="grid items-stretch lg:grid-cols-[minmax(0,1fr)_400px]">
 
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.025]"
-          style={{
-            backgroundImage:
-              'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
-          }}
-        />
+              {/* Left content */}
+              <div className="relative flex min-h-full flex-col overflow-hidden p-5 sm:p-8 lg:p-10 xl:p-12">
+                <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-amber/10 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-28 right-0 h-72 w-72 rounded-full bg-sage/10 blur-3xl" />
 
-        <div className="relative flex h-full flex-col">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber sm:text-xs">
-              Learn live · Hosted on Zoom
-            </p>
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-[0.025]"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+                    backgroundSize: '32px 32px',
+                  }}
+                />
 
-            <h2 className="mt-3 max-w-3xl font-display text-3xl leading-[1.05] text-ink sm:text-4xl md:text-5xl">
-              Upcoming classes you can register for right now.
-            </h2>
+                <div className="relative flex h-full flex-col">
+                  {/* Heading */}
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber sm:text-xs">
+                      Monthly Competition · Win $100
+                    </p>
 
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-ink/60 sm:text-base">
-              Pick a class, register with your email, and receive the Zoom link
-              directly in your inbox.
-            </p>
-          </div>
+                    <h2 className="mt-3 max-w-3xl font-display text-3xl leading-[1.05] text-ink sm:text-4xl md:text-5xl">
+                      Winner of the Month
+                    </h2>
 
-          {/* Benefits */}
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-line bg-chalk/60 p-4">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber/15 text-lg">
-                💻
-              </span>
+                    <p className="mt-4 max-w-2xl text-sm leading-7 text-ink/60 sm:text-base">
+                      Answer the daily question, earn points, and climb the leaderboard.
+                      The participant with the most points at the end of each month wins
+                      <strong className="text-ink"> $100.</strong>
+                    </p>
+                  </div>
 
-              <h3 className="mt-3 text-sm font-semibold text-ink">
-                Live learning
-              </h3>
+                  {/* Top 3 Winners */}
+                  <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
 
-              <p className="mt-1 text-xs leading-5 text-ink/55">
-                Learn directly from your instructor on Zoom.
-              </p>
-            </div>
+                    {/* First Place */}
+                    <div className="relative overflow-hidden rounded-2xl border-2 border-amber/60 bg-amber/5 p-5 text-center shadow-md">
+                      <div className="absolute right-3 top-3 rounded-full bg-amber px-3 py-1 font-mono text-[10px] font-semibold text-midnight">
+                        1ST
+                      </div>
 
-            <div className="rounded-xl border border-line bg-chalk/60 p-4">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sage/15 text-lg">
-                🛠️
-              </span>
+                      <div className="text-4xl">
+                        🥇
+                      </div>
 
-              <h3 className="mt-3 text-sm font-semibold text-ink">
-                Practical skills
-              </h3>
+                      <div className="mx-auto mt-3 h-24 w-24 overflow-hidden rounded-full border-4 border-amber/30 bg-surface shadow-md">
+                        <img
+                          src="https://randomuser.me/api/portraits/women/44.jpg"
+                          alt="First place winner"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
 
-              <p className="mt-1 text-xs leading-5 text-ink/55">
-                Practice useful technology skills step by step.
-              </p>
-            </div>
+                      <h3 className="mt-4 font-display text-2xl font-semibold text-ink">
+                        Ana
+                      </h3>
 
-            <div className="rounded-xl border border-line bg-chalk/60 p-4">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-coral/10 text-lg">
-                🏆
-              </span>
+                      <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink/45">
+                        First Place
+                      </p>
 
-              <h3 className="mt-3 text-sm font-semibold text-ink">
-                Win rewards
-              </h3>
+                      <div className="mt-4 rounded-xl bg-amber px-4 py-3">
+                        <strong className="block text-xl text-midnight">
+                          120 pts
+                        </strong>
 
-              <p className="mt-1 text-xs leading-5 text-ink/55">
-                Answer daily questions and earn leaderboard points.
-              </p>
-            </div>
-          </div>
+                        <span className="text-xs text-midnight/70">
+                          Monthly score
+                        </span>
+                      </div>
+                    </div>
 
-          {/* Bottom call-to-action */}
-          <div className="mt-auto pt-8">
-            <a
-              href="#upcoming-classes"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-ink px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:opacity-90 sm:w-auto"
-            >
-              Browse upcoming classes
-              <span className="ml-2" aria-hidden="true">
-                ↓
-              </span>
-            </a>
-          </div>
-        </div>
-      </div>
+                    {/* Second Place */}
+                    <div className="relative overflow-hidden rounded-2xl border border-line bg-chalk/50 p-5 text-center shadow-sm">
+                      <div className="absolute right-3 top-3 rounded-full border border-line bg-surface px-3 py-1 font-mono text-[10px] font-semibold text-ink">
+                        2ND
+                      </div>
 
-      {/* Right content */}
-      <div className="border-t border-line bg-chalk/45 p-4 sm:p-6 lg:border-l lg:border-t-0">
-        <div className="flex h-full flex-col gap-4">
-          {!loading && (upcoming.length > 0 || past.length > 0) && (
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
-                <strong className="block text-xl text-ink sm:text-2xl">
-                  {upcoming.length}
-                </strong>
+                      <div className="text-4xl">
+                        🥈
+                      </div>
 
-                <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
-                  Upcoming
-                </span>
+                      <div className="mx-auto mt-3 h-20 w-20 overflow-hidden rounded-full border-4 border-line bg-surface shadow-md">
+                        <img
+                          src="https://randomuser.me/api/portraits/men/35.jpg"
+                          alt="Second place winner"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+
+                      <h3 className="mt-4 font-display text-xl font-semibold text-ink">
+                        John
+                      </h3>
+
+                      <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink/45">
+                        Second Place
+                      </p>
+
+                      <div className="mt-4 rounded-xl border border-line bg-surface px-4 py-3">
+                        <strong className="block text-xl text-ink">
+                          95 pts
+                        </strong>
+
+                        <span className="text-xs text-ink/45">
+                          Monthly score
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Third Place */}
+                    <div className="relative overflow-hidden rounded-2xl border border-line bg-chalk/50 p-5 text-center shadow-sm">
+                      <div className="absolute right-3 top-3 rounded-full border border-line bg-surface px-3 py-1 font-mono text-[10px] font-semibold text-ink">
+                        3RD
+                      </div>
+
+                      <div className="text-4xl">
+                        🥉
+                      </div>
+
+                      <div className="mx-auto mt-3 h-20 w-20 overflow-hidden rounded-full border-4 border-line bg-surface shadow-md">
+                        <img
+                          src="https://randomuser.me/api/portraits/women/68.jpg"
+                          alt="Third place winner"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+
+                      <h3 className="mt-4 font-display text-xl font-semibold text-ink">
+                        Maria
+                      </h3>
+
+                      <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink/45">
+                        Third Place
+                      </p>
+
+                      <div className="mt-4 rounded-xl border border-line bg-surface px-4 py-3">
+                        <strong className="block text-xl text-ink">
+                          78 pts
+                        </strong>
+
+                        <span className="text-xs text-ink/45">
+                          Monthly score
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Competition Message */}
+                  <div className="mt-6 rounded-2xl border border-line bg-surface/80 p-4 sm:p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber/15 text-2xl">
+                        🏆
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-semibold text-ink sm:text-base">
+                          Want to be next month&apos;s winner?
+                        </h3>
+
+                        <p className="mt-1 text-xs leading-5 text-ink/55 sm:text-sm">
+                          Come back every day, answer the question correctly, and collect
+                          as many points as possible. The leaderboard resets every month,
+                          giving everyone a new chance to win.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
-                <strong className="block text-xl text-ink sm:text-2xl">
-                  {past.length}
-                </strong>
+              {/* Right content */}
+              <div className="border-t border-line bg-chalk/45 p-4 sm:p-6 lg:border-l lg:border-t-0">
+                <div className="flex h-full flex-col gap-4">
+                  {!loading && (upcoming.length > 0 || past.length > 0) && (
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
 
-                <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
-                  Completed
-                </span>
+                      <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
+                        <strong className="block text-xl text-ink sm:text-2xl">
+                          {upcoming.length}
+                        </strong>
+
+                        <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
+                          Upcoming
+                        </span>
+                      </div>
+
+                      <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
+                        <strong className="block text-xl text-ink sm:text-2xl">
+                          {past.length}
+                        </strong>
+
+                        <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
+                          Completed
+                        </span>
+                      </div>
+
+                      <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
+                        <strong className="block text-xl text-ink sm:text-2xl">
+                          {totalRegistered}
+                        </strong>
+
+                        <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
+                          Registrations
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Winner card */}
+                  <div className="min-h-0 flex-1 [&>div]:h-full [&>section]:h-full">
+                    <WinnerOfMonth />
+                  </div>
+                </div>
               </div>
 
-              <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
-                <strong className="block text-xl text-ink sm:text-2xl">
-                  {totalRegistered}
-                </strong>
-
-                <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
-                  Registrations
-                </span>
-              </div>
             </div>
-          )}
-
-          {/* This card can keep increasing */}
-          <div className="min-h-0 flex-1 [&>div]:h-full [&>section]:h-full">
-            <WinnerOfMonth />
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+        </section>
 
         {/* Aside + classes */}
         <section
@@ -260,78 +343,78 @@ export default function Home() {
           className="mx-auto w-full max-w-[1500px] px-4 pb-14 sm:px-6 lg:px-8 scroll-mt-24"
         >
           <div className="min-w-0">
-              {loading ? (
-                <div>
-                  <p className="mb-4 font-mono text-xs uppercase tracking-widest text-ink/40">
-                    Loading classes
-                  </p>
+            {loading ? (
+              <div>
+                <p className="mb-4 font-mono text-xs uppercase tracking-widest text-ink/40">
+                  Loading classes
+                </p>
 
-                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {Array.from({ length: 6 }).map((_, index) => (
-                      <ClassCardSkeleton key={index} />
-                    ))}
-                  </div>
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <ClassCardSkeleton key={index} />
+                  ))}
                 </div>
-              ) : (
-                <>
-                  {upcoming.length > 0 && (
-                    <section className="animate-fade-in">
-                      <div className="mb-5 flex items-center justify-between">
-                        <p className="font-mono text-xs uppercase tracking-widest text-ink/40">
-                          Upcoming
-                        </p>
+              </div>
+            ) : (
+              <>
+                {upcoming.length > 0 && (
+                  <section className="animate-fade-in">
+                    <div className="mb-5 flex items-center justify-between">
+                      <p className="font-mono text-xs uppercase tracking-widest text-ink/40">
+                        Upcoming
+                      </p>
 
-                        <span className="font-mono text-xs text-ink/40">
-                          {upcoming.length}{' '}
-                          {upcoming.length === 1 ? 'class' : 'classes'}
-                        </span>
-                      </div>
+                      <span className="font-mono text-xs text-ink/40">
+                        {upcoming.length}{' '}
+                        {upcoming.length === 1 ? 'class' : 'classes'}
+                      </span>
+                    </div>
 
-                      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {upcoming.map((classItem) => (
-                          <ClassCard key={classItem.id} item={classItem} />
-                        ))}
-                      </div>
-                    </section>
-                  )}
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {upcoming.map((classItem) => (
+                        <ClassCard key={classItem.id} item={classItem} />
+                      ))}
+                    </div>
+                  </section>
+                )}
 
-                  {upcoming.length === 0 && (
-                    <section className="py-4 text-center">
-                      <div className="rounded-2xl border border-line bg-surface px-6 py-12 shadow-sm">
-                        <p className="font-display text-2xl text-ink/70">
-                          No upcoming classes right now.
-                        </p>
+                {upcoming.length === 0 && (
+                  <section className="py-4 text-center">
+                    <div className="rounded-2xl border border-line bg-surface px-6 py-12 shadow-sm">
+                      <p className="font-display text-2xl text-ink/70">
+                        No upcoming classes right now.
+                      </p>
 
-                        <p className="mt-2 text-sm text-ink/50 sm:text-base">
-                          Check back soon. New technology sessions are added
-                          regularly.
-                        </p>
-                      </div>
-                    </section>
-                  )}
+                      <p className="mt-2 text-sm text-ink/50 sm:text-base">
+                        Check back soon. New technology sessions are added
+                        regularly.
+                      </p>
+                    </div>
+                  </section>
+                )}
 
-                  {past.length > 0 && (
-                    <section id="past-classes" className="mt-12 border-t border-line pt-10 scroll-mt-24">
-                      <div className="mb-5 flex items-center justify-between">
-                        <p className="font-mono text-xs uppercase tracking-widest text-ink/40">
-                          Past classes
-                        </p>
+                {past.length > 0 && (
+                  <section id="past-classes" className="mt-12 border-t border-line pt-10 scroll-mt-24">
+                    <div className="mb-5 flex items-center justify-between">
+                      <p className="font-mono text-xs uppercase tracking-widest text-ink/40">
+                        Past classes
+                      </p>
 
-                        <span className="font-mono text-xs text-ink/40">
-                          {past.length}{' '}
-                          {past.length === 1 ? 'class' : 'classes'}
-                        </span>
-                      </div>
+                      <span className="font-mono text-xs text-ink/40">
+                        {past.length}{' '}
+                        {past.length === 1 ? 'class' : 'classes'}
+                      </span>
+                    </div>
 
-                      <div className="grid grid-cols-1 gap-5 opacity-80 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {past.map((classItem) => (
-                          <ClassCard key={classItem.id} item={classItem} />
-                        ))}
-                      </div>
-                    </section>
-                  )}
-                </>
-              )}
+                    <div className="grid grid-cols-1 gap-5 opacity-80 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {past.map((classItem) => (
+                        <ClassCard key={classItem.id} item={classItem} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
           </div>
         </section>
       </main>
