@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, ContestantEntry, contestIdentity, CurrentQuestion, MonthlyWinnerEntry } from '../lib/api';
+import { formatCountdown, getNextQuestionTime } from '../lib/contestSchedule';
 
 const ATTEMPTED_KEY = 'classboard_contest_attempted_question';
 
@@ -10,6 +11,7 @@ export default function WinnerOfMonth() {
   const [identity, setIdentity] = useState(() => contestIdentity.get());
   const [question, setQuestion] = useState<CurrentQuestion | null>(null);
   const [alreadyAttempted, setAlreadyAttempted] = useState(false);
+  const [now, setNow] = useState(() => new Date());
   const [answer, setAnswer] = useState('');
   const [answerResult, setAnswerResult] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -44,6 +46,22 @@ export default function WinnerOfMonth() {
   useEffect(() => {
     setAlreadyAttempted(!!question && localStorage.getItem(ATTEMPTED_KEY) === question.id);
   }, [question]);
+
+  // Tick the countdown every second, and periodically re-check for a newly
+  // posted question so the widget updates without a manual page reload.
+  useEffect(() => {
+    const tickTimer = setInterval(() => setNow(new Date()), 1000);
+    const refreshTimer = setInterval(() => {
+      api.getCurrentQuestion().then(setQuestion);
+    }, 60000);
+    return () => {
+      clearInterval(tickTimer);
+      clearInterval(refreshTimer);
+    };
+  }, []);
+
+  const nextQuestionTime = getNextQuestionTime(now);
+  const countdownText = formatCountdown(nextQuestionTime, now);
 
   const pickPhoto = (file: File | null) => {
     setPhotoFile(file);
@@ -171,12 +189,17 @@ export default function WinnerOfMonth() {
       <p className="text-xs text-ink/60 mt-1">
         Answer the daily question first to score points. Most points by month's end wins $100.
       </p>
+      <p className="text-[11px] font-mono text-ink/40 mt-1">
+        New question at 12pm ET · next in {countdownText}
+      </p>
 
       <div className="mt-4">
         <div className="bg-chalk border border-line rounded-sm p-3">
           {!question ? (
             <>
-              <p className="text-xs text-ink/50">No question posted yet today — check back soon.</p>
+              <p className="text-xs text-ink/50">
+                No question posted yet today — check back in {countdownText}.
+              </p>
               {!identity && (
                 <div className="mt-3">
                   {!showJoinForm ? (
