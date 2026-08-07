@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AdminContestant, AdminQuestion, api } from '../lib/api';
+import ConfirmDialog from './ConfirmDialog';
 
 export default function AdminContest() {
   const [subject, setSubject] = useState('');
@@ -11,6 +12,8 @@ export default function AdminContest() {
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
   const [contestants, setContestants] = useState<AdminContestant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingReset, setPendingReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const load = () =>
     Promise.all([api.listContestQuestions(), api.listContestants()]).then(
@@ -41,13 +44,29 @@ export default function AdminContest() {
     }
   };
 
+  const confirmReset = async () => {
+    setResetting(true);
+    try {
+      await api.resetContest();
+      setPendingReset(false);
+      await load();
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-10 sm:pb-14">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-display text-xl text-ink">Winner of the Month</h2>
-        <span className="text-xs font-mono text-ink/50">
-          {contestants.length} contestants · {questions.length} questions
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono text-ink/50">
+            {contestants.length} contestants · {questions.length} questions
+          </span>
+          <button onClick={() => setPendingReset(true)} className="btn-danger-outline text-xs px-2 py-1">
+            Reset contest
+          </button>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-[320px_1fr] gap-6">
@@ -168,6 +187,17 @@ export default function AdminContest() {
           </div>
         </div>
       </div>
+
+      {pendingReset && (
+        <ConfirmDialog
+          title="Reset the contest?"
+          message="Every contestant, question, and answer will be permanently deleted and points reset to zero. Past monthly winners are kept. This can't be undone."
+          confirmLabel={resetting ? 'Resetting…' : 'Reset contest'}
+          danger
+          onConfirm={confirmReset}
+          onCancel={() => setPendingReset(false)}
+        />
+      )}
     </div>
   );
 }

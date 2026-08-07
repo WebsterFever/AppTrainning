@@ -1,11 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
+
+  // Railway terminates TLS at its edge and forwards over plain HTTP, so
+  // req.protocol needs to trust X-Forwarded-Proto to report "https" correctly
+  // (otherwise uploaded-file URLs get built as http:// in production).
+  app.set('trust proxy', 1);
 
   app.enableCors({
     origin: [

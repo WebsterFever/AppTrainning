@@ -197,4 +197,20 @@ export class ContestService {
   async listContestantsForAdmin(): Promise<Contestant[]> {
     return this.contestantsRepo.find({ order: { points: 'DESC', createdAt: 'ASC' } });
   }
+
+  // Admin only: wipes every contestant, question, and attempt to start the
+  // contest fresh. Past monthly winners are kept as history.
+  async resetContest(): Promise<void> {
+    await this.attemptsRepo.createQueryBuilder().delete().execute();
+    await this.questionsRepo.createQueryBuilder().delete().execute();
+    await this.contestantsRepo.createQueryBuilder().delete().execute();
+
+    let settings = await this.settingsRepo.findOne({ where: { id: 1 } });
+    if (!settings) {
+      settings = this.settingsRepo.create({ id: 1, currentPeriodMonth: currentPeriodMonth() });
+    } else {
+      settings.currentPeriodMonth = currentPeriodMonth();
+    }
+    await this.settingsRepo.save(settings);
+  }
 }

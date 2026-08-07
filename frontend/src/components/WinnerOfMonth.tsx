@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { api, ContestantEntry, contestIdentity, CurrentQuestion, MonthlyWinnerEntry } from '../lib/api';
 
+const ATTEMPTED_KEY = 'classboard_contest_attempted_question';
+
 export default function WinnerOfMonth() {
   const [goal, setGoal] = useState(1000);
   const [contestants, setContestants] = useState<ContestantEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [identity, setIdentity] = useState(() => contestIdentity.get());
   const [question, setQuestion] = useState<CurrentQuestion | null>(null);
+  const [alreadyAttempted, setAlreadyAttempted] = useState(false);
   const [answer, setAnswer] = useState('');
   const [answerResult, setAnswerResult] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -38,12 +41,76 @@ export default function WinnerOfMonth() {
     api.getCurrentQuestion().then(setQuestion);
   }, []);
 
+  useEffect(() => {
+    setAlreadyAttempted(!!question && localStorage.getItem(ATTEMPTED_KEY) === question.id);
+  }, [question]);
+
   const pickPhoto = (file: File | null) => {
     setPhotoFile(file);
     setPhotoPreview(file ? URL.createObjectURL(file) : '');
   };
 
-  const join = async (e: React.FormEvent) => {
+  const markAttempted = () => {
+    if (question) localStorage.setItem(ATTEMPTED_KEY, question.id);
+    setAlreadyAttempted(true);
+  };
+
+  const describeResult = (res: { correct: boolean; won: boolean }) => {
+    if (res.won) return 'Correct — you were first! +10 points 🎉';
+    if (res.correct) return 'Correct, but someone else answered first today.';
+    return 'Not quite — try again tomorrow.';
+  };
+
+  // Answering when we already know who the visitor is.
+  const submitAnswer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!identity || !question) return;
+    setSubmitting(true);
+    setAnswerResult(null);
+    try {
+      const res = await api.submitContestAnswer(identity.email, answer);
+      markAttempted();
+      setAnswerResult(describeResult(res));
+      loadLeaderboard();
+    } catch (err) {
+      setAnswerResult(err instanceof Error ? err.message : 'Could not submit your answer.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // First-time visitor: join and answer in one step.
+  const joinAndAnswer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setJoinError('');
+    if (!photoFile) {
+      setJoinError('Add a photo to join.');
+      return;
+    }
+    setJoining(true);
+    try {
+      const { url: imageUrl } = await api.uploadContestPhoto(photoFile);
+      await api.subscribeContest(name, email, phone, imageUrl);
+      const newIdentity = { name, email, phone, imageUrl };
+      contestIdentity.set(newIdentity);
+      setIdentity(newIdentity);
+      loadLeaderboard();
+
+      if (question) {
+        const res = await api.submitContestAnswer(email, answer);
+        markAttempted();
+        setAnswerResult(describeResult(res));
+        loadLeaderboard();
+      }
+    } catch (err) {
+      setJoinError(err instanceof Error ? err.message : 'Could not join the contest.');
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  // Pre-register with no question live yet (no answer to submit).
+  const joinOnly = async (e: React.FormEvent) => {
     e.preventDefault();
     setJoinError('');
     if (!photoFile) {
@@ -66,35 +133,34 @@ export default function WinnerOfMonth() {
     }
   };
 
-  const submitAnswer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!identity || !question) return;
-    setSubmitting(true);
-    setAnswerResult(null);
-    try {
-      const res = await api.submitContestAnswer(identity.email, answer);
-      if (res.won) {
-        setAnswerResult(`Correct — you were first! +10 points 🎉`);
-      } else if (res.correct) {
-        setAnswerResult('Correct, but someone else answered first today.');
-      } else {
-        setAnswerResult('Not quite — try again tomorrow.');
-      }
-      loadLeaderboard();
-      api.getCurrentQuestion().then(setQuestion);
-    } catch (err) {
-      setAnswerResult(err instanceof Error ? err.message : 'Could not submit your answer.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const toggleHistory = () => {
     if (!showHistory && history.length === 0) {
       api.getContestHistory().then(setHistory);
     }
     setShowHistory((v) => !v);
   };
+
+  const photoPicker = (
+    <div className="flex items-center gap-2">
+      {photoPreview && (
+        <img
+          src={photoPreview}
+          alt=""
+          className="w-9 h-9 rounded-full object-cover border border-line flex-shrink-0"
+        />
+      )}
+      <label className="input text-sm flex-1 cursor-pointer flex items-center text-ink/50">
+        {photoFile ? photoFile.name : 'Choose a photo…'}
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(e) => pickPhoto(e.target.files?.[0] ?? null)}
+          className="hidden"
+        />
+      </label>
+    </div>
+  );
 
   return (
     <div className="bg-surface border border-line rounded-xl p-5 shadow-sm">
@@ -107,97 +173,125 @@ export default function WinnerOfMonth() {
       </p>
 
       <div className="mt-4">
-        {!identity ? (
-          !showJoinForm ? (
-            <button onClick={() => setShowJoinForm(true)} className="btn-primary w-full text-sm">
-              Join the contest
-            </button>
-          ) : (
-            <form onSubmit={join} className="space-y-2">
-              <input
-                required
-                placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="input text-sm"
-              />
-              <input
-                required
-                type="email"
-                placeholder="Your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input text-sm"
-              />
-              <input
-                required
-                placeholder="Phone number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="input text-sm"
-              />
-              <div className="flex items-center gap-2">
-                {photoPreview && (
-                  <img
-                    src={photoPreview}
-                    alt=""
-                    className="w-9 h-9 rounded-full object-cover border border-line flex-shrink-0"
-                  />
-                )}
-                <label className="input text-sm flex-1 cursor-pointer flex items-center text-ink/50">
-                  {photoFile ? photoFile.name : 'Choose a photo…'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={(e) => pickPhoto(e.target.files?.[0] ?? null)}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-              {joinError && <p className="text-coral text-xs">{joinError}</p>}
-              <button disabled={joining} className="btn-primary w-full text-sm">
-                {joining ? 'Joining…' : 'Join now'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowJoinForm(false)}
-                className="w-full text-center text-xs text-ink/50 hover:text-ink"
-              >
-                Cancel
-              </button>
-            </form>
-          )
-        ) : (
-          <div className="bg-chalk border border-line rounded-sm p-3">
-            {!question ? (
+        <div className="bg-chalk border border-line rounded-sm p-3">
+          {!question ? (
+            <>
               <p className="text-xs text-ink/50">No question posted yet today — check back soon.</p>
-            ) : answerResult ? (
-              <p className="text-sm text-ink">{answerResult}</p>
-            ) : question.answered ? (
-              <p className="text-xs text-ink/50">
-                Today's question was already answered{question.winnerName ? ` by ${question.winnerName}` : ''}. Check back tomorrow.
+              {!identity && (
+                <div className="mt-3">
+                  {!showJoinForm ? (
+                    <button
+                      onClick={() => setShowJoinForm(true)}
+                      className="btn-outline w-full text-xs"
+                    >
+                      Join now to be ready
+                    </button>
+                  ) : (
+                    <form onSubmit={joinOnly} className="space-y-2">
+                      <input
+                        required
+                        placeholder="Your name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="input text-sm"
+                      />
+                      <input
+                        required
+                        type="email"
+                        placeholder="Your email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="input text-sm"
+                      />
+                      <input
+                        required
+                        placeholder="Phone number"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="input text-sm"
+                      />
+                      {photoPicker}
+                      {joinError && <p className="text-coral text-xs">{joinError}</p>}
+                      <button disabled={joining} className="btn-primary w-full text-sm">
+                        {joining ? 'Joining…' : 'Join now'}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="text-[11px] font-mono uppercase tracking-wide text-amber">
+                {question.subject}
               </p>
-            ) : (
-              <form onSubmit={submitAnswer} className="space-y-2">
-                <p className="text-[11px] font-mono uppercase tracking-wide text-amber">
-                  {question.subject}
+              <p className="text-sm text-ink mt-0.5">{question.questionText}</p>
+
+              {question.answered ? (
+                <p className="text-xs text-ink/50 mt-2">
+                  Already answered{question.winnerName ? ` by ${question.winnerName}` : ''}. Check
+                  back tomorrow.
                 </p>
-                <p className="text-sm text-ink">{question.questionText}</p>
-                <input
-                  required
-                  placeholder="Your answer"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  className="input text-sm"
-                />
-                <button disabled={submitting} className="btn-primary w-full text-sm">
-                  {submitting ? 'Submitting…' : 'Submit answer'}
-                </button>
-              </form>
-            )}
-          </div>
-        )}
+              ) : answerResult ? (
+                <p className="text-sm text-ink mt-2">{answerResult}</p>
+              ) : alreadyAttempted ? (
+                <p className="text-xs text-ink/50 mt-2">
+                  You've already answered today's question. Check back tomorrow.
+                </p>
+              ) : identity ? (
+                <form onSubmit={submitAnswer} className="mt-2 space-y-2">
+                  <input
+                    required
+                    placeholder="Your answer"
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    className="input text-sm"
+                  />
+                  <button disabled={submitting} className="btn-primary w-full text-sm">
+                    {submitting ? 'Submitting…' : 'Submit answer'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={joinAndAnswer} className="mt-2 space-y-2">
+                  <input
+                    required
+                    placeholder="Your answer"
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    className="input text-sm"
+                  />
+                  <input
+                    required
+                    placeholder="Your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="input text-sm"
+                  />
+                  <input
+                    required
+                    type="email"
+                    placeholder="Your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="input text-sm"
+                  />
+                  <input
+                    required
+                    placeholder="Phone number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="input text-sm"
+                  />
+                  {photoPicker}
+                  {joinError && <p className="text-coral text-xs">{joinError}</p>}
+                  <button disabled={joining} className="btn-primary w-full text-sm">
+                    {joining ? 'Submitting…' : 'Join & submit answer'}
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="mt-5">

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Body, Get, Post, UseGuards } from '@nestjs/common';
 import { ContestService } from './contest.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -21,5 +21,10 @@ export class AdminContestController {
   @Get('contestants')
   listContestants() {
     return this.contestService.listContestantsForAdmin();
+  }
+
+  @Delete('reset')
+  reset() {
+    return this.contestService.resetContest();
   }
 }

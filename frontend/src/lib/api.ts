@@ -437,6 +437,12 @@ export const api = {
     fetch(`${BASE_URL}/admin/contest/contestants`, { headers: authHeader() }).then((r) =>
       handle<AdminContestant[]>(r),
     ),
+
+  resetContest: () =>
+    fetch(`${BASE_URL}/admin/contest/reset`, {
+      method: 'DELETE',
+      headers: authHeader(),
+    }).then((r) => handle<void>(r)),
 };
 
 export { BASE_URL };
