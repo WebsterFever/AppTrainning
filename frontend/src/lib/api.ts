@@ -229,6 +229,9 @@ export const contestIdentity = {
   set: (identity: ContestIdentity) => {
     localStorage.setItem(CONTEST_IDENTITY_KEY, JSON.stringify(identity));
   },
+  clear: () => {
+    localStorage.removeItem(CONTEST_IDENTITY_KEY);
+  },
 };
 
 function authHeader(): Record<string, string> {

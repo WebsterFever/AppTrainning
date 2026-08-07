@@ -79,6 +79,16 @@ export default function WinnerOfMonth() {
     return 'Not quite — try again tomorrow.';
   };
 
+  // Clears a stale saved identity, e.g. after an admin contest reset wiped
+  // this contestant from the database but their browser still remembers them.
+  const clearIdentity = () => {
+    contestIdentity.clear();
+    localStorage.removeItem(ATTEMPTED_KEY);
+    setIdentity(null);
+    setAnswerResult(null);
+    setAlreadyAttempted(false);
+  };
+
   // Answering when we already know who the visitor is.
   const submitAnswer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +101,14 @@ export default function WinnerOfMonth() {
       setAnswerResult(describeResult(res));
       loadLeaderboard();
     } catch (err) {
-      setAnswerResult(err instanceof Error ? err.message : 'Could not submit your answer.');
+      const message = err instanceof Error ? err.message : 'Could not submit your answer.';
+      if (message.includes('Subscribe to the contest')) {
+        // Our saved identity no longer exists server-side (e.g. contest was
+        // reset) — drop it so the join form reappears instead of a dead end.
+        clearIdentity();
+      } else {
+        setAnswerResult(message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -200,6 +217,14 @@ export default function WinnerOfMonth() {
               <p className="text-xs text-ink/50">
                 No question posted yet today — check back in {countdownText}.
               </p>
+              {identity && (
+                <button
+                  onClick={clearIdentity}
+                  className="mt-2 text-[11px] text-ink/40 hover:text-ink"
+                >
+                  Not you? Switch account
+                </button>
+              )}
               {!identity && (
                 <div className="mt-3">
                   {!showJoinForm ? (
@@ -272,6 +297,13 @@ export default function WinnerOfMonth() {
                   />
                   <button disabled={submitting} className="btn-primary w-full text-sm">
                     {submitting ? 'Submitting…' : 'Submit answer'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearIdentity}
+                    className="w-full text-center text-[11px] text-ink/40 hover:text-ink"
+                  >
+                    Not you? Switch account
                   </button>
                 </form>
               ) : (
