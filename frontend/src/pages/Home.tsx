@@ -112,60 +112,147 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Section heading and statistics */}
-        <section className="mx-auto w-full max-w-[1500px] px-4 pb-8 sm:px-6 lg:px-8">
-          <div className="grid gap-8 border-b border-line pb-10 lg:grid-cols-[1fr_360px] lg:items-start">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-widest text-amber sm:text-xs">
-                Learn live, hosted on Zoom
-              </p>
+      {/* Upcoming classes introduction + Winner of the Month */}
+<section className="mx-auto w-full max-w-[1500px] px-4 pb-10 sm:px-6 lg:px-8">
+  <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm sm:rounded-3xl">
+    <div className="grid items-stretch lg:grid-cols-[minmax(0,1fr)_400px]">
+      {/* Left content */}
+      <div className="relative flex min-h-full flex-col overflow-hidden p-5 sm:p-8 lg:p-10 xl:p-12">
+        {/* Decorative background */}
+        <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-amber/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-28 right-0 h-72 w-72 rounded-full bg-sage/10 blur-3xl" />
 
-              <h2 className="mt-3 max-w-3xl font-display text-3xl leading-tight text-ink sm:text-4xl md:text-5xl">
-                Upcoming classes you can register for right now.
-              </h2>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.025]"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+          }}
+        />
 
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/60 sm:text-base">
-                Pick a class, register with your email, and receive the Zoom
-                link directly in your inbox.
+        <div className="relative flex h-full flex-col">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber sm:text-xs">
+              Learn live · Hosted on Zoom
+            </p>
+
+            <h2 className="mt-3 max-w-3xl font-display text-3xl leading-[1.05] text-ink sm:text-4xl md:text-5xl">
+              Upcoming classes you can register for right now.
+            </h2>
+
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-ink/60 sm:text-base">
+              Pick a class, register with your email, and receive the Zoom link
+              directly in your inbox.
+            </p>
+          </div>
+
+          {/* Benefits */}
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-line bg-chalk/60 p-4">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber/15 text-lg">
+                💻
+              </span>
+
+              <h3 className="mt-3 text-sm font-semibold text-ink">
+                Live learning
+              </h3>
+
+              <p className="mt-1 text-xs leading-5 text-ink/55">
+                Learn directly from your instructor on Zoom.
               </p>
             </div>
 
-            <div className="space-y-4">
-              {!loading && (upcoming.length > 0 || past.length > 0) && (
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="min-w-0 rounded-xl border border-line bg-surface p-4 text-center shadow-sm">
-                    <strong className="block text-2xl text-ink">
-                      {upcoming.length}
-                    </strong>
-                    <span className="font-mono text-[10px] uppercase tracking-wide text-ink/50">
-                      upcoming
-                    </span>
-                  </div>
+            <div className="rounded-xl border border-line bg-chalk/60 p-4">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sage/15 text-lg">
+                🛠️
+              </span>
 
-                  <div className="min-w-0 rounded-xl border border-line bg-surface p-4 text-center shadow-sm">
-                    <strong className="block text-2xl text-ink">
-                      {past.length}
-                    </strong>
-                    <span className="font-mono text-[10px] uppercase tracking-wide text-ink/50">
-                      completed
-                    </span>
-                  </div>
+              <h3 className="mt-3 text-sm font-semibold text-ink">
+                Practical skills
+              </h3>
 
-                  <div className="min-w-0 rounded-xl border border-line bg-surface p-4 text-center shadow-sm">
-                    <strong className="block text-2xl text-ink">
-                      {totalRegistered}
-                    </strong>
-                    <span className="font-mono text-[10px] uppercase tracking-wide text-ink/50">
-                      registrations
-                    </span>
-                  </div>
-                </div>
-              )}
+              <p className="mt-1 text-xs leading-5 text-ink/55">
+                Practice useful technology skills step by step.
+              </p>
+            </div>
 
-              <WinnerOfMonth />
+            <div className="rounded-xl border border-line bg-chalk/60 p-4">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-coral/10 text-lg">
+                🏆
+              </span>
+
+              <h3 className="mt-3 text-sm font-semibold text-ink">
+                Win rewards
+              </h3>
+
+              <p className="mt-1 text-xs leading-5 text-ink/55">
+                Answer daily questions and earn leaderboard points.
+              </p>
             </div>
           </div>
-        </section>
+
+          {/* Bottom call-to-action */}
+          <div className="mt-auto pt-8">
+            <a
+              href="#upcoming-classes"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-ink px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:opacity-90 sm:w-auto"
+            >
+              Browse upcoming classes
+              <span className="ml-2" aria-hidden="true">
+                ↓
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Right content */}
+      <div className="border-t border-line bg-chalk/45 p-4 sm:p-6 lg:border-l lg:border-t-0">
+        <div className="flex h-full flex-col gap-4">
+          {!loading && (upcoming.length > 0 || past.length > 0) && (
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
+                <strong className="block text-xl text-ink sm:text-2xl">
+                  {upcoming.length}
+                </strong>
+
+                <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
+                  Upcoming
+                </span>
+              </div>
+
+              <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
+                <strong className="block text-xl text-ink sm:text-2xl">
+                  {past.length}
+                </strong>
+
+                <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
+                  Completed
+                </span>
+              </div>
+
+              <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
+                <strong className="block text-xl text-ink sm:text-2xl">
+                  {totalRegistered}
+                </strong>
+
+                <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
+                  Registrations
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* This card can keep increasing */}
+          <div className="min-h-0 flex-1 [&>div]:h-full [&>section]:h-full">
+            <WinnerOfMonth />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
         {/* Aside + classes */}
         <section
