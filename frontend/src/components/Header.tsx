@@ -45,7 +45,7 @@ export default function Header() {
           <ThemeToggle />
 
           <Link to="/admin" className="hidden md:inline-flex btn-outline text-sm">
-            Admin
+            Teacher
           </Link>
 
           {/* Mobile burger toggle */}
@@ -86,7 +86,7 @@ export default function Header() {
             onClick={() => setMenuOpen(false)}
             className="btn-outline text-sm w-full justify-start"
           >
-            Admin
+            Teacher
           </Link>
         </nav>
       )}
