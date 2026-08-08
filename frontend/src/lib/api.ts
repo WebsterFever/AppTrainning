@@ -286,7 +286,14 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email }),
-    }).then((r) => handle<{ success: boolean; registrationCount: number; zoomLink?: string }>(r)),
+    }).then((r) =>
+      handle<{
+        success: boolean;
+        registrationCount: number;
+        zoomLink?: string;
+        alreadyRegistered: boolean;
+      }>(r),
+    ),
 
   // Admin only: full registrant list (name, email, registration date) for a class.
   listRegistrations: (classId: string) =>

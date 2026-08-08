@@ -7,8 +7,6 @@ import { ClassDetailSkeleton } from '../components/Skeletons';
 import { getVideoEmbed } from '../lib/video';
 import VideoComments from '../components/VideoComments';
 
-const ALREADY_REGISTERED_MESSAGE = 'This email is already registered for this class';
-
 export default function ClassDetail() {
   const { id } = useParams<{ id: string }>();
   const [item, setItem] = useState<ClassItem | null>(null);
@@ -39,6 +37,12 @@ export default function ClassDetail() {
       setUnlocked(true);
       setName(saved.name);
       setEmail(saved.email);
+      // Re-registering is idempotent on the backend — this just retrieves
+      // the Zoom link again so it's always available on a return visit.
+      api
+        .register(id, saved.name, saved.email)
+        .then((res) => setZoomLink(res.zoomLink ?? ''))
+        .catch(() => {});
     }
     api
       .getClass(id)
@@ -60,20 +64,17 @@ export default function ClassDetail() {
           ? {
               ...current,
               registrationCount: res.registrationCount,
-              registeredNames: [...(current.registeredNames ?? []), name],
+              registeredNames: res.alreadyRegistered
+                ? current.registeredNames
+                : [...(current.registeredNames ?? []), name],
             }
           : current,
       );
       setUnlocked(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong';
-      if (message === ALREADY_REGISTERED_MESSAGE) {
-        visitorIdentity.set(id, { name, email });
-        setUnlocked(true);
-      } else {
-        setStatus('error');
-        setError(message);
-      }
+      setStatus('error');
+      setError(message);
     }
   };
 

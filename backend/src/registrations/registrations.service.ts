@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Registration } from './registration.entity';
@@ -29,22 +29,28 @@ export class RegistrationsService {
     const existing = await this.registrationsRepo.findOne({
       where: { trainingClass: { id: classId }, email },
     });
-    if (existing) {
-      throw new ConflictException('This email is already registered for this class');
-    }
 
-    const registration = this.registrationsRepo.create({
-      trainingClass,
-      name: dto.name,
-      email,
-    });
-    await this.registrationsRepo.save(registration);
+    // Re-registering with the same email is idempotent — it always hands
+    // back the Zoom link, so a returning visitor can retrieve it anytime.
+    if (!existing) {
+      const registration = this.registrationsRepo.create({
+        trainingClass,
+        name: dto.name,
+        email,
+      });
+      await this.registrationsRepo.save(registration);
+    }
 
     const count = await this.registrationsRepo.count({
       where: { trainingClass: { id: classId } },
     });
 
-    return { success: true, registrationCount: count, zoomLink: trainingClass.zoomLink };
+    return {
+      success: true,
+      registrationCount: count,
+      zoomLink: trainingClass.zoomLink,
+      alreadyRegistered: !!existing,
+    };
   }
 
   // Admin only: full registrant list for a class, including email and
