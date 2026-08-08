@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ClassItem } from '../lib/api';
+import { formatCountdown } from '../lib/countdown';
 
 function formatDateParts(iso?: string) {
   if (!iso) return null;
@@ -23,6 +25,12 @@ function formatDateParts(iso?: string) {
 
 export default function ClassCard({ item }: { item: ClassItem }) {
   const dateParts = formatDateParts(item.classDate);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <Link
@@ -72,6 +80,12 @@ export default function ClassCard({ item }: { item: ClassItem }) {
         <p className="mt-1 font-mono text-sm text-ink/60">
           {dateParts ? dateParts.time : 'Self-paced'}
         </p>
+
+        {!item.isPast && item.classDate && (
+          <p className="mt-0.5 font-mono text-xs text-amber">
+            {formatCountdown(item.classDate, now)}
+          </p>
+        )}
 
         <p className="mt-3 line-clamp-2 text-sm leading-6 text-ink/70">
           {item.description}
