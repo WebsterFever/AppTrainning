@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { api, ClassItem } from '../lib/api';
 import ClassCard from '../components/ClassCard';
 import { ClassCardSkeleton } from '../components/Skeletons';
@@ -8,31 +8,291 @@ import TechnologyAside from '../components/TechnologyAside';
 import ChatWidget from '../components/ChatWidget';
 import WinnerOfMonth from '../components/WinnerOfMonth';
 
+// Constants
+const SECTION_IDS = {
+  UPCOMING: 'upcoming-classes',
+  PAST: 'past-classes',
+} as const;
+
+const HERO_IMAGE = {
+  URL: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1800&q=85',
+  ALT: 'Modern technology and software development',
+} as const;
+
+const COMPETITION_DETAILS = {
+  PRIZE_AMOUNT: 100,
+  CURRENCY: 'USD',
+} as const;
+
+// Helper functions
+const calculateTotalRegistrations = (classes: ClassItem[]): number => {
+  return classes.reduce((total, classItem) => total + classItem.registrationCount, 0);
+};
+
+// Sub-components
+const HeroBadge: React.FC = () => (
+  <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white/75 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-ink shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-white sm:text-xs">
+    <span className="h-2 w-2 rounded-full bg-sage" />
+    Live technology training
+  </span>
+);
+
+const HeroFeatures: React.FC = () => (
+  <div className="mt-7 flex flex-wrap gap-2 sm:gap-3">
+    {['Live Zoom classes', 'Hands-on projects', 'Industry skills'].map((feature) => (
+      <span
+        key={feature}
+        className="rounded-full border border-line bg-white/75 px-4 py-2 text-xs text-ink shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-white sm:text-sm"
+      >
+        {feature}
+      </span>
+    ))}
+  </div>
+);
+
+const StatsDisplay: React.FC<{ stats: { upcoming: number; past: number; registrations: number } }> = ({ stats }) => (
+  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+    {[
+      { label: 'Upcoming', value: stats.upcoming },
+      { label: 'Completed', value: stats.past },
+      { label: 'Registrations', value: stats.registrations },
+    ].map((stat) => (
+      <div
+        key={stat.label}
+        className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3"
+      >
+        <strong className="block text-xl text-ink sm:text-2xl">{stat.value}</strong>
+        <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
+          {stat.label}
+        </span>
+      </div>
+    ))}
+  </div>
+);
+
+const WinnerCard: React.FC<{ place: number; name: string; points: number; image: string; isFirst?: boolean }> = ({
+  place,
+  name,
+  points,
+  image,
+  isFirst = false,
+}) => {
+  const baseClasses = 'relative overflow-hidden rounded-2xl p-5 text-center shadow-sm';
+  const placeClasses = isFirst
+    ? 'border-2 border-amber/60 bg-amber/5 shadow-md'
+    : 'border border-line bg-chalk/50';
+
+  return (
+    <div className={`${baseClasses} ${placeClasses}`}>
+      <div
+        className={`absolute right-3 top-3 rounded-full px-3 py-1 font-mono text-[10px] font-semibold ${
+          isFirst ? 'bg-amber text-midnight' : 'border border-line bg-surface text-ink'
+        }`}
+      >
+        {place}ST
+      </div>
+
+      <div className="text-4xl">{['🥇', '🥈', '🥉'][place - 1]}</div>
+
+      <div
+        className={`mx-auto mt-3 overflow-hidden rounded-full border-4 ${
+          isFirst ? 'border-amber/30' : 'border-line'
+        } bg-surface shadow-md ${isFirst ? 'h-24 w-24' : 'h-20 w-20'}`}
+      >
+        <img src={image} alt={`${name} - ${place} place winner`} className="h-full w-full object-cover" />
+      </div>
+
+      <h3 className={`mt-4 font-display font-semibold text-ink ${isFirst ? 'text-2xl' : 'text-xl'}`}>
+        {name}
+      </h3>
+
+      <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink/45">
+        {place} Place
+      </p>
+
+      <div
+        className={`mt-4 rounded-xl px-4 py-3 ${isFirst ? 'bg-amber' : 'border border-line bg-surface'}`}
+      >
+        <strong className={`block text-xl ${isFirst ? 'text-midnight' : 'text-ink'}`}>
+          {points} pts
+        </strong>
+        <span className={`text-xs ${isFirst ? 'text-midnight/70' : 'text-ink/45'}`}>
+          Monthly score
+        </span>
+      </div>
+    </div>
+  );
+};
+
+const CompetitionSection: React.FC = () => {
+  const winners = [
+    { place: 1, name: 'Ana', points: 120, image: 'https://randomuser.me/api/portraits/women/44.jpg' },
+    { place: 2, name: 'John', points: 95, image: 'https://randomuser.me/api/portraits/men/35.jpg' },
+    { place: 3, name: 'Maria', points: 78, image: 'https://randomuser.me/api/portraits/women/68.jpg' },
+  ];
+
+  return (
+    <div className="relative flex h-full flex-col">
+      <div>
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber sm:text-xs">
+          Monthly Competition · Win ${COMPETITION_DETAILS.PRIZE_AMOUNT}
+        </p>
+
+        <h2 className="mt-3 max-w-3xl font-display text-3xl leading-[1.05] text-ink sm:text-4xl md:text-5xl">
+          Winner of the Month
+        </h2>
+
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-ink/60 sm:text-base">
+          Answer the daily question, earn points, and climb the leaderboard.
+          The participant with the most points at the end of each month wins
+          <strong className="text-ink"> ${COMPETITION_DETAILS.PRIZE_AMOUNT}.</strong>
+        </p>
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {winners.map((winner) => (
+          <WinnerCard
+            key={winner.place}
+            place={winner.place}
+            name={winner.name}
+            points={winner.points}
+            image={winner.image}
+            isFirst={winner.place === 1}
+          />
+        ))}
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-line bg-surface/80 p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber/15 text-2xl">
+            🏆
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-ink sm:text-base">
+              Want to be next month&apos;s winner?
+            </h3>
+
+            <p className="mt-1 text-xs leading-5 text-ink/55 sm:text-sm">
+              Come back every day, answer the question correctly, and collect
+              as many points as possible. The leaderboard resets every month,
+              giving everyone a new chance to win.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ClassListSection: React.FC<{
+  title: string;
+  classes: ClassItem[];
+  emptyMessage?: string;
+  emptySubMessage?: string;
+}> = ({ title, classes, emptyMessage, emptySubMessage }) => {
+  if (classes.length === 0 && emptyMessage) {
+    return (
+      <section className="py-4 text-center">
+        <div className="rounded-2xl border border-line bg-surface px-6 py-12 shadow-sm">
+          <p className="font-display text-2xl text-ink/70">{emptyMessage}</p>
+          <p className="mt-2 text-sm text-ink/50 sm:text-base">{emptySubMessage}</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="animate-fade-in">
+      <div className="mb-5 flex items-center justify-between">
+        <p className="font-mono text-xs uppercase tracking-widest text-ink/40">{title}</p>
+        <span className="font-mono text-xs text-ink/40">
+          {classes.length} {classes.length === 1 ? 'class' : 'classes'}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {classes.map((classItem) => (
+          <ClassCard key={classItem.id} item={classItem} />
+        ))}
+      </div>
+    </section>
+  );
+};
+
+// Main Component
 export default function Home() {
   const [upcoming, setUpcoming] = useState<ClassItem[]>([]);
   const [past, setPast] = useState<ClassItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    Promise.all([
-      api.listClasses('upcoming'),
-      api.listClasses('past'),
-    ])
-      .then(([upcomingClasses, pastClasses]) => {
-        setUpcoming(upcomingClasses);
-        setPast(pastClasses);
-      })
-      .catch((error) => {
-        console.error('Failed to load classes:', error);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+  const totalRegistrations = useMemo(
+    () => calculateTotalRegistrations([...upcoming, ...past]),
+    [upcoming, past]
+  );
+
+  const stats = useMemo(
+    () => ({
+      upcoming: upcoming.length,
+      past: past.length,
+      registrations: totalRegistrations,
+    }),
+    [upcoming.length, past.length, totalRegistrations]
+  );
+
+  const fetchClasses = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const [upcomingClasses, pastClasses] = await Promise.all([
+        api.listClasses('upcoming'),
+        api.listClasses('past'),
+      ]);
+
+      setUpcoming(upcomingClasses);
+      setPast(pastClasses);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to load classes'));
+      console.error('Failed to load classes:', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const totalRegistered = [...upcoming, ...past].reduce(
-    (total, classItem) => total + classItem.registrationCount,
-    0,
+  useEffect(() => {
+    fetchClasses();
+  }, [fetchClasses]);
+
+  const renderLoadingState = () => (
+    <div>
+      <p className="mb-4 font-mono text-xs uppercase tracking-widest text-ink/40">
+        Loading classes
+      </p>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <ClassCardSkeleton key={index} />
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderContent = () => (
+    <>
+      <ClassListSection
+        title="Upcoming"
+        classes={upcoming}
+        emptyMessage="No upcoming classes right now."
+        emptySubMessage="Check back soon. New technology sessions are added regularly."
+      />
+
+      {past.length > 0 && (
+        <div className="mt-12 border-t border-line pt-10" id={SECTION_IDS.PAST}>
+          <ClassListSection title="Past classes" classes={past} />
+        </div>
+      )}
+    </>
   );
 
   return (
@@ -40,12 +300,11 @@ export default function Home() {
       <Header />
 
       <main className="flex-1">
-        {/* Main hero */}
         <section className="mx-auto w-full max-w-[1500px] px-4 pb-10 pt-6 sm:px-6 sm:pt-8 lg:px-8">
           <div className="relative min-h-[620px] overflow-hidden rounded-2xl border border-line bg-white shadow-lg dark:bg-slate-950 sm:min-h-[660px] sm:rounded-3xl lg:min-h-[700px]">
             <img
-              src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1800&q=85"
-              alt="Modern technology and software development"
+              src={HERO_IMAGE.URL}
+              alt={HERO_IMAGE.ALT}
               className="absolute inset-0 h-full w-full object-cover opacity-20 dark:opacity-35"
             />
 
@@ -66,10 +325,7 @@ export default function Home() {
 
             <div className="relative grid min-h-[620px] items-center gap-10 px-5 py-8 sm:min-h-[660px] sm:px-10 sm:py-10 lg:min-h-[700px] lg:grid-cols-[minmax(0,52%)_minmax(420px,48%)] lg:px-12 xl:px-16">
               <div className="max-w-4xl">
-                <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white/75 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-ink shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-white sm:text-xs">
-                  <span className="h-2 w-2 rounded-full bg-sage" />
-                  Live technology training
-                </span>
+                <HeroBadge />
 
                 <h1 className="mt-6 max-w-3xl font-display text-4xl font-bold leading-[1.05] text-ink dark:text-white sm:text-5xl md:text-6xl xl:text-6xl">
                   Build the technology
@@ -77,25 +333,13 @@ export default function Home() {
                 </h1>
 
                 <p className="mt-5 max-w-2xl text-sm leading-7 text-ink/65 dark:text-white/75 sm:text-lg sm:leading-8">
-                  Join practical live classes in artificial intelligence,
-
-                  and modern technology.
+                  Join practical live classes in artificial intelligence, and modern technology.
                 </p>
 
-                <div className="mt-7 flex flex-wrap gap-2 sm:gap-3">
-                  <span className="rounded-full border border-line bg-white/75 px-4 py-2 text-xs text-ink shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-white sm:text-sm">
-                    Live Zoom classes
-                  </span>
-                  <span className="rounded-full border border-line bg-white/75 px-4 py-2 text-xs text-ink shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-white sm:text-sm">
-                    Hands-on projects
-                  </span>
-                  <span className="rounded-full border border-line bg-white/75 px-4 py-2 text-xs text-ink shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-white sm:text-sm">
-                    Industry skills
-                  </span>
-                </div>
+                <HeroFeatures />
 
                 <a
-                  href="#upcoming-classes"
+                  href={`#${SECTION_IDS.UPCOMING}`}
                   className="mt-8 inline-flex min-h-12 items-center justify-center rounded-lg bg-amber px-6 text-sm font-semibold text-midnight shadow-md transition hover:-translate-y-0.5 hover:bg-coral"
                 >
                   Explore upcoming classes
@@ -112,13 +356,9 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Upcoming classes introduction + Winner of the Month */}
-        {/* Upcoming classes introduction + Winner of the Month */}
         <section className="mx-auto w-full max-w-[1500px] px-4 pb-10 sm:px-6 lg:px-8">
           <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm sm:rounded-3xl">
             <div className="grid items-stretch lg:grid-cols-[minmax(0,1fr)_400px]">
-
-              {/* Left content */}
               <div className="relative flex min-h-full flex-col overflow-hidden p-5 sm:p-8 lg:p-10 xl:p-12">
                 <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-amber/10 blur-3xl" />
                 <div className="pointer-events-none absolute -bottom-28 right-0 h-72 w-72 rounded-full bg-sage/10 blur-3xl" />
@@ -132,289 +372,27 @@ export default function Home() {
                   }}
                 />
 
-                <div className="relative flex h-full flex-col">
-                  {/* Heading */}
-                  <div>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber sm:text-xs">
-                      Monthly Competition · Win $100
-                    </p>
-
-                    <h2 className="mt-3 max-w-3xl font-display text-3xl leading-[1.05] text-ink sm:text-4xl md:text-5xl">
-                      Winner of the Month
-                    </h2>
-
-                    <p className="mt-4 max-w-2xl text-sm leading-7 text-ink/60 sm:text-base">
-                      Answer the daily question, earn points, and climb the leaderboard.
-                      The participant with the most points at the end of each month wins
-                      <strong className="text-ink"> $100.</strong>
-                    </p>
-                  </div>
-
-                  {/* Top 3 Winners */}
-                  <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-
-                    {/* First Place */}
-                    <div className="relative overflow-hidden rounded-2xl border-2 border-amber/60 bg-amber/5 p-5 text-center shadow-md">
-                      <div className="absolute right-3 top-3 rounded-full bg-amber px-3 py-1 font-mono text-[10px] font-semibold text-midnight">
-                        1ST
-                      </div>
-
-                      <div className="text-4xl">
-                        🥇
-                      </div>
-
-                      <div className="mx-auto mt-3 h-24 w-24 overflow-hidden rounded-full border-4 border-amber/30 bg-surface shadow-md">
-                        <img
-                          src="https://randomuser.me/api/portraits/women/44.jpg"
-                          alt="First place winner"
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-
-                      <h3 className="mt-4 font-display text-2xl font-semibold text-ink">
-                        Ana
-                      </h3>
-
-                      <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink/45">
-                        First Place
-                      </p>
-
-                      <div className="mt-4 rounded-xl bg-amber px-4 py-3">
-                        <strong className="block text-xl text-midnight">
-                          120 pts
-                        </strong>
-
-                        <span className="text-xs text-midnight/70">
-                          Monthly score
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Second Place */}
-                    <div className="relative overflow-hidden rounded-2xl border border-line bg-chalk/50 p-5 text-center shadow-sm">
-                      <div className="absolute right-3 top-3 rounded-full border border-line bg-surface px-3 py-1 font-mono text-[10px] font-semibold text-ink">
-                        2ND
-                      </div>
-
-                      <div className="text-4xl">
-                        🥈
-                      </div>
-
-                      <div className="mx-auto mt-3 h-20 w-20 overflow-hidden rounded-full border-4 border-line bg-surface shadow-md">
-                        <img
-                          src="https://randomuser.me/api/portraits/men/35.jpg"
-                          alt="Second place winner"
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-
-                      <h3 className="mt-4 font-display text-xl font-semibold text-ink">
-                        John
-                      </h3>
-
-                      <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink/45">
-                        Second Place
-                      </p>
-
-                      <div className="mt-4 rounded-xl border border-line bg-surface px-4 py-3">
-                        <strong className="block text-xl text-ink">
-                          95 pts
-                        </strong>
-
-                        <span className="text-xs text-ink/45">
-                          Monthly score
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Third Place */}
-                    <div className="relative overflow-hidden rounded-2xl border border-line bg-chalk/50 p-5 text-center shadow-sm">
-                      <div className="absolute right-3 top-3 rounded-full border border-line bg-surface px-3 py-1 font-mono text-[10px] font-semibold text-ink">
-                        3RD
-                      </div>
-
-                      <div className="text-4xl">
-                        🥉
-                      </div>
-
-                      <div className="mx-auto mt-3 h-20 w-20 overflow-hidden rounded-full border-4 border-line bg-surface shadow-md">
-                        <img
-                          src="https://randomuser.me/api/portraits/women/68.jpg"
-                          alt="Third place winner"
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-
-                      <h3 className="mt-4 font-display text-xl font-semibold text-ink">
-                        Maria
-                      </h3>
-
-                      <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink/45">
-                        Third Place
-                      </p>
-
-                      <div className="mt-4 rounded-xl border border-line bg-surface px-4 py-3">
-                        <strong className="block text-xl text-ink">
-                          78 pts
-                        </strong>
-
-                        <span className="text-xs text-ink/45">
-                          Monthly score
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bottom Competition Message */}
-                  <div className="mt-6 rounded-2xl border border-line bg-surface/80 p-4 sm:p-5">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber/15 text-2xl">
-                        🏆
-                      </div>
-
-                      <div>
-                        <h3 className="text-sm font-semibold text-ink sm:text-base">
-                          Want to be next month&apos;s winner?
-                        </h3>
-
-                        <p className="mt-1 text-xs leading-5 text-ink/55 sm:text-sm">
-                          Come back every day, answer the question correctly, and collect
-                          as many points as possible. The leaderboard resets every month,
-                          giving everyone a new chance to win.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <CompetitionSection />
               </div>
 
-              {/* Right content */}
               <div className="border-t border-line bg-chalk/45 p-4 sm:p-6 lg:border-l lg:border-t-0">
                 <div className="flex h-full flex-col gap-4">
-                  {!loading && (upcoming.length > 0 || past.length > 0) && (
-                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
-
-                      <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
-                        <strong className="block text-xl text-ink sm:text-2xl">
-                          {upcoming.length}
-                        </strong>
-
-                        <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
-                          Upcoming
-                        </span>
-                      </div>
-
-                      <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
-                        <strong className="block text-xl text-ink sm:text-2xl">
-                          {past.length}
-                        </strong>
-
-                        <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
-                          Completed
-                        </span>
-                      </div>
-
-                      <div className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3">
-                        <strong className="block text-xl text-ink sm:text-2xl">
-                          {totalRegistered}
-                        </strong>
-
-                        <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
-                          Registrations
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Winner card */}
+                  {!isLoading && <StatsDisplay stats={stats} />}
                   <div className="min-h-0 flex-1 [&>div]:h-full [&>section]:h-full">
                     <WinnerOfMonth />
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
         </section>
 
-        {/* Aside + classes */}
         <section
-          id="upcoming-classes"
+          id={SECTION_IDS.UPCOMING}
           className="mx-auto w-full max-w-[1500px] px-4 pb-14 sm:px-6 lg:px-8 scroll-mt-24"
         >
           <div className="min-w-0">
-            {loading ? (
-              <div>
-                <p className="mb-4 font-mono text-xs uppercase tracking-widest text-ink/40">
-                  Loading classes
-                </p>
-
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {Array.from({ length: 6 }).map((_, index) => (
-                    <ClassCardSkeleton key={index} />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <>
-                {upcoming.length > 0 && (
-                  <section className="animate-fade-in">
-                    <div className="mb-5 flex items-center justify-between">
-                      <p className="font-mono text-xs uppercase tracking-widest text-ink/40">
-                        Upcoming
-                      </p>
-
-                      <span className="font-mono text-xs text-ink/40">
-                        {upcoming.length}{' '}
-                        {upcoming.length === 1 ? 'class' : 'classes'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {upcoming.map((classItem) => (
-                        <ClassCard key={classItem.id} item={classItem} />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {upcoming.length === 0 && (
-                  <section className="py-4 text-center">
-                    <div className="rounded-2xl border border-line bg-surface px-6 py-12 shadow-sm">
-                      <p className="font-display text-2xl text-ink/70">
-                        No upcoming classes right now.
-                      </p>
-
-                      <p className="mt-2 text-sm text-ink/50 sm:text-base">
-                        Check back soon. New technology sessions are added
-                        regularly.
-                      </p>
-                    </div>
-                  </section>
-                )}
-
-                {past.length > 0 && (
-                  <section id="past-classes" className="mt-12 border-t border-line pt-10 scroll-mt-24">
-                    <div className="mb-5 flex items-center justify-between">
-                      <p className="font-mono text-xs uppercase tracking-widest text-ink/40">
-                        Past classes
-                      </p>
-
-                      <span className="font-mono text-xs text-ink/40">
-                        {past.length}{' '}
-                        {past.length === 1 ? 'class' : 'classes'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-5 opacity-80 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {past.map((classItem) => (
-                        <ClassCard key={classItem.id} item={classItem} />
-                      ))}
-                    </div>
-                  </section>
-                )}
-              </>
-            )}
+            {isLoading ? renderLoadingState() : renderContent()}
           </div>
         </section>
       </main>
