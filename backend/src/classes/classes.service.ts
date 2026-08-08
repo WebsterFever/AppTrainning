@@ -15,14 +15,18 @@ export interface ClassWithCount {
   videoUrl?: string;
   videoNotes?: string;
   videoPdfUrl?: string;
+  videoPdfName?: string;
   videoResourceImageUrl?: string;
+  videoResourceImageName?: string;
   extraVideos?: {
     id: string;
     title: string;
     url: string;
     notes?: string;
     pdfUrl?: string;
+    pdfName?: string;
     imageUrl?: string;
+    imageName?: string;
   }[];
   classDate?: Date;
   zoomLink?: string;
@@ -116,8 +120,10 @@ export class ClassesService {
       title: v.title,
       url: v.url,
       notes: v.notes,
-      pdfUrl: v.pdfUrl,
-      imageUrl: v.imageUrl,
+      pdfUrl: v.pdfUrl ?? undefined,
+      pdfName: v.pdfName ?? undefined,
+      imageUrl: v.imageUrl ?? undefined,
+      imageName: v.imageName ?? undefined,
     }));
   }
 
@@ -156,7 +162,9 @@ export class ClassesService {
       videoUrl: row.videoUrl,
       videoNotes: row.videoNotes,
       videoPdfUrl: row.videoPdfUrl,
+      videoPdfName: row.videoPdfName,
       videoResourceImageUrl: row.videoResourceImageUrl,
+      videoResourceImageName: row.videoResourceImageName,
       extraVideos: row.extraVideos,
       classDate: row.classDate,
       // Hide link publicly pre-registration, unless explicitly revealed (admin views).

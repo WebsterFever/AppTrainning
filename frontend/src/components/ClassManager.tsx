@@ -2,10 +2,31 @@ import { useEffect, useState } from 'react';
 import { api, ClassItem, NewExtraVideo, RegistrationDetail } from '../lib/api';
 import ConfirmDialog from './ConfirmDialog';
 
-type ExtraVideoForm = NewExtraVideo & { pdfFile?: File | null; imageFile?: File | null };
+type ExtraVideoForm = Omit<NewExtraVideo, 'pdfUrl' | 'pdfName' | 'imageUrl' | 'imageName'> & {
+  pdfUrl: string;
+  pdfName: string;
+  imageUrl: string;
+  imageName: string;
+  pdfFile?: File | null;
+  imageFile?: File | null;
+  pdfRemoved?: boolean;
+  imageRemoved?: boolean;
+};
 
 function emptyExtraVideo(): ExtraVideoForm {
-  return { title: '', url: '', notes: '', pdfUrl: '', imageUrl: '', pdfFile: null, imageFile: null };
+  return {
+    title: '',
+    url: '',
+    notes: '',
+    pdfUrl: '',
+    pdfName: '',
+    imageUrl: '',
+    imageName: '',
+    pdfFile: null,
+    imageFile: null,
+    pdfRemoved: false,
+    imageRemoved: false,
+  };
 }
 
 function emptyForm() {
@@ -16,9 +37,13 @@ function emptyForm() {
     videoUrl: '',
     videoNotes: '',
     videoPdfUrl: '',
+    videoPdfName: '',
     videoResourceImageUrl: '',
+    videoResourceImageName: '',
     videoPdfFile: null as File | null,
     videoImageFile: null as File | null,
+    videoPdfRemoved: false,
+    videoImageRemoved: false,
     extraVideos: [emptyExtraVideo()] as ExtraVideoForm[],
     classDate: '',
     zoomLink: '',
@@ -29,9 +54,16 @@ function emptyForm() {
 async function resolveResourceUrl(
   file: File | null | undefined,
   existingUrl: string | undefined,
-): Promise<string | undefined> {
+  removed?: boolean,
+): Promise<string | null | undefined> {
   if (file) return (await api.uploadClassResource(file)).url;
+  if (removed) return null;
   return existingUrl || undefined;
+}
+
+function resolveResourceName(name: string, removed?: boolean): string | null | undefined {
+  if (removed) return null;
+  return name.trim() || undefined;
 }
 
 // Convert an ISO date string to the local "YYYY-MM-DDTHH:mm" format a
@@ -114,9 +146,13 @@ export default function ClassManager({
       videoUrl: c.videoUrl ?? '',
       videoNotes: c.videoNotes ?? '',
       videoPdfUrl: c.videoPdfUrl ?? '',
+      videoPdfName: c.videoPdfName ?? '',
       videoResourceImageUrl: c.videoResourceImageUrl ?? '',
+      videoResourceImageName: c.videoResourceImageName ?? '',
       videoPdfFile: null,
       videoImageFile: null,
+      videoPdfRemoved: false,
+      videoImageRemoved: false,
       extraVideos: c.extraVideos?.length
         ? c.extraVideos.map((v) => ({
             id: v.id,
@@ -124,9 +160,13 @@ export default function ClassManager({
             url: v.url,
             notes: v.notes ?? '',
             pdfUrl: v.pdfUrl ?? '',
+            pdfName: v.pdfName ?? '',
             imageUrl: v.imageUrl ?? '',
+            imageName: v.imageName ?? '',
             pdfFile: null,
             imageFile: null,
+            pdfRemoved: false,
+            imageRemoved: false,
           }))
         : [emptyExtraVideo()],
       classDate: toDatetimeLocal(c.classDate),
@@ -148,9 +188,11 @@ export default function ClassManager({
     setError('');
     try {
       const [videoPdfUrl, videoResourceImageUrl] = await Promise.all([
-        resolveResourceUrl(form.videoPdfFile, form.videoPdfUrl),
-        resolveResourceUrl(form.videoImageFile, form.videoResourceImageUrl),
+        resolveResourceUrl(form.videoPdfFile, form.videoPdfUrl, form.videoPdfRemoved),
+        resolveResourceUrl(form.videoImageFile, form.videoResourceImageUrl, form.videoImageRemoved),
       ]);
+      const videoPdfName = resolveResourceName(form.videoPdfName, form.videoPdfRemoved);
+      const videoResourceImageName = resolveResourceName(form.videoResourceImageName, form.videoImageRemoved);
 
       const extraVideos = (
         await Promise.all(
@@ -159,8 +201,10 @@ export default function ClassManager({
             title: v.title.trim(),
             url: v.url.trim(),
             notes: (v.notes ?? '').trim(),
-            pdfUrl: await resolveResourceUrl(v.pdfFile, v.pdfUrl),
-            imageUrl: await resolveResourceUrl(v.imageFile, v.imageUrl),
+            pdfUrl: await resolveResourceUrl(v.pdfFile, v.pdfUrl, v.pdfRemoved),
+            pdfName: resolveResourceName(v.pdfName, v.pdfRemoved),
+            imageUrl: await resolveResourceUrl(v.imageFile, v.imageUrl, v.imageRemoved),
+            imageName: resolveResourceName(v.imageName, v.imageRemoved),
           })),
         )
       )
@@ -171,7 +215,9 @@ export default function ClassManager({
           url: v.url,
           notes: v.notes || undefined,
           pdfUrl: v.pdfUrl,
+          pdfName: v.pdfName,
           imageUrl: v.imageUrl,
+          imageName: v.imageName,
         }));
       const payload = {
         title: form.title,
@@ -182,7 +228,9 @@ export default function ClassManager({
         videoUrl: form.videoUrl.trim() || undefined,
         videoNotes: form.videoNotes.trim() || undefined,
         videoPdfUrl,
+        videoPdfName,
         videoResourceImageUrl,
+        videoResourceImageName,
         extraVideos: extraVideos.length ? extraVideos : undefined,
         isPaid,
         ...(isPaid
@@ -323,13 +371,44 @@ export default function ClassManager({
               <input
                 type="file"
                 accept="application/pdf"
-                onChange={(e) => setForm({ ...form, videoPdfFile: e.target.files?.[0] ?? null })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    videoPdfFile: e.target.files?.[0] ?? null,
+                    videoPdfRemoved: false,
+                  })
+                }
                 className="input text-xs file:mr-2"
               />
-              {(form.videoPdfFile || form.videoPdfUrl) && (
-                <p className="text-[11px] text-sage mt-1">
-                  ✓ {form.videoPdfFile?.name ?? 'PDF attached'}
-                </p>
+              {(form.videoPdfFile || (form.videoPdfUrl && !form.videoPdfRemoved)) && (
+                <>
+                  <p className="text-[11px] text-sage mt-1">
+                    ✓ {form.videoPdfFile?.name ?? 'PDF attached'}
+                  </p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input
+                      placeholder="Label (optional)"
+                      value={form.videoPdfName}
+                      onChange={(e) => setForm({ ...form, videoPdfName: e.target.value })}
+                      className="input text-xs py-1 flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          videoPdfFile: null,
+                          videoPdfUrl: '',
+                          videoPdfName: '',
+                          videoPdfRemoved: true,
+                        })
+                      }
+                      className="text-[11px] text-coral hover:underline flex-shrink-0"
+                    >
+                      ✕ Remove
+                    </button>
+                  </div>
+                </>
               )}
             </div>
             <div>
@@ -339,13 +418,44 @@ export default function ClassManager({
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => setForm({ ...form, videoImageFile: e.target.files?.[0] ?? null })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    videoImageFile: e.target.files?.[0] ?? null,
+                    videoImageRemoved: false,
+                  })
+                }
                 className="input text-xs file:mr-2"
               />
-              {(form.videoImageFile || form.videoResourceImageUrl) && (
-                <p className="text-[11px] text-sage mt-1">
-                  ✓ {form.videoImageFile?.name ?? 'Picture attached'}
-                </p>
+              {(form.videoImageFile || (form.videoResourceImageUrl && !form.videoImageRemoved)) && (
+                <>
+                  <p className="text-[11px] text-sage mt-1">
+                    ✓ {form.videoImageFile?.name ?? 'Picture attached'}
+                  </p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <input
+                      placeholder="Label (optional)"
+                      value={form.videoResourceImageName}
+                      onChange={(e) => setForm({ ...form, videoResourceImageName: e.target.value })}
+                      className="input text-xs py-1 flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          videoImageFile: null,
+                          videoResourceImageUrl: '',
+                          videoResourceImageName: '',
+                          videoImageRemoved: true,
+                        })
+                      }
+                      className="text-[11px] text-coral hover:underline flex-shrink-0"
+                    >
+                      ✕ Remove
+                    </button>
+                  </div>
+                </>
               )}
             </div>
             <p className="col-span-2 text-[11px] text-ink/40">
@@ -397,15 +507,50 @@ export default function ClassManager({
                           accept="application/pdf"
                           onChange={(e) => {
                             const next = [...form.extraVideos];
-                            next[i] = { ...next[i], pdfFile: e.target.files?.[0] ?? null };
+                            next[i] = {
+                              ...next[i],
+                              pdfFile: e.target.files?.[0] ?? null,
+                              pdfRemoved: false,
+                            };
                             setForm({ ...form, extraVideos: next });
                           }}
                           className="input text-xs file:mr-2"
                         />
-                        {(video.pdfFile || video.pdfUrl) && (
-                          <p className="text-[11px] text-sage mt-1">
-                            ✓ {video.pdfFile?.name ?? 'PDF attached'}
-                          </p>
+                        {(video.pdfFile || (video.pdfUrl && !video.pdfRemoved)) && (
+                          <>
+                            <p className="text-[11px] text-sage mt-1">
+                              ✓ {video.pdfFile?.name ?? 'PDF attached'}
+                            </p>
+                            <div className="flex items-center gap-1 mt-1">
+                              <input
+                                placeholder="Label (optional)"
+                                value={video.pdfName}
+                                onChange={(e) => {
+                                  const next = [...form.extraVideos];
+                                  next[i] = { ...next[i], pdfName: e.target.value };
+                                  setForm({ ...form, extraVideos: next });
+                                }}
+                                className="input text-xs py-1 flex-1"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = [...form.extraVideos];
+                                  next[i] = {
+                                    ...next[i],
+                                    pdfFile: null,
+                                    pdfUrl: '',
+                                    pdfName: '',
+                                    pdfRemoved: true,
+                                  };
+                                  setForm({ ...form, extraVideos: next });
+                                }}
+                                className="text-[11px] text-coral hover:underline flex-shrink-0"
+                              >
+                                ✕ Remove
+                              </button>
+                            </div>
+                          </>
                         )}
                       </div>
                       <div>
@@ -414,15 +559,50 @@ export default function ClassManager({
                           accept="image/*"
                           onChange={(e) => {
                             const next = [...form.extraVideos];
-                            next[i] = { ...next[i], imageFile: e.target.files?.[0] ?? null };
+                            next[i] = {
+                              ...next[i],
+                              imageFile: e.target.files?.[0] ?? null,
+                              imageRemoved: false,
+                            };
                             setForm({ ...form, extraVideos: next });
                           }}
                           className="input text-xs file:mr-2"
                         />
-                        {(video.imageFile || video.imageUrl) && (
-                          <p className="text-[11px] text-sage mt-1">
-                            ✓ {video.imageFile?.name ?? 'Picture attached'}
-                          </p>
+                        {(video.imageFile || (video.imageUrl && !video.imageRemoved)) && (
+                          <>
+                            <p className="text-[11px] text-sage mt-1">
+                              ✓ {video.imageFile?.name ?? 'Picture attached'}
+                            </p>
+                            <div className="flex items-center gap-1 mt-1">
+                              <input
+                                placeholder="Label (optional)"
+                                value={video.imageName}
+                                onChange={(e) => {
+                                  const next = [...form.extraVideos];
+                                  next[i] = { ...next[i], imageName: e.target.value };
+                                  setForm({ ...form, extraVideos: next });
+                                }}
+                                className="input text-xs py-1 flex-1"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = [...form.extraVideos];
+                                  next[i] = {
+                                    ...next[i],
+                                    imageFile: null,
+                                    imageUrl: '',
+                                    imageName: '',
+                                    imageRemoved: true,
+                                  };
+                                  setForm({ ...form, extraVideos: next });
+                                }}
+                                className="text-[11px] text-coral hover:underline flex-shrink-0"
+                              >
+                                ✕ Remove
+                              </button>
+                            </div>
+                          </>
                         )}
                       </div>
                     </div>

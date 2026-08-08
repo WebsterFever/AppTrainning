@@ -34,11 +34,19 @@ export class CreateClassDto {
 
   @IsOptional()
   @IsUrl({ require_tld: false })
-  videoPdfUrl?: string;
+  videoPdfUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  videoPdfName?: string | null;
 
   @IsOptional()
   @IsUrl({ require_tld: false })
-  videoResourceImageUrl?: string;
+  videoResourceImageUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  videoResourceImageName?: string | null;
 
   @IsOptional()
   @IsArray()

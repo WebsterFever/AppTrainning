@@ -18,9 +18,17 @@ export class ExtraVideoDto {
 
   @IsOptional()
   @IsUrl({ require_tld: false })
-  pdfUrl?: string;
+  pdfUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  pdfName?: string | null;
 
   @IsOptional()
   @IsUrl({ require_tld: false })
-  imageUrl?: string;
+  imageUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  imageName?: string | null;
 }

@@ -110,7 +110,12 @@ export default function ClassDetail() {
     );
   }
 
-  const renderResourceLinks = (pdfUrl?: string, imageUrl?: string) => {
+  const renderResourceLinks = (
+    pdfUrl?: string,
+    imageUrl?: string,
+    pdfName?: string,
+    imageName?: string,
+  ) => {
     if (!pdfUrl && !imageUrl) return null;
     return (
       <div className="mt-3 flex flex-wrap gap-2">
@@ -122,7 +127,7 @@ export default function ClassDetail() {
             download
             className="btn-outline text-xs px-3 py-1.5"
           >
-            📄 Download PDF
+            📄 Download {pdfName || 'PDF'}
           </a>
         )}
         {imageUrl && (
@@ -133,7 +138,7 @@ export default function ClassDetail() {
             download
             className="btn-outline text-xs px-3 py-1.5"
           >
-            🖼️ Download picture
+            🖼️ Download {imageName || 'picture'}
           </a>
         )}
       </div>
@@ -274,7 +279,12 @@ export default function ClassDetail() {
                 </p>
               </div>
             )}
-            {renderResourceLinks(item.videoPdfUrl, item.videoResourceImageUrl)}
+            {renderResourceLinks(
+              item.videoPdfUrl,
+              item.videoResourceImageUrl,
+              item.videoPdfName,
+              item.videoResourceImageName,
+            )}
 
             {item.videoUrl && <VideoComments classId={item.id} videoRef="main" />}
 
@@ -345,7 +355,7 @@ export default function ClassDetail() {
                               </p>
                             </div>
                           )}
-                          {renderResourceLinks(video.pdfUrl, video.imageUrl)}
+                          {renderResourceLinks(video.pdfUrl, video.imageUrl, video.pdfName, video.imageName)}
                           <VideoComments classId={item.id} videoRef={video.id} />
                         </div>
                       )}

@@ -28,12 +28,19 @@ export class TrainingClass {
   @Column({ type: 'text', name: 'video_notes', nullable: true })
   videoNotes?: string;
 
-  // Downloadable resources attached to the main video.
-  @Column({ name: 'video_pdf_url', nullable: true })
-  videoPdfUrl?: string;
+  // Downloadable resources attached to the main video. Nullable so an admin
+  // can explicitly clear one (distinct from "not sent" on partial updates).
+  @Column({ type: 'varchar', name: 'video_pdf_url', nullable: true })
+  videoPdfUrl?: string | null;
 
-  @Column({ name: 'video_resource_image_url', nullable: true })
-  videoResourceImageUrl?: string;
+  @Column({ type: 'varchar', name: 'video_pdf_name', nullable: true })
+  videoPdfName?: string | null;
+
+  @Column({ type: 'varchar', name: 'video_resource_image_url', nullable: true })
+  videoResourceImageUrl?: string | null;
+
+  @Column({ type: 'varchar', name: 'video_resource_image_name', nullable: true })
+  videoResourceImageName?: string | null;
 
   @Column('simple-json', { name: 'extra_videos', nullable: true })
   extraVideos?: {
@@ -42,7 +49,9 @@ export class TrainingClass {
     url: string;
     notes?: string;
     pdfUrl?: string;
+    pdfName?: string;
     imageUrl?: string;
+    imageName?: string;
   }[];
 
   // Optional: paid classes may not have a fixed live session (e.g. self-paced content).

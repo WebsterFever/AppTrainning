@@ -7,7 +7,9 @@ export interface ExtraVideo {
   url: string;
   notes?: string;
   pdfUrl?: string;
+  pdfName?: string;
   imageUrl?: string;
+  imageName?: string;
 }
 
 export interface NewExtraVideo {
@@ -15,8 +17,10 @@ export interface NewExtraVideo {
   title: string;
   url: string;
   notes?: string;
-  pdfUrl?: string;
-  imageUrl?: string;
+  pdfUrl?: string | null;
+  pdfName?: string | null;
+  imageUrl?: string | null;
+  imageName?: string | null;
 }
 
 export interface ClassFormData {
@@ -25,8 +29,10 @@ export interface ClassFormData {
   imageUrl: string;
   videoUrl?: string;
   videoNotes?: string;
-  videoPdfUrl?: string;
-  videoResourceImageUrl?: string;
+  videoPdfUrl?: string | null;
+  videoPdfName?: string | null;
+  videoResourceImageUrl?: string | null;
+  videoResourceImageName?: string | null;
   extraVideos?: NewExtraVideo[];
   classDate?: string;
   zoomLink?: string;
@@ -113,7 +119,9 @@ export interface ClassItem {
   videoUrl?: string;
   videoNotes?: string;
   videoPdfUrl?: string;
+  videoPdfName?: string;
   videoResourceImageUrl?: string;
+  videoResourceImageName?: string;
   extraVideos?: ExtraVideo[];
   classDate?: string;
   zoomLink?: string;

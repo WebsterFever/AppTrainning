@@ -34,7 +34,7 @@ export default function AdminLogin() {
           <span aria-hidden="true">←</span>
           <img src="/logoLightMode.png" alt="Webster Technology School" className="h-11 w-auto" />
         </Link>
-        <h1 className="font-display text-2xl text-midnight mt-3">Admin sign in</h1>
+        <h1 className="font-display text-2xl text-midnight mt-3">Teacher sign in</h1>
         <p className="text-midnight/60 text-sm mt-1">Manage Webster Technology School classes.</p>
 
         <div className="mt-6 space-y-4">
