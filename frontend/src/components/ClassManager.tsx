@@ -223,7 +223,10 @@ export default function ClassManager({
         title: form.title,
         description: form.description,
         imageUrl: form.imageUrl,
-        classDate: form.classDate || undefined,
+        // The datetime-local input has no timezone attached — resolve it
+        // against the browser's own timezone before sending, so the server
+        // (which may run in a different timezone) can't reinterpret it.
+        classDate: form.classDate ? new Date(form.classDate).toISOString() : undefined,
         zoomLink: form.zoomLink.trim() || undefined,
         videoUrl: form.videoUrl.trim() || undefined,
         videoNotes: form.videoNotes.trim() || undefined,
