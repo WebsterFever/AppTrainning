@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Contestant } from './contestant.entity';
@@ -10,12 +10,26 @@ import { SubscribeContestantDto } from './dto/subscribe-contestant.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { SubmitAnswerDto } from './dto/submit-answer.dto';
 
-export const POINTS_GOAL = 1000;
 const FIRST_CORRECT_POINTS = 10;
+const CLOSED_MESSAGE = 'This month\'s contest has ended — the admin needs to reset it before a new one can start.';
 
 function currentPeriodMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// Number of days in a "YYYY-MM" period — the monthly point goal is this many
+// days times the daily first-correct-answer bonus.
+function daysInPeriod(periodMonth: string): number {
+  const [year, month] = periodMonth.split('-').map(Number);
+  return new Date(year, month, 0).getDate();
+}
+
+export interface LeaderboardResult {
+  goal: number;
+  periodEnded: boolean;
+  monthWinner?: { name: string; imageUrl: string; points: number };
+  contestants: Contestant[];
 }
 
 @Injectable()
@@ -33,44 +47,27 @@ export class ContestService {
     private readonly settingsRepo: Repository<ContestSettings>,
   ) {}
 
-  // Lazily rolls the contest into a new month: archives the current top
-  // scorer as that month's winner, then resets every contestant to 0.
-  private async ensureCurrentPeriod(): Promise<void> {
-    const now = currentPeriodMonth();
+  // Creates the settings row on first-ever use. Does NOT auto-roll the
+  // period — once a month ends, the contest stays closed until an admin
+  // explicitly resets it (see resetContest()).
+  private async getSettings(): Promise<ContestSettings> {
     let settings = await this.settingsRepo.findOne({ where: { id: 1 } });
-
     if (!settings) {
-      settings = this.settingsRepo.create({ id: 1, currentPeriodMonth: now });
+      settings = this.settingsRepo.create({ id: 1, currentPeriodMonth: currentPeriodMonth() });
       await this.settingsRepo.save(settings);
-      return;
     }
+    return settings;
+  }
 
-    if (settings.currentPeriodMonth === now) return;
-
-    const [leader] = await this.contestantsRepo.find({
-      order: { points: 'DESC' },
-      take: 1,
-    });
-    if (leader && leader.points > 0) {
-      await this.monthlyWinnersRepo.save(
-        this.monthlyWinnersRepo.create({
-          periodMonth: settings.currentPeriodMonth,
-          contestantName: leader.name,
-          contestantImageUrl: leader.imageUrl,
-          points: leader.points,
-        }),
-      );
-    }
-
-    await this.contestantsRepo.createQueryBuilder().update().set({ points: 0 }).execute();
-    settings.currentPeriodMonth = now;
-    await this.settingsRepo.save(settings);
+  private isPeriodEnded(settings: ContestSettings): boolean {
+    return settings.currentPeriodMonth !== currentPeriodMonth();
   }
 
   async subscribe(dto: SubscribeContestantDto): Promise<Contestant> {
-    await this.ensureCurrentPeriod();
-    const email = dto.email.toLowerCase();
+    const settings = await this.getSettings();
+    if (this.isPeriodEnded(settings)) throw new ForbiddenException(CLOSED_MESSAGE);
 
+    const email = dto.email.toLowerCase();
     const existing = await this.contestantsRepo.findOne({ where: { email } });
     if (existing) return existing;
 
@@ -83,9 +80,27 @@ export class ContestService {
     return this.contestantsRepo.save(contestant);
   }
 
-  async getLeaderboard(): Promise<Contestant[]> {
-    await this.ensureCurrentPeriod();
-    return this.contestantsRepo.find({ order: { points: 'DESC', createdAt: 'ASC' } });
+  async getLeaderboard(): Promise<LeaderboardResult> {
+    const settings = await this.getSettings();
+    const periodEnded = this.isPeriodEnded(settings);
+    const contestants = await this.contestantsRepo.find({
+      order: { points: 'DESC', createdAt: 'ASC' },
+    });
+
+    let monthWinner: LeaderboardResult['monthWinner'];
+    if (periodEnded) {
+      const [leader] = contestants;
+      if (leader && leader.points > 0) {
+        monthWinner = { name: leader.name, imageUrl: leader.imageUrl, points: leader.points };
+      }
+    }
+
+    return {
+      goal: daysInPeriod(settings.currentPeriodMonth) * FIRST_CORRECT_POINTS,
+      periodEnded,
+      monthWinner,
+      contestants,
+    };
   }
 
   async getCurrentQuestion(): Promise<{
@@ -95,7 +110,9 @@ export class ContestService {
     answered: boolean;
     winnerName?: string;
   } | null> {
-    await this.ensureCurrentPeriod();
+    const settings = await this.getSettings();
+    if (this.isPeriodEnded(settings)) return null;
+
     const question = await this.getLatestQuestion();
     if (!question) return null;
 
@@ -109,7 +126,9 @@ export class ContestService {
   }
 
   async submitAnswer(dto: SubmitAnswerDto): Promise<{ correct: boolean; won: boolean; points: number }> {
-    await this.ensureCurrentPeriod();
+    const settings = await this.getSettings();
+    if (this.isPeriodEnded(settings)) throw new ForbiddenException(CLOSED_MESSAGE);
+
     const email = dto.email.toLowerCase();
 
     const contestant = await this.contestantsRepo.findOne({ where: { email } });
@@ -179,9 +198,12 @@ export class ContestService {
     return question ?? null;
   }
 
-  // Admin only.
+  // Admin only. Blocked once the period has ended — reset is the only way
+  // to start a new one.
   async createQuestion(dto: CreateQuestionDto): Promise<DailyQuestion> {
-    await this.ensureCurrentPeriod();
+    const settings = await this.getSettings();
+    if (this.isPeriodEnded(settings)) throw new ForbiddenException(CLOSED_MESSAGE);
+
     const question = this.questionsRepo.create({
       subject: dto.subject,
       questionText: dto.questionText,
@@ -198,19 +220,29 @@ export class ContestService {
     return this.contestantsRepo.find({ order: { points: 'DESC', createdAt: 'ASC' } });
   }
 
-  // Admin only: wipes every contestant, question, and attempt to start the
-  // contest fresh. Past monthly winners are kept as history.
+  // Admin only: archives the current leader as the winner of the period
+  // that's ending, then wipes every contestant, question, and attempt so a
+  // fresh contest can start. Past monthly winners are kept as history.
   async resetContest(): Promise<void> {
+    const settings = await this.getSettings();
+
+    const [leader] = await this.contestantsRepo.find({ order: { points: 'DESC' }, take: 1 });
+    if (leader && leader.points > 0) {
+      await this.monthlyWinnersRepo.save(
+        this.monthlyWinnersRepo.create({
+          periodMonth: settings.currentPeriodMonth,
+          contestantName: leader.name,
+          contestantImageUrl: leader.imageUrl,
+          points: leader.points,
+        }),
+      );
+    }
+
     await this.attemptsRepo.createQueryBuilder().delete().execute();
     await this.questionsRepo.createQueryBuilder().delete().execute();
     await this.contestantsRepo.createQueryBuilder().delete().execute();
 
-    let settings = await this.settingsRepo.findOne({ where: { id: 1 } });
-    if (!settings) {
-      settings = this.settingsRepo.create({ id: 1, currentPeriodMonth: currentPeriodMonth() });
-    } else {
-      settings.currentPeriodMonth = currentPeriodMonth();
-    }
+    settings.currentPeriodMonth = currentPeriodMonth();
     await this.settingsRepo.save(settings);
   }
 }

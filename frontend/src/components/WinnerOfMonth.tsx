@@ -5,7 +5,11 @@ import { formatCountdown, getNextQuestionTime } from '../lib/contestSchedule';
 const ATTEMPTED_KEY = 'classboard_contest_attempted_question';
 
 export default function WinnerOfMonth() {
-  const [goal, setGoal] = useState(1000);
+  const [goal, setGoal] = useState(300);
+  const [periodEnded, setPeriodEnded] = useState(false);
+  const [monthWinner, setMonthWinner] = useState<
+    { name: string; imageUrl: string; points: number } | undefined
+  >(undefined);
   const [contestants, setContestants] = useState<ContestantEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [identity, setIdentity] = useState(() => contestIdentity.get());
@@ -34,6 +38,8 @@ export default function WinnerOfMonth() {
       .getLeaderboard()
       .then((data) => {
         setGoal(data.goal);
+        setPeriodEnded(data.periodEnded);
+        setMonthWinner(data.monthWinner);
         setContestants(data.contestants);
       })
       .finally(() => setLoading(false));
@@ -53,6 +59,7 @@ export default function WinnerOfMonth() {
     const tickTimer = setInterval(() => setNow(new Date()), 1000);
     const refreshTimer = setInterval(() => {
       api.getCurrentQuestion().then(setQuestion);
+      loadLeaderboard();
     }, 60000);
     return () => {
       clearInterval(tickTimer);
@@ -206,13 +213,30 @@ export default function WinnerOfMonth() {
       <p className="text-xs text-ink/60 mt-1">
         Answer the daily question first to score points. Most points by month's end wins $100.
       </p>
-      <p className="text-[11px] font-mono text-ink/40 mt-1">
-        New question at 12pm ET · next in {countdownText}
-      </p>
+      {!periodEnded && (
+        <p className="text-[11px] font-mono text-ink/40 mt-1">
+          New question at 12pm ET · next in {countdownText}
+        </p>
+      )}
 
       <div className="mt-4">
         <div className="bg-chalk border border-line rounded-sm p-3">
-          {!question ? (
+          {periodEnded ? (
+            <div className="text-center py-2">
+              <p className="text-2xl">🏆</p>
+              {monthWinner ? (
+                <p className="text-sm text-ink mt-1">
+                  <strong>{monthWinner.name}</strong> won this month with {monthWinner.points}{' '}
+                  points!
+                </p>
+              ) : (
+                <p className="text-sm text-ink mt-1">This month's contest has ended.</p>
+              )}
+              <p className="text-xs text-ink/50 mt-1">
+                Waiting for the admin to start a new contest.
+              </p>
+            </div>
+          ) : !question ? (
             <>
               <p className="text-xs text-ink/50">
                 No question posted yet today — check back in {countdownText}.

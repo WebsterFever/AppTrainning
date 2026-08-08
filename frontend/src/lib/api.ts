@@ -44,6 +44,8 @@ export interface ContestantEntry {
 
 export interface Leaderboard {
   goal: number;
+  periodEnded: boolean;
+  monthWinner?: { name: string; imageUrl: string; points: number };
   contestants: ContestantEntry[];
 }
 

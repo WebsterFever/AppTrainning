@@ -14,12 +14,18 @@ export default function AdminContest() {
   const [loading, setLoading] = useState(true);
   const [pendingReset, setPendingReset] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [periodEnded, setPeriodEnded] = useState(false);
+  const [monthWinner, setMonthWinner] = useState<{ name: string; imageUrl: string; points: number } | undefined>(
+    undefined,
+  );
 
   const load = () =>
-    Promise.all([api.listContestQuestions(), api.listContestants()]).then(
-      ([q, c]) => {
+    Promise.all([api.listContestQuestions(), api.listContestants(), api.getLeaderboard()]).then(
+      ([q, c, board]) => {
         setQuestions(q);
         setContestants(c);
+        setPeriodEnded(board.periodEnded);
+        setMonthWinner(board.monthWinner);
       },
     );
 
@@ -70,57 +76,80 @@ export default function AdminContest() {
       </div>
 
       <div className="grid md:grid-cols-[320px_1fr] gap-6">
-        <form onSubmit={submit} className="bg-surface border border-line rounded-sm p-5 h-fit">
-          <h3 className="font-display text-lg text-ink mb-1">Post today's question</h3>
-          <p className="text-xs text-ink/50 mb-4">
-            Posting a new question replaces today's active one.
-          </p>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-                Subject
-              </label>
-              <input
-                required
-                placeholder="e.g. World History"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-                Question
-              </label>
-              <textarea
-                required
-                placeholder="What is the capital of France?"
-                value={questionText}
-                onChange={(e) => setQuestionText(e.target.value)}
-                className="input h-20"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-                Correct answer
-              </label>
-              <input
-                required
-                placeholder="Paris"
-                value={correctAnswer}
-                onChange={(e) => setCorrectAnswer(e.target.value)}
-                className="input"
-              />
-              <p className="text-[11px] text-ink/40 mt-1">
-                Matched case-insensitively against what contestants type.
+        {periodEnded ? (
+          <div className="bg-surface border border-line rounded-sm p-5 h-fit text-center">
+            <p className="text-2xl">🏆</p>
+            <h3 className="font-display text-lg text-ink mt-1">This month's contest has ended</h3>
+            {monthWinner ? (
+              <p className="text-sm text-ink/70 mt-2">
+                <strong>{monthWinner.name}</strong> won with {monthWinner.points} points.
               </p>
-            </div>
-            {error && <p className="text-coral text-xs">{error}</p>}
-            <button disabled={saving} className="btn-primary w-full text-sm">
-              {saving ? 'Posting…' : 'Post question'}
+            ) : (
+              <p className="text-sm text-ink/50 mt-2">No one scored any points this month.</p>
+            )}
+            <p className="text-xs text-ink/50 mt-3">
+              No new questions can be posted until you reset the contest to start next month's round.
+            </p>
+            <button
+              onClick={() => setPendingReset(true)}
+              className="btn-primary w-full text-sm mt-4"
+            >
+              Reset contest to start a new month
             </button>
           </div>
-        </form>
+        ) : (
+          <form onSubmit={submit} className="bg-surface border border-line rounded-sm p-5 h-fit">
+            <h3 className="font-display text-lg text-ink mb-1">Post today's question</h3>
+            <p className="text-xs text-ink/50 mb-4">
+              Posting a new question replaces today's active one.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
+                  Subject
+                </label>
+                <input
+                  required
+                  placeholder="e.g. World History"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
+                  Question
+                </label>
+                <textarea
+                  required
+                  placeholder="What is the capital of France?"
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  className="input h-20"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
+                  Correct answer
+                </label>
+                <input
+                  required
+                  placeholder="Paris"
+                  value={correctAnswer}
+                  onChange={(e) => setCorrectAnswer(e.target.value)}
+                  className="input"
+                />
+                <p className="text-[11px] text-ink/40 mt-1">
+                  Matched case-insensitively against what contestants type.
+                </p>
+              </div>
+              {error && <p className="text-coral text-xs">{error}</p>}
+              <button disabled={saving} className="btn-primary w-full text-sm">
+                {saving ? 'Posting…' : 'Post question'}
+              </button>
+            </div>
+          </form>
+        )}
 
         <div className="space-y-6">
           <div>

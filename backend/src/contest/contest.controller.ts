@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { ContestService, POINTS_GOAL } from './contest.service';
+import { ContestService } from './contest.service';
 import { SubscribeContestantDto } from './dto/subscribe-contestant.dto';
 import { SubmitAnswerDto } from './dto/submit-answer.dto';
 
@@ -14,9 +14,11 @@ export class ContestController {
 
   @Get('leaderboard')
   async leaderboard() {
-    const contestants = await this.contestService.getLeaderboard();
+    const { goal, periodEnded, monthWinner, contestants } = await this.contestService.getLeaderboard();
     return {
-      goal: POINTS_GOAL,
+      goal,
+      periodEnded,
+      monthWinner,
       contestants: contestants.map((c) => ({
         id: c.id,
         name: c.name,
