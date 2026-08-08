@@ -23,7 +23,13 @@ export default function BookClass() {
     setStatus('loading');
     setError('');
     try {
-      await api.createBooking(form);
+      // The datetime-local input has no timezone attached — resolve it
+      // against the browser's own timezone before sending, so the server
+      // (which may run in a different timezone) can't reinterpret it.
+      await api.createBooking({
+        ...form,
+        preferredSchedule: new Date(form.preferredSchedule).toISOString(),
+      });
       setStatus('done');
     } catch (err) {
       setStatus('error');
