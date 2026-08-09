@@ -150,6 +150,35 @@ export default function ClassDetail() {
   const videoEmbed = item.videoUrl ? getVideoEmbed(item.videoUrl) : null;
   const gated = !item.isPast && !unlocked;
 
+  const renderMainMedia = () => {
+    if (videoEmbed) {
+      return videoEmbed.kind === 'file' ? (
+        <video
+          src={videoEmbed.src}
+          controls
+          className="w-full h-56 sm:h-72 object-cover rounded-sm border border-line mt-4 bg-black"
+        />
+      ) : (
+        <div className="w-full aspect-video rounded-sm border border-line mt-4 overflow-hidden bg-black">
+          <iframe
+            src={videoEmbed.src}
+            title={`${item.title} — marketing video`}
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      );
+    }
+    return (
+      <img
+        src={item.imageUrl}
+        alt={item.title}
+        className="w-full h-56 sm:h-72 object-cover rounded-sm border border-line mt-4"
+      />
+    );
+  };
+
   return (
     <div className="min-h-screen bg-chalk flex flex-col">
       <Header />
@@ -179,6 +208,15 @@ export default function ClassDetail() {
         <h1 className="font-display text-2xl sm:text-3xl md:text-4xl text-ink mt-4">
           {item.title}
         </h1>
+
+        {gated && item.isPaid && (
+          <div>
+            {renderMainMedia()}
+            <p className="text-ink/70 mt-4 leading-relaxed whitespace-pre-line">
+              {item.description}
+            </p>
+          </div>
+        )}
 
         {gated ? (
           <div className="mt-6 max-w-sm">
@@ -244,31 +282,7 @@ export default function ClassDetail() {
           </div>
         ) : (
           <>
-            {videoEmbed ? (
-              videoEmbed.kind === 'file' ? (
-                <video
-                  src={videoEmbed.src}
-                  controls
-                  className="w-full h-56 sm:h-72 object-cover rounded-sm border border-line mt-4 bg-black"
-                />
-              ) : (
-                <div className="w-full aspect-video rounded-sm border border-line mt-4 overflow-hidden bg-black">
-                  <iframe
-                    src={videoEmbed.src}
-                    title={`${item.title} — marketing video`}
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              )
-            ) : (
-              <img
-                src={item.imageUrl}
-                alt={item.title}
-                className="w-full h-56 sm:h-72 object-cover rounded-sm border border-line mt-4"
-              />
-            )}
+            {renderMainMedia()}
 
             {item.videoNotes && (
               <div className="mt-4 bg-surface border border-line rounded-sm p-4">
