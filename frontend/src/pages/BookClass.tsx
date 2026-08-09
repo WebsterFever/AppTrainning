@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { useLanguage } from '../lib/i18n';
 
 const emptyForm = {
   name: '',
@@ -14,6 +15,7 @@ const emptyForm = {
 };
 
 export default function BookClass() {
+  const { t } = useLanguage();
   const [form, setForm] = useState(emptyForm);
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [error, setError] = useState('');
@@ -33,7 +35,7 @@ export default function BookClass() {
       setStatus('done');
     } catch (err) {
       setStatus('error');
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError(err instanceof Error ? err.message : t('somethingWentWrong'));
     }
   };
 
@@ -43,33 +45,27 @@ export default function BookClass() {
 
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-10 w-full flex-1 animate-fade-in">
         <Link to="/" className="text-xs font-mono text-ink/50 hover:text-ink">
-          ← All classes
+          {t('allClasses')}
         </Link>
 
         {status === 'done' ? (
           <div className="mt-6 bg-surface border border-line rounded-sm p-8 text-center">
             <div className="text-3xl mb-2">✓</div>
-            <h1 className="font-display text-2xl text-ink">Request sent.</h1>
-            <p className="text-ink/70 mt-2">
-              We got your class request and will reach out at <strong>{form.email}</strong> to
-              confirm the schedule.
-            </p>
+            <h1 className="font-display text-2xl text-ink">{t('requestSentTitle')}</h1>
+            <p className="text-ink/70 mt-2">{t('requestSentBody', { email: form.email })}</p>
             <Link to="/" className="btn-primary inline-flex mt-6">
-              Back to all classes
+              {t('backToAllClasses')}
             </Link>
           </div>
         ) : (
           <>
-            <h1 className="font-display text-3xl sm:text-4xl text-ink mt-4">Book a class</h1>
-            <p className="text-ink/60 mt-3">
-              Tell us what you'd like to learn and when works for you — we'll set it up and
-              confirm the details.
-            </p>
+            <h1 className="font-display text-3xl sm:text-4xl text-ink mt-4">{t('bookAClass')}</h1>
+            <p className="text-ink/60 mt-3">{t('bookClassIntro')}</p>
 
             <form onSubmit={submit} className="mt-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-ink/80 mb-1">Full name</label>
+                  <label className="block text-sm font-medium text-ink/80 mb-1">{t('fullName')}</label>
                   <input
                     required
                     value={form.name}
@@ -79,7 +75,7 @@ export default function BookClass() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-ink/80 mb-1">Phone</label>
+                  <label className="block text-sm font-medium text-ink/80 mb-1">{t('phone')}</label>
                   <input
                     required
                     type="tel"
@@ -92,7 +88,7 @@ export default function BookClass() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink/80 mb-1">Email</label>
+                <label className="block text-sm font-medium text-ink/80 mb-1">{t('email')}</label>
                 <input
                   required
                   type="email"
@@ -104,21 +100,19 @@ export default function BookClass() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink/80 mb-1">
-                  What do you want to learn?
-                </label>
+                <label className="block text-sm font-medium text-ink/80 mb-1">{t('whatLearn')}</label>
                 <textarea
                   required
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   className="input h-28"
-                  placeholder="Describe the class you'd like — topic, level, goals…"
+                  placeholder={t('describeClassPlaceholder')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-ink/80 mb-1">
-                  Preferred date &amp; time
+                  {t('preferredDateTime')}
                 </label>
                 <input
                   required
@@ -130,7 +124,7 @@ export default function BookClass() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink/80 mb-1">Your Zoom link</label>
+                <label className="block text-sm font-medium text-ink/80 mb-1">{t('yourZoomLinkLabel')}</label>
                 <input
                   required
                   value={form.zoomLink}
@@ -138,15 +132,13 @@ export default function BookClass() {
                   className="input"
                   placeholder="https://zoom.us/j/…"
                 />
-                <p className="text-[11px] text-ink/40 mt-1">
-                  Share your Zoom room so the teacher can join you there.
-                </p>
+                <p className="text-[11px] text-ink/40 mt-1">{t('shareZoomHint')}</p>
               </div>
 
               {status === 'error' && <p className="text-coral text-sm">{error}</p>}
 
               <button type="submit" disabled={status === 'loading'} className="btn-primary w-full">
-                {status === 'loading' ? 'Sending…' : 'Request this class'}
+                {status === 'loading' ? t('sending') : t('requestThisClass')}
               </button>
             </form>
           </>

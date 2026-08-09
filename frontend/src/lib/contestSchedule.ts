@@ -49,9 +49,9 @@ export function getNextQuestionTime(now: Date = new Date()): Date {
   return nyNoonForDate(tomorrowStr);
 }
 
-export function formatCountdown(target: Date, now: Date): string {
+export function formatCountdown(target: Date, now: Date, anyMomentNow: string): string {
   const diffMs = target.getTime() - now.getTime();
-  if (diffMs <= 0) return 'any moment now';
+  if (diffMs <= 0) return anyMomentNow;
   const totalSeconds = Math.floor(diffMs / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);

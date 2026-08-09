@@ -6,9 +6,12 @@ import Footer from '../components/Footer';
 import { ClassDetailSkeleton } from '../components/Skeletons';
 import { getVideoEmbed } from '../lib/video';
 import VideoComments from '../components/VideoComments';
+import { useLanguage } from '../lib/i18n';
 
 export default function ClassDetail() {
   const { id } = useParams<{ id: string }>();
+  const { language, t } = useLanguage();
+  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
   const [item, setItem] = useState<ClassItem | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
@@ -72,7 +75,7 @@ export default function ClassDetail() {
       );
       setUnlocked(true);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Something went wrong';
+      const message = err instanceof Error ? err.message : t('somethingWentWrong');
       setStatus('error');
       setError(message);
     }
@@ -90,9 +93,9 @@ export default function ClassDetail() {
         <Header />
         <div className="flex-1 flex items-center justify-center text-center px-6">
           <div>
-            <p className="font-display text-2xl text-ink">Class not found.</p>
+            <p className="font-display text-2xl text-ink">{t('classNotFound')}</p>
             <Link to="/" className="text-amber font-semibold mt-3 inline-block">
-              ← Back to all classes
+              {t('backToAllClasses')}
             </Link>
           </div>
         </div>
@@ -128,7 +131,7 @@ export default function ClassDetail() {
             download
             className="btn-outline text-xs px-3 py-1.5"
           >
-            📄 Download {pdfName || 'PDF'}
+            {t('downloadPdf', { name: pdfName || t('defaultPdfName') })}
           </a>
         )}
         {imageUrl && (
@@ -139,7 +142,7 @@ export default function ClassDetail() {
             download
             className="btn-outline text-xs px-3 py-1.5"
           >
-            🖼️ Download {imageName || 'picture'}
+            {t('downloadPicture', { name: imageName || t('defaultPictureName') })}
           </a>
         )}
       </div>
@@ -185,24 +188,24 @@ export default function ClassDetail() {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10 w-full flex-1 animate-fade-in">
         <Link to="/" className="text-xs font-mono text-ink/50 hover:text-ink">
-          ← All classes
+          {t('allClasses')}
         </Link>
 
         <div className="flex items-center gap-3 mt-4 flex-wrap">
           {date ? (
             <>
               <span className="badge bg-ink text-chalk">
-                {date.toLocaleDateString('en-US', { dateStyle: 'medium' })}
+                {date.toLocaleDateString(locale, { dateStyle: 'medium' })}
               </span>
               <span className="font-mono text-xs text-ink/60">
-                {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                {date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })}
               </span>
             </>
           ) : (
-            <span className="badge bg-ink text-chalk">Self-paced</span>
+            <span className="badge bg-ink text-chalk">{t('selfPaced')}</span>
           )}
-          {item.isPast && <span className="badge bg-sage text-chalk">PAST</span>}
-          {item.isPaid && <span className="badge bg-amber text-midnight">PAID</span>}
+          {item.isPast && <span className="badge bg-sage text-chalk">{t('past')}</span>}
+          {item.isPaid && <span className="badge bg-amber text-midnight">{t('paid')}</span>}
         </div>
 
         <h1 className="font-display text-2xl sm:text-3xl md:text-4xl text-ink mt-4">
@@ -223,10 +226,8 @@ export default function ClassDetail() {
             {zoomLink ? (
               <div className="bg-surface border border-line rounded-sm p-5">
                 <div className="text-3xl mb-2">✓</div>
-                <h2 className="font-display text-xl text-ink">You're in.</h2>
-                <p className="text-ink/70 text-sm mt-2">
-                  Copy your Zoom link below and save it — you'll need it to join the class.
-                </p>
+                <h2 className="font-display text-xl text-ink">{t('youreIn')}</h2>
+                <p className="text-ink/70 text-sm mt-2">{t('copyZoomHint')}</p>
                 <div className="mt-4 flex items-center gap-2 bg-chalk border border-line rounded-sm p-2">
                   <input
                     readOnly
@@ -235,20 +236,18 @@ export default function ClassDetail() {
                     className="flex-1 min-w-0 text-sm font-mono text-ink/80 bg-transparent px-2 py-1 focus:outline-none"
                   />
                   <button onClick={copyLink} className="btn-primary text-sm px-4 py-2 flex-shrink-0">
-                    {copied ? 'Copied ✓' : 'Copy'}
+                    {copied ? t('copied') : t('copy')}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="bg-surface border border-line rounded-sm p-5">
                 <p className="text-ink/70 text-sm">
-                  {item.isPaid
-                    ? "This is a paid class. Enter the email you purchased access with to unlock the full class details and Zoom link."
-                    : 'Register with your name and email to see the full class details and get the Zoom link.'}
+                  {item.isPaid ? t('paidGateText') : t('freeGateText')}
                 </p>
                 <form onSubmit={submit} className="mt-4 space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-ink/80 mb-1">Full name</label>
+                    <label className="block text-sm font-medium text-ink/80 mb-1">{t('fullName')}</label>
                     <input
                       required
                       value={name}
@@ -258,7 +257,7 @@ export default function ClassDetail() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-ink/80 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-ink/80 mb-1">{t('email')}</label>
                     <input
                       required
                       type="email"
@@ -271,10 +270,10 @@ export default function ClassDetail() {
                   {status === 'error' && <p className="text-coral text-sm">{error}</p>}
                   <button type="submit" disabled={status === 'loading'} className="btn-primary w-full">
                     {status === 'loading'
-                      ? 'Checking…'
+                      ? t('checking')
                       : item.isPaid
-                        ? 'Unlock this class'
-                        : 'Register to unlock details'}
+                        ? t('unlockThisClass')
+                        : t('registerToUnlock')}
                   </button>
                 </form>
               </div>
@@ -287,7 +286,7 @@ export default function ClassDetail() {
             {item.videoNotes && (
               <div className="mt-4 bg-surface border border-line rounded-sm p-4">
                 <p className="font-mono text-xs tracking-widest text-ink/40 uppercase mb-2">
-                  Study notes
+                  {t('studyNotes')}
                 </p>
                 <p className="text-sm text-ink/80 leading-relaxed whitespace-pre-line">
                   {item.videoNotes}
@@ -310,7 +309,7 @@ export default function ClassDetail() {
             {item.extraVideos && item.extraVideos.length > 0 && (
               <div className="mt-6 space-y-2">
                 <p className="font-mono text-xs tracking-widest text-ink/40 uppercase">
-                  More videos
+                  {t('moreVideos')}
                 </p>
                 {item.extraVideos.map((video, i) => {
                   const embed = getVideoEmbed(video.url);
@@ -354,16 +353,12 @@ export default function ClassDetail() {
                               </div>
                             )
                           ) : (
-                            <p className="text-sm text-coral">
-                              This link couldn't be recognized as a playable video ({video.url}).
-                              It needs to be a specific YouTube/Vimeo video link, or a direct
-                              .mp4 file — not just the site's homepage.
-                            </p>
+                            <p className="text-sm text-coral">{t('unplayableVideo', { url: video.url })}</p>
                           )}
                           {video.notes && (
                             <div className="mt-3 bg-chalk border border-line rounded-sm p-3">
                               <p className="font-mono text-xs tracking-widest text-ink/40 uppercase mb-1.5">
-                                Study notes
+                                {t('studyNotes')}
                               </p>
                               <p className="text-sm text-ink/80 leading-relaxed whitespace-pre-line">
                                 {video.notes}
@@ -383,7 +378,7 @@ export default function ClassDetail() {
             {zoomLink && (
               <div className="mt-6 bg-surface border border-line rounded-sm p-4">
                 <p className="text-xs font-mono uppercase tracking-widest text-ink/40 mb-2">
-                  Your Zoom link
+                  {t('yourZoomLink')}
                 </p>
                 <div className="flex items-center gap-2 bg-chalk border border-line rounded-sm p-2">
                   <input
@@ -393,7 +388,7 @@ export default function ClassDetail() {
                     className="flex-1 min-w-0 text-sm font-mono text-ink/80 bg-transparent px-2 py-1 focus:outline-none"
                   />
                   <button onClick={copyLink} className="btn-primary text-sm px-4 py-2 flex-shrink-0">
-                    {copied ? 'Copied ✓' : 'Copy'}
+                    {copied ? t('copied') : t('copy')}
                   </button>
                 </div>
               </div>
@@ -401,7 +396,7 @@ export default function ClassDetail() {
 
             {!zoomLink && item.zoomLink && (
               <p className="mt-6 text-sm font-mono text-ink/60">
-                Zoom link:{' '}
+                {t('zoomLinkLabel')}{' '}
                 <a href={item.zoomLink} className="text-amber hover:text-coral">
                   {item.zoomLink}
                 </a>
@@ -411,14 +406,14 @@ export default function ClassDetail() {
             <div className="mt-8 border-t border-line pt-6">
               <span className="font-mono text-sm text-ink/60 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-sage" />
-                {item.registrationCount} people registered
+                {t('peopleRegistered', { count: item.registrationCount })}
               </span>
             </div>
 
             {item.registeredNames && item.registeredNames.length > 0 && (
               <div className="mt-6">
                 <p className="font-mono text-xs tracking-widest text-ink/40 uppercase mb-2">
-                  Who's registered
+                  {t('whosRegistered')}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {item.registeredNames.map((personName, i) => (

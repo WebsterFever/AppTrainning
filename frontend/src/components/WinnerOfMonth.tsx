@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api, ContestantEntry, contestIdentity, CurrentQuestion, MonthlyWinnerEntry } from '../lib/api';
 import { formatCountdown, getNextQuestionTime } from '../lib/contestSchedule';
+import { useLanguage } from '../lib/i18n';
 
 const ATTEMPTED_KEY = 'classboard_contest_attempted_question';
 
 export default function WinnerOfMonth() {
+  const { language, t } = useLanguage();
+  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
   const [goal, setGoal] = useState(300);
   const [periodEnded, setPeriodEnded] = useState(false);
   const [monthWinner, setMonthWinner] = useState<
@@ -68,7 +71,7 @@ export default function WinnerOfMonth() {
   }, []);
 
   const nextQuestionTime = getNextQuestionTime(now);
-  const countdownText = formatCountdown(nextQuestionTime, now);
+  const countdownText = formatCountdown(nextQuestionTime, now, t('anyMomentNow'));
 
   const pickPhoto = (file: File | null) => {
     setPhotoFile(file);
@@ -81,9 +84,9 @@ export default function WinnerOfMonth() {
   };
 
   const describeResult = (res: { correct: boolean; won: boolean }) => {
-    if (res.won) return 'Correct — you were first! +10 points 🎉';
-    if (res.correct) return 'Correct, but someone else answered first today.';
-    return 'Not quite — try again tomorrow.';
+    if (res.won) return t('correctFirstResult');
+    if (res.correct) return t('correctNotFirstResult');
+    return t('incorrectResult');
   };
 
   // Clears a stale saved identity, e.g. after an admin contest reset wiped
@@ -108,7 +111,7 @@ export default function WinnerOfMonth() {
       setAnswerResult(describeResult(res));
       loadLeaderboard();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not submit your answer.';
+      const message = err instanceof Error ? err.message : t('couldNotSubmitAnswer');
       if (message.includes('Subscribe to the contest')) {
         // Our saved identity no longer exists server-side (e.g. contest was
         // reset) — drop it so the join form reappears instead of a dead end.
@@ -126,7 +129,7 @@ export default function WinnerOfMonth() {
     e.preventDefault();
     setJoinError('');
     if (!photoFile) {
-      setJoinError('Add a photo to join.');
+      setJoinError(t('addPhotoToJoin'));
       return;
     }
     setJoining(true);
@@ -145,7 +148,7 @@ export default function WinnerOfMonth() {
         loadLeaderboard();
       }
     } catch (err) {
-      setJoinError(err instanceof Error ? err.message : 'Could not join the contest.');
+      setJoinError(err instanceof Error ? err.message : t('couldNotJoinContest'));
     } finally {
       setJoining(false);
     }
@@ -156,7 +159,7 @@ export default function WinnerOfMonth() {
     e.preventDefault();
     setJoinError('');
     if (!photoFile) {
-      setJoinError('Add a photo to join.');
+      setJoinError(t('addPhotoToJoin'));
       return;
     }
     setJoining(true);
@@ -169,7 +172,7 @@ export default function WinnerOfMonth() {
       setShowJoinForm(false);
       loadLeaderboard();
     } catch (err) {
-      setJoinError(err instanceof Error ? err.message : 'Could not join the contest.');
+      setJoinError(err instanceof Error ? err.message : t('couldNotJoinContest'));
     } finally {
       setJoining(false);
     }
@@ -192,7 +195,7 @@ export default function WinnerOfMonth() {
         />
       )}
       <label className="input text-sm flex-1 cursor-pointer flex items-center text-ink/50">
-        {photoFile ? photoFile.name : 'Choose a photo…'}
+        {photoFile ? photoFile.name : t('choosePhoto')}
         <input
           type="file"
           accept="image/*"
@@ -207,15 +210,13 @@ export default function WinnerOfMonth() {
   return (
     <div className="bg-surface border border-line rounded-xl p-5 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-display text-lg text-ink">🏆 Winner of the Month</h3>
+        <h3 className="font-display text-lg text-ink">{t('winnerOfMonth')}</h3>
         <span className="badge bg-amber text-midnight">$100</span>
       </div>
-      <p className="text-xs text-ink/60 mt-1">
-        Answer the daily question first to score points. Most points by month's end wins $100.
-      </p>
+      <p className="text-xs text-ink/60 mt-1">{t('contestIntro')}</p>
       {!periodEnded && (
         <p className="text-[11px] font-mono text-ink/40 mt-1">
-          New question at 12pm ET · next in {countdownText}
+          {t('newQuestionAt', { countdown: countdownText })}
         </p>
       )}
 
@@ -226,27 +227,25 @@ export default function WinnerOfMonth() {
               <p className="text-2xl">🏆</p>
               {monthWinner ? (
                 <p className="text-sm text-ink mt-1">
-                  <strong>{monthWinner.name}</strong> won this month with {monthWinner.points}{' '}
-                  points!
+                  <strong>{monthWinner.name}</strong>
+                  {t('monthWinnerSuffix', { points: monthWinner.points })}
                 </p>
               ) : (
-                <p className="text-sm text-ink mt-1">This month's contest has ended.</p>
+                <p className="text-sm text-ink mt-1">{t('contestEndedNoWinner')}</p>
               )}
-              <p className="text-xs text-ink/50 mt-1">
-                Waiting for the admin to start a new contest.
-              </p>
+              <p className="text-xs text-ink/50 mt-1">{t('waitingForAdminReset')}</p>
             </div>
           ) : !question ? (
             <>
               <p className="text-xs text-ink/50">
-                No question posted yet today — check back in {countdownText}.
+                {t('noQuestionYetCheckBack', { countdown: countdownText })}
               </p>
               {identity && (
                 <button
                   onClick={clearIdentity}
                   className="mt-2 text-[11px] text-ink/40 hover:text-ink"
                 >
-                  Not you? Switch account
+                  {t('notYouSwitchAccount')}
                 </button>
               )}
               {!identity && (
@@ -256,13 +255,13 @@ export default function WinnerOfMonth() {
                       onClick={() => setShowJoinForm(true)}
                       className="btn-outline w-full text-xs"
                     >
-                      Join now to be ready
+                      {t('joinNowToBeReady')}
                     </button>
                   ) : (
                     <form onSubmit={joinOnly} className="space-y-2">
                       <input
                         required
-                        placeholder="Your name"
+                        placeholder={t('yourName')}
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         className="input text-sm"
@@ -270,14 +269,14 @@ export default function WinnerOfMonth() {
                       <input
                         required
                         type="email"
-                        placeholder="Your email"
+                        placeholder={t('yourEmail')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="input text-sm"
                       />
                       <input
                         required
-                        placeholder="Phone number"
+                        placeholder={t('phoneNumberPlaceholder')}
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         className="input text-sm"
@@ -285,7 +284,7 @@ export default function WinnerOfMonth() {
                       {photoPicker}
                       {joinError && <p className="text-coral text-xs">{joinError}</p>}
                       <button disabled={joining} className="btn-primary w-full text-sm">
-                        {joining ? 'Joining…' : 'Join now'}
+                        {joining ? t('joining') : t('joinNow')}
                       </button>
                     </form>
                   )}
@@ -301,47 +300,44 @@ export default function WinnerOfMonth() {
 
               {question.answered ? (
                 <p className="text-xs text-ink/50 mt-2">
-                  Already answered{question.winnerName ? ` by ${question.winnerName}` : ''}. Check
-                  back tomorrow.
+                  {t('alreadyAnsweredBy', { winner: question.winnerName ?? '' })}
                 </p>
               ) : answerResult ? (
                 <p className="text-sm text-ink mt-2">{answerResult}</p>
               ) : alreadyAttempted ? (
-                <p className="text-xs text-ink/50 mt-2">
-                  You've already answered today's question. Check back tomorrow.
-                </p>
+                <p className="text-xs text-ink/50 mt-2">{t('alreadyAnsweredToday')}</p>
               ) : identity ? (
                 <form onSubmit={submitAnswer} className="mt-2 space-y-2">
                   <input
                     required
-                    placeholder="Your answer"
+                    placeholder={t('yourAnswerPlaceholder')}
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
                     className="input text-sm"
                   />
                   <button disabled={submitting} className="btn-primary w-full text-sm">
-                    {submitting ? 'Submitting…' : 'Submit answer'}
+                    {submitting ? t('submitting') : t('submitAnswer')}
                   </button>
                   <button
                     type="button"
                     onClick={clearIdentity}
                     className="w-full text-center text-[11px] text-ink/40 hover:text-ink"
                   >
-                    Not you? Switch account
+                    {t('notYouSwitchAccount')}
                   </button>
                 </form>
               ) : (
                 <form onSubmit={joinAndAnswer} className="mt-2 space-y-2">
                   <input
                     required
-                    placeholder="Your answer"
+                    placeholder={t('yourAnswerPlaceholder')}
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
                     className="input text-sm"
                   />
                   <input
                     required
-                    placeholder="Your name"
+                    placeholder={t('yourName')}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="input text-sm"
@@ -349,14 +345,14 @@ export default function WinnerOfMonth() {
                   <input
                     required
                     type="email"
-                    placeholder="Your email"
+                    placeholder={t('yourEmail')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="input text-sm"
                   />
                   <input
                     required
-                    placeholder="Phone number"
+                    placeholder={t('phoneNumberPlaceholder')}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="input text-sm"
@@ -364,7 +360,7 @@ export default function WinnerOfMonth() {
                   {photoPicker}
                   {joinError && <p className="text-coral text-xs">{joinError}</p>}
                   <button disabled={joining} className="btn-primary w-full text-sm">
-                    {joining ? 'Submitting…' : 'Join & submit answer'}
+                    {joining ? t('submitting') : t('joinSubmitAnswer')}
                   </button>
                 </form>
               )}
@@ -375,12 +371,12 @@ export default function WinnerOfMonth() {
 
       <div className="mt-5">
         <p className="text-[11px] font-mono uppercase tracking-wide text-ink/40 mb-2">
-          Leaderboard
+          {t('leaderboard')}
         </p>
         {loading ? (
-          <p className="text-xs text-ink/40">Loading…</p>
+          <p className="text-xs text-ink/40">{t('loadingEllipsisShort')}</p>
         ) : contestants.length === 0 ? (
-          <p className="text-xs text-ink/40">No contestants yet — be the first to join.</p>
+          <p className="text-xs text-ink/40">{t('noContestantsYet')}</p>
         ) : (
           <div className="space-y-2">
             {contestants.map((c, i) => {
@@ -405,7 +401,7 @@ export default function WinnerOfMonth() {
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm text-ink truncate">{c.name}</span>
                         <span className="text-xs font-mono text-ink/50 flex-shrink-0">
-                          {c.points} pts
+                          {t('pts', { points: c.points })}
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 bg-line rounded-full overflow-hidden">
@@ -418,14 +414,13 @@ export default function WinnerOfMonth() {
                   </div>
                   {isExpanded && (
                     <div className="mt-1.5 ml-6 pl-2 border-l-2 border-line text-xs text-ink/50 space-y-0.5">
+                      <p>{t('pointsToGoal', { points: c.points, goal, pct })}</p>
+                      <p>{t('rankHash', { rank: i + 1 })}</p>
                       <p>
-                        {c.points} / {goal} points ({pct}% to goal)
-                      </p>
-                      <p>Rank #{i + 1}</p>
-                      <p>
-                        Joined{' '}
-                        {new Date(c.subscribedAt).toLocaleDateString('en-US', {
-                          dateStyle: 'medium',
+                        {t('joinedOn', {
+                          date: new Date(c.subscribedAt).toLocaleDateString(locale, {
+                            dateStyle: 'medium',
+                          }),
                         })}
                       </p>
                     </div>
@@ -441,12 +436,12 @@ export default function WinnerOfMonth() {
         onClick={toggleHistory}
         className="mt-4 w-full text-center text-xs text-ink/50 hover:text-ink"
       >
-        {showHistory ? 'Hide past winners' : 'See past winners'}
+        {showHistory ? t('hidePastWinners') : t('seePastWinners')}
       </button>
       {showHistory && (
         <div className="mt-2 space-y-1.5">
           {history.length === 0 ? (
-            <p className="text-xs text-ink/40 text-center">No past winners yet.</p>
+            <p className="text-xs text-ink/40 text-center">{t('noPastWinnersYet')}</p>
           ) : (
             history.map((h) => (
               <div key={h.id} className="flex items-center gap-2 text-xs text-ink/60">
@@ -457,7 +452,7 @@ export default function WinnerOfMonth() {
                 />
                 <span className="flex-1 truncate">{h.contestantName}</span>
                 <span className="font-mono">{h.periodMonth}</span>
-                <span className="font-mono">{h.points} pts</span>
+                <span className="font-mono">{t('pts', { points: h.points })}</span>
               </div>
             ))
           )}

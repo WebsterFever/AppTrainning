@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, ClassItem, NewExtraVideo, RegistrationDetail } from '../lib/api';
 import { formatCountdown } from '../lib/countdown';
+import { useLanguage } from '../lib/i18n';
 import ConfirmDialog from './ConfirmDialog';
 
 type ExtraVideoForm = Omit<NewExtraVideo, 'pdfUrl' | 'pdfName' | 'imageUrl' | 'imageName'> & {
@@ -92,6 +93,7 @@ export default function ClassManager({
   classes: ClassItem[];
   onChanged: () => void;
 }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -754,7 +756,7 @@ export default function ClassManager({
                     </p>
                     {!c.isPast && c.classDate && (
                       <p className="text-xs text-amber font-mono mt-0.5">
-                        {formatCountdown(c.classDate, now)}
+                        {formatCountdown(c.classDate, now, t)}
                       </p>
                     )}
                   </div>

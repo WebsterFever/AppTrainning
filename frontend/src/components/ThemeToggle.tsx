@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLanguage } from '../lib/i18n';
 
 const THEME_KEY = 'classboard_theme';
 
@@ -10,6 +11,7 @@ function getInitialTheme(): 'light' | 'dark' {
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme);
+  const { t } = useLanguage();
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -18,8 +20,8 @@ export default function ThemeToggle() {
 
   return (
     <button
-      onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+      aria-label={theme === 'dark' ? t('switchToLight') : t('switchToDark')}
       className="btn-outline text-sm px-2.5"
     >
       {theme === 'dark' ? '☀️' : '🌙'}

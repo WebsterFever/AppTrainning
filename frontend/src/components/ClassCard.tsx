@@ -2,21 +2,22 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ClassItem } from '../lib/api';
 import { formatCountdown } from '../lib/countdown';
+import { useLanguage } from '../lib/i18n';
 
-function formatDateParts(iso?: string) {
+function formatDateParts(iso: string | undefined, locale: string) {
   if (!iso) return null;
   const date = new Date(iso);
 
   return {
-    day: date.toLocaleDateString('en-US', {
+    day: date.toLocaleDateString(locale, {
       day: '2-digit',
     }),
     month: date
-      .toLocaleDateString('en-US', {
+      .toLocaleDateString(locale, {
         month: 'short',
       })
       .toUpperCase(),
-    time: date.toLocaleTimeString('en-US', {
+    time: date.toLocaleTimeString(locale, {
       hour: 'numeric',
       minute: '2-digit',
     }),
@@ -24,7 +25,9 @@ function formatDateParts(iso?: string) {
 }
 
 export default function ClassCard({ item }: { item: ClassItem }) {
-  const dateParts = formatDateParts(item.classDate);
+  const { language, t } = useLanguage();
+  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
+  const dateParts = formatDateParts(item.classDate, locale);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -61,13 +64,13 @@ export default function ClassCard({ item }: { item: ClassItem }) {
 
         {item.isPast && (
           <div className="absolute right-3 top-3 rounded-sm bg-sage px-2 py-1 font-mono text-[10px] tracking-wide text-chalk">
-            PAST
+            {t('past')}
           </div>
         )}
 
         {item.isPaid && (
           <div className="absolute right-3 bottom-3 rounded-sm bg-amber px-2 py-1 font-mono text-[10px] tracking-wide text-midnight">
-            PAID
+            {t('paid')}
           </div>
         )}
       </div>
@@ -78,12 +81,12 @@ export default function ClassCard({ item }: { item: ClassItem }) {
         </h3>
 
         <p className="mt-1 font-mono text-sm text-ink/60">
-          {dateParts ? dateParts.time : 'Self-paced'}
+          {dateParts ? dateParts.time : t('selfPaced')}
         </p>
 
         {!item.isPast && item.classDate && (
           <p className="mt-0.5 font-mono text-xs text-amber">
-            {formatCountdown(item.classDate, now)}
+            {formatCountdown(item.classDate, now, t)}
           </p>
         )}
 
@@ -94,12 +97,12 @@ export default function ClassCard({ item }: { item: ClassItem }) {
         <div className="mt-4 flex items-center justify-between gap-3 border-t border-line/70 pt-3">
           <span className="flex items-center gap-1.5 font-mono text-xs text-ink/60">
             <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-sage" />
-            {item.registrationCount} registered
+            {t('registered', { count: item.registrationCount })}
           </span>
 
           {!item.isPast && (
             <span className="flex-shrink-0 text-xs font-semibold text-amber transition-colors group-hover:text-coral">
-              Register →
+              {t('registerArrow')}
             </span>
           )}
         </div>

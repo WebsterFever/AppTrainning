@@ -7,9 +7,11 @@ import {
   requestBrowserNotificationPermission,
   showBrowserNotification,
 } from '../lib/notify';
+import { useLanguage } from '../lib/i18n';
 import Toast from './Toast';
 
 export default function ChatWidget() {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [identity, setIdentity] = useState<VisitorIdentity | null>(null);
   // A name/email already known from registering for a class — lets us skip
@@ -97,7 +99,7 @@ export default function ChatWidget() {
       setMessages([message]);
       setText('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send your message.');
+      setError(err instanceof Error ? err.message : t('couldNotSendMessage'));
     } finally {
       setSending(false);
     }
@@ -115,7 +117,7 @@ export default function ChatWidget() {
       setMessages([message]);
       setText('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send your message.');
+      setError(err instanceof Error ? err.message : t('couldNotSendMessage'));
     } finally {
       setSending(false);
     }
@@ -129,7 +131,7 @@ export default function ChatWidget() {
     try {
       const thread = await api.getChatThread(resumeEmail.trim());
       if (thread.length === 0) {
-        setError("We couldn't find a conversation for that email.");
+        setError(t('couldNotFindConversation'));
         return;
       }
       const resolvedName = [...thread].reverse().find((m) => m.sender === 'student')?.name ?? '';
@@ -171,12 +173,12 @@ export default function ChatWidget() {
         <div className="mb-3 flex h-[28rem] w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-line bg-chalk shadow-2xl animate-fade-in">
           <div className="flex items-center justify-between border-b border-line bg-surface px-4 py-3">
             <div>
-              <p className="font-display text-sm text-ink">Chat with us</p>
+              <p className="font-display text-sm text-ink">{t('chatWithUs')}</p>
               <p className="text-[11px] text-ink/50">{SCHOOL_NAME}</p>
             </div>
             <button
               onClick={() => setOpen(false)}
-              aria-label="Close chat"
+              aria-label={t('closeChat')}
               className="text-ink/50 hover:text-ink"
             >
               ✕
@@ -188,12 +190,11 @@ export default function ChatWidget() {
               {detectedIdentity && !showResume ? (
                 <form onSubmit={startChatWithDetected} className="space-y-3">
                   <p className="text-xs text-ink/60">
-                    Continuing as <span className="font-medium text-ink">{detectedIdentity.name}</span>{' '}
-                    ({detectedIdentity.email})
+                    {t('continuingAs', { name: detectedIdentity.name, email: detectedIdentity.email })}
                   </p>
                   <textarea
                     required
-                    placeholder="How can we help?"
+                    placeholder={t('howCanWeHelp')}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     className="input h-20 text-sm"
@@ -201,7 +202,7 @@ export default function ChatWidget() {
                   />
                   {error && <p className="text-coral text-xs">{error}</p>}
                   <button disabled={sending} className="btn-primary w-full text-sm">
-                    {sending ? 'Sending…' : 'Start chat'}
+                    {sending ? t('sending') : t('startChat')}
                   </button>
                   <button
                     type="button"
@@ -211,17 +212,15 @@ export default function ChatWidget() {
                     }}
                     className="w-full text-center text-xs text-ink/50 hover:text-ink"
                   >
-                    Not you? Use a different name/email
+                    {t('notYouDifferent')}
                   </button>
                 </form>
               ) : !showResume ? (
                 <form onSubmit={startChat} className="space-y-3">
-                  <p className="text-xs text-ink/60">
-                    Send us a message and we'll get back to you here.
-                  </p>
+                  <p className="text-xs text-ink/60">{t('chatIntro')}</p>
                   <input
                     required
-                    placeholder="Your name"
+                    placeholder={t('yourName')}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="input text-sm"
@@ -229,21 +228,21 @@ export default function ChatWidget() {
                   <input
                     required
                     type="email"
-                    placeholder="Your email"
+                    placeholder={t('yourEmail')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="input text-sm"
                   />
                   <textarea
                     required
-                    placeholder="How can we help?"
+                    placeholder={t('howCanWeHelp')}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     className="input h-20 text-sm"
                   />
                   {error && <p className="text-coral text-xs">{error}</p>}
                   <button disabled={sending} className="btn-primary w-full text-sm">
-                    {sending ? 'Sending…' : 'Start chat'}
+                    {sending ? t('sending') : t('startChat')}
                   </button>
                   <button
                     type="button"
@@ -253,25 +252,23 @@ export default function ChatWidget() {
                     }}
                     className="w-full text-center text-xs text-ink/50 hover:text-ink"
                   >
-                    Already chatted with us? See your messages
+                    {t('alreadyChatted')}
                   </button>
                 </form>
               ) : (
                 <form onSubmit={resumeChat} className="space-y-3">
-                  <p className="text-xs text-ink/60">
-                    Enter the email you used before to see your conversation.
-                  </p>
+                  <p className="text-xs text-ink/60">{t('resumeChatIntro')}</p>
                   <input
                     required
                     type="email"
-                    placeholder="Your email"
+                    placeholder={t('yourEmail')}
                     value={resumeEmail}
                     onChange={(e) => setResumeEmail(e.target.value)}
                     className="input text-sm"
                   />
                   {error && <p className="text-coral text-xs">{error}</p>}
                   <button disabled={loading} className="btn-primary w-full text-sm">
-                    {loading ? 'Looking…' : 'View my chat'}
+                    {loading ? t('looking') : t('viewMyChat')}
                   </button>
                   <button
                     type="button"
@@ -281,7 +278,7 @@ export default function ChatWidget() {
                     }}
                     className="w-full text-center text-xs text-ink/50 hover:text-ink"
                   >
-                    ← Back
+                    {t('backArrow')}
                   </button>
                 </form>
               )}
@@ -289,7 +286,7 @@ export default function ChatWidget() {
           ) : (
             <>
               <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-                {loading && <p className="text-xs text-ink/40">Loading…</p>}
+                {loading && <p className="text-xs text-ink/40">{t('loadingEllipsis')}</p>}
                 {messages.map((m) => (
                   <div
                     key={m.id}
@@ -306,25 +303,25 @@ export default function ChatWidget() {
                   </div>
                 ))}
                 {!loading && messages.length === 0 && (
-                  <p className="text-center text-xs text-ink/40">No messages yet.</p>
+                  <p className="text-center text-xs text-ink/40">{t('noMessagesYet')}</p>
                 )}
               </div>
               <form onSubmit={sendReply} className="flex items-center gap-2 border-t border-line p-3">
                 <input
-                  placeholder="Type a message…"
+                  placeholder={t('typeMessagePlaceholder')}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   className="input flex-1 text-sm"
                 />
                 <button disabled={sending || !text.trim()} className="btn-primary text-sm px-3">
-                  Send
+                  {t('send')}
                 </button>
               </form>
               <button
                 onClick={startOver}
                 className="border-t border-line px-4 py-2 text-center text-[11px] text-ink/40 hover:text-ink"
               >
-                Not you? Start a new chat
+                {t('notYouStartOver')}
               </button>
             </>
           )}
@@ -334,7 +331,7 @@ export default function ChatWidget() {
       <div className="flex items-center justify-end gap-2 sm:gap-2.5">
         {!open && (
           <span className="rounded-full border border-line bg-chalk px-2.5 py-1.5 text-[11px] font-medium text-ink shadow-md sm:px-3.5 sm:py-2 sm:text-xs">
-            Have a question? Chat with us
+            {t('haveQuestion')}
           </span>
         )}
         <button
@@ -342,7 +339,7 @@ export default function ChatWidget() {
             primeNotificationSound();
             setOpen((v) => !v);
           }}
-          aria-label={open ? 'Close chat' : 'Open chat'}
+          aria-label={open ? t('closeChat') : t('openChat')}
           className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-amber text-midnight shadow-lg transition hover:-translate-y-0.5 hover:bg-coral"
         >
           {open ? '✕' : '💬'}
@@ -353,7 +350,7 @@ export default function ChatWidget() {
       </div>
 
       {toast && (
-        <Toast title={`New message from ${SCHOOL_NAME}`} message={toast} onClose={() => setToast(null)} />
+        <Toast title={t('newMessageFrom', { school: SCHOOL_NAME })} message={toast} onClose={() => setToast(null)} />
       )}
     </div>
   );

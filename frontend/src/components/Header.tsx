@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
-
-const navLinks = [
-  { href: '/#upcoming-classes', label: 'Upcoming Classes' },
-  { href: '/#past-classes', label: 'Past Classes' },
-];
+import LanguageSwitcher from './LanguageSwitcher';
+import { useLanguage } from '../lib/i18n';
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { t } = useLanguage();
+
+  const navLinks = [
+    { href: '/#upcoming-classes', label: t('navUpcoming') },
+    { href: '/#past-classes', label: t('navPast') },
+  ];
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-chalk/90 backdrop-blur">
@@ -37,22 +40,23 @@ export default function Header() {
             </a>
           ))}
           <Link to="/book" className="btn-primary text-sm">
-            Book a Class
+            {t('navBookClass')}
           </Link>
         </nav>
 
         <div className="flex items-center gap-3">
+          <LanguageSwitcher />
           <ThemeToggle />
 
           <Link to="/admin" className="hidden md:inline-flex btn-outline text-sm">
-            Teacher
+            {t('navTeacher')}
           </Link>
 
           {/* Mobile burger toggle */}
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-label={menuOpen ? t('navCloseMenu') : t('navOpenMenu')}
             aria-expanded={menuOpen}
             className="md:hidden w-9 h-9 flex items-center justify-center rounded-sm border border-line text-ink"
           >
@@ -79,14 +83,14 @@ export default function Header() {
             onClick={() => setMenuOpen(false)}
             className="btn-primary text-sm w-full text-center"
           >
-            Book a Class
+            {t('navBookClass')}
           </Link>
           <Link
             to="/admin"
             onClick={() => setMenuOpen(false)}
             className="btn-outline text-sm w-full justify-start"
           >
-            Teacher
+            {t('navTeacher')}
           </Link>
         </nav>
       )}

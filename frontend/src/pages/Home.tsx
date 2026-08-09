@@ -7,6 +7,7 @@ import Footer from '../components/Footer';
 import TechnologyAside from '../components/TechnologyAside';
 import ChatWidget from '../components/ChatWidget';
 import WinnerOfMonth from '../components/WinnerOfMonth';
+import { useLanguage, type TranslationKey } from '../lib/i18n';
 
 // Constants
 const SECTION_IDS = {
@@ -30,45 +31,56 @@ const calculateTotalRegistrations = (classes: ClassItem[]): number => {
 };
 
 // Sub-components
-const HeroBadge: React.FC = () => (
-  <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white/75 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-ink shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-white sm:text-xs">
-    <span className="h-2 w-2 rounded-full bg-sage" />
-    Live technology training
-  </span>
-);
+const HeroBadge: React.FC = () => {
+  const { t } = useLanguage();
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white/75 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-ink shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-white sm:text-xs">
+      <span className="h-2 w-2 rounded-full bg-sage" />
+      {t('liveTechTraining')}
+    </span>
+  );
+};
 
-const HeroFeatures: React.FC = () => (
-  <div className="mt-7 flex flex-wrap gap-2 sm:gap-3">
-    {['Live Zoom classes', 'Hands-on projects', 'Industry skills'].map((feature) => (
-      <span
-        key={feature}
-        className="rounded-full border border-line bg-white/75 px-4 py-2 text-xs text-ink shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-white sm:text-sm"
-      >
-        {feature}
-      </span>
-    ))}
-  </div>
-);
-
-const StatsDisplay: React.FC<{ stats: { upcoming: number; past: number; registrations: number } }> = ({ stats }) => (
-  <div className="grid grid-cols-3 gap-2 sm:gap-3">
-    {[
-      { label: 'Upcoming', value: stats.upcoming },
-      { label: 'Completed', value: stats.past },
-      { label: 'Registrations', value: stats.registrations },
-    ].map((stat) => (
-      <div
-        key={stat.label}
-        className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3"
-      >
-        <strong className="block text-xl text-ink sm:text-2xl">{stat.value}</strong>
-        <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
-          {stat.label}
+const HeroFeatures: React.FC = () => {
+  const { t } = useLanguage();
+  const features: TranslationKey[] = ['heroFeatureLiveZoom', 'heroFeatureHandsOn', 'heroFeatureIndustry'];
+  return (
+    <div className="mt-7 flex flex-wrap gap-2 sm:gap-3">
+      {features.map((key) => (
+        <span
+          key={key}
+          className="rounded-full border border-line bg-white/75 px-4 py-2 text-xs text-ink shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-white sm:text-sm"
+        >
+          {t(key)}
         </span>
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  );
+};
+
+const StatsDisplay: React.FC<{ stats: { upcoming: number; past: number; registrations: number } }> = ({ stats }) => {
+  const { t } = useLanguage();
+  const items: { label: string; value: number }[] = [
+    { label: t('statUpcoming'), value: stats.upcoming },
+    { label: t('statCompleted'), value: stats.past },
+    { label: t('statRegistrations'), value: stats.registrations },
+  ];
+  return (
+    <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      {items.map((stat) => (
+        <div
+          key={stat.label}
+          className="min-w-0 rounded-xl border border-line bg-surface px-2 py-4 text-center shadow-sm sm:px-3"
+        >
+          <strong className="block text-xl text-ink sm:text-2xl">{stat.value}</strong>
+          <span className="block truncate font-mono text-[8px] uppercase tracking-wide text-ink/50 sm:text-[10px]">
+            {stat.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const WinnerCard: React.FC<{ place: number; name: string; points: number; image: string; isFirst?: boolean }> = ({
   place,
@@ -77,6 +89,7 @@ const WinnerCard: React.FC<{ place: number; name: string; points: number; image:
   image,
   isFirst = false,
 }) => {
+  const { t } = useLanguage();
   const baseClasses = 'relative overflow-hidden rounded-2xl p-5 text-center shadow-sm';
   const placeClasses = isFirst
     ? 'border-2 border-amber/60 bg-amber/5 shadow-md'
@@ -89,7 +102,7 @@ const WinnerCard: React.FC<{ place: number; name: string; points: number; image:
           isFirst ? 'bg-amber text-midnight' : 'border border-line bg-surface text-ink'
         }`}
       >
-        {place}ST
+        {t('placeOrdinal', { place })}
       </div>
 
       <div className="text-4xl">{['🥇', '🥈', '🥉'][place - 1]}</div>
@@ -107,17 +120,17 @@ const WinnerCard: React.FC<{ place: number; name: string; points: number; image:
       </h3>
 
       <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink/45">
-        {place} Place
+        {t('place', { place })}
       </p>
 
       <div
         className={`mt-4 rounded-xl px-4 py-3 ${isFirst ? 'bg-amber' : 'border border-line bg-surface'}`}
       >
         <strong className={`block text-xl ${isFirst ? 'text-midnight' : 'text-ink'}`}>
-          {points} pts
+          {t('pts', { points })}
         </strong>
         <span className={`text-xs ${isFirst ? 'text-midnight/70' : 'text-ink/45'}`}>
-          Monthly score
+          {t('monthlyScore')}
         </span>
       </div>
     </div>
@@ -125,6 +138,7 @@ const WinnerCard: React.FC<{ place: number; name: string; points: number; image:
 };
 
 const CompetitionSection: React.FC = () => {
+  const { t } = useLanguage();
   const winners = [
     { place: 1, name: 'Ana', points: 120, image: 'https://randomuser.me/api/portraits/women/44.jpg' },
     { place: 2, name: 'John', points: 95, image: 'https://randomuser.me/api/portraits/men/35.jpg' },
@@ -135,17 +149,15 @@ const CompetitionSection: React.FC = () => {
     <div className="relative flex h-full flex-col">
       <div>
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber sm:text-xs">
-          Monthly Competition · Win ${COMPETITION_DETAILS.PRIZE_AMOUNT}
+          {t('monthlyCompetition', { amount: COMPETITION_DETAILS.PRIZE_AMOUNT })}
         </p>
 
         <h2 className="mt-3 max-w-3xl font-display text-3xl leading-[1.05] text-ink sm:text-4xl md:text-5xl">
-          Winner of the Month
+          {t('winnerOfTheMonth')}
         </h2>
 
         <p className="mt-4 max-w-2xl text-sm leading-7 text-ink/60 sm:text-base">
-          Answer the daily question, earn points, and climb the leaderboard.
-          The participant with the most points at the end of each month wins
-          <strong className="text-ink"> ${COMPETITION_DETAILS.PRIZE_AMOUNT}.</strong>
+          {t('competitionBody', { amount: COMPETITION_DETAILS.PRIZE_AMOUNT })}
         </p>
       </div>
 
@@ -169,15 +181,9 @@ const CompetitionSection: React.FC = () => {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-ink sm:text-base">
-              Want to be next month&apos;s winner?
-            </h3>
+            <h3 className="text-sm font-semibold text-ink sm:text-base">{t('wantToBeNextWinner')}</h3>
 
-            <p className="mt-1 text-xs leading-5 text-ink/55 sm:text-sm">
-              Come back every day, answer the question correctly, and collect
-              as many points as possible. The leaderboard resets every month,
-              giving everyone a new chance to win.
-            </p>
+            <p className="mt-1 text-xs leading-5 text-ink/55 sm:text-sm">{t('competitionEncourage')}</p>
           </div>
         </div>
       </div>
@@ -191,6 +197,7 @@ const ClassListSection: React.FC<{
   emptyMessage?: string;
   emptySubMessage?: string;
 }> = ({ title, classes, emptyMessage, emptySubMessage }) => {
+  const { t } = useLanguage();
   if (classes.length === 0 && emptyMessage) {
     return (
       <section className="py-4 text-center">
@@ -206,9 +213,7 @@ const ClassListSection: React.FC<{
     <section className="animate-fade-in">
       <div className="mb-5 flex items-center justify-between">
         <p className="font-mono text-xs uppercase tracking-widest text-ink/40">{title}</p>
-        <span className="font-mono text-xs text-ink/40">
-          {classes.length} {classes.length === 1 ? 'class' : 'classes'}
-        </span>
+        <span className="font-mono text-xs text-ink/40">{t('classCount', { count: classes.length })}</span>
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -222,6 +227,7 @@ const ClassListSection: React.FC<{
 
 // Main Component
 export default function Home() {
+  const { t } = useLanguage();
   const [upcoming, setUpcoming] = useState<ClassItem[]>([]);
   const [past, setPast] = useState<ClassItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -268,7 +274,7 @@ export default function Home() {
   const renderLoadingState = () => (
     <div>
       <p className="mb-4 font-mono text-xs uppercase tracking-widest text-ink/40">
-        Loading classes
+        {t('loadingClasses')}
       </p>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: 6 }).map((_, index) => (
@@ -281,15 +287,15 @@ export default function Home() {
   const renderContent = () => (
     <>
       <ClassListSection
-        title="Upcoming"
+        title={t('upcoming')}
         classes={upcoming}
-        emptyMessage="No upcoming classes right now."
-        emptySubMessage="Check back soon. New technology sessions are added regularly."
+        emptyMessage={t('noUpcomingClasses')}
+        emptySubMessage={t('checkBackSoon')}
       />
 
       {past.length > 0 && (
         <div className="mt-12 border-t border-line pt-10" id={SECTION_IDS.PAST}>
-          <ClassListSection title="Past classes" classes={past} />
+          <ClassListSection title={t('pastClasses')} classes={past} />
         </div>
       )}
     </>
@@ -328,12 +334,12 @@ export default function Home() {
                 <HeroBadge />
 
                 <h1 className="mt-6 max-w-3xl font-display text-4xl font-bold leading-[1.05] text-ink dark:text-white sm:text-5xl md:text-6xl xl:text-6xl">
-                  Build the technology
-                  <span className="block text-amber">skills of tomorrow.</span>
+                  {t('heroLine1')}
+                  <span className="block text-amber">{t('heroLine2')}</span>
                 </h1>
 
                 <p className="mt-5 max-w-2xl text-sm leading-7 text-ink/65 dark:text-white/75 sm:text-lg sm:leading-8">
-                  Join practical live classes in artificial intelligence, and modern technology.
+                  {t('heroSubtitle')}
                 </p>
 
                 <HeroFeatures />
@@ -342,7 +348,7 @@ export default function Home() {
                   href={`#${SECTION_IDS.UPCOMING}`}
                   className="mt-8 inline-flex min-h-12 items-center justify-center rounded-lg bg-amber px-6 text-sm font-semibold text-midnight shadow-md transition hover:-translate-y-0.5 hover:bg-coral"
                 >
-                  Explore upcoming classes
+                  {t('exploreUpcomingClasses')}
                   <span className="ml-2" aria-hidden="true">→</span>
                 </a>
               </div>
