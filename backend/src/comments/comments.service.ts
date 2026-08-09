@@ -98,7 +98,7 @@ export class CommentsService {
   }
 
   private videoLabel(
-    trainingClass: { videoUrl?: string; extraVideos?: { id: string; title: string }[] },
+    trainingClass: { videoUrl?: string | null; extraVideos?: { id: string; title: string }[] },
     videoRef: string,
   ): string {
     if (videoRef === 'main') return 'Main video';

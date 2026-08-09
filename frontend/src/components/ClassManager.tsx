@@ -215,9 +215,12 @@ export default function ClassManager({
         // against the browser's own timezone before sending, so the server
         // (which may run in a different timezone) can't reinterpret it.
         classDate: form.classDate ? new Date(form.classDate).toISOString() : undefined,
-        zoomLink: form.zoomLink.trim() || undefined,
-        videoUrl: form.videoUrl.trim() || undefined,
-        videoNotes: form.videoNotes.trim() || undefined,
+        // Blank always means "remove it" for these plain text fields — they
+        // have no separate "untouched" state like the file uploads below,
+        // so null (clear) vs undefined (leave alone) has no purpose.
+        zoomLink: form.zoomLink.trim() || null,
+        videoUrl: form.videoUrl.trim() || null,
+        videoNotes: form.videoNotes.trim() || null,
         videoPdfUrl,
         videoPdfName,
         videoResourceImageUrl,

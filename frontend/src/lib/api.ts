@@ -27,15 +27,15 @@ export interface ClassFormData {
   title: string;
   description: string;
   imageUrl: string;
-  videoUrl?: string;
-  videoNotes?: string;
+  videoUrl?: string | null;
+  videoNotes?: string | null;
   videoPdfUrl?: string | null;
   videoPdfName?: string | null;
   videoResourceImageUrl?: string | null;
   videoResourceImageName?: string | null;
   extraVideos?: NewExtraVideo[];
   classDate?: string;
-  zoomLink?: string;
+  zoomLink?: string | null;
   isPaid?: boolean;
   allowedEmails?: string[];
 }

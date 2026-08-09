@@ -26,11 +26,11 @@ export class CreateClassDto {
 
   @IsOptional()
   @IsUrl()
-  videoUrl?: string;
+  videoUrl?: string | null;
 
   @IsOptional()
   @IsString()
-  videoNotes?: string;
+  videoNotes?: string | null;
 
   @IsOptional()
   @IsUrl({ require_tld: false })
@@ -60,7 +60,7 @@ export class CreateClassDto {
 
   @IsOptional()
   @IsUrl({ require_tld: false })
-  zoomLink?: string;
+  zoomLink?: string | null;
 
   @IsOptional()
   @IsBoolean()

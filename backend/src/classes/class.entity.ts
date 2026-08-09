@@ -22,11 +22,11 @@ export class TrainingClass {
   @Column({ name: 'image_url' })
   imageUrl: string;
 
-  @Column({ name: 'video_url', nullable: true })
-  videoUrl?: string;
+  @Column({ type: 'varchar', name: 'video_url', nullable: true })
+  videoUrl?: string | null;
 
   @Column({ type: 'text', name: 'video_notes', nullable: true })
-  videoNotes?: string;
+  videoNotes?: string | null;
 
   // Downloadable resources attached to the main video. Nullable so an admin
   // can explicitly clear one (distinct from "not sent" on partial updates).
@@ -58,8 +58,8 @@ export class TrainingClass {
   @Column({ name: 'class_date', type: 'timestamptz', nullable: true })
   classDate?: Date;
 
-  @Column({ name: 'zoom_link', nullable: true })
-  zoomLink?: string;
+  @Column({ type: 'varchar', name: 'zoom_link', nullable: true })
+  zoomLink?: string | null;
 
   @Column({ name: 'is_past', default: false })
   isPast: boolean;
