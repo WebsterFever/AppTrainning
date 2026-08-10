@@ -7,6 +7,7 @@ import { ClassDetailSkeleton } from '../components/Skeletons';
 import { getVideoEmbed } from '../lib/video';
 import VideoComments from '../components/VideoComments';
 import { useLanguage } from '../lib/i18n';
+import { seenClasses } from '../lib/seenClasses';
 
 export default function ClassDetail() {
   const { id } = useParams<{ id: string }>();
@@ -49,7 +50,13 @@ export default function ClassDetail() {
     }
     api
       .getClass(id)
-      .then(setItem)
+      .then((data) => {
+        setItem(data);
+        // Marks the class, and every video currently on it, as seen — if
+        // the admin later adds another video, only that one shows up as
+        // a new notification.
+        seenClasses.markClassVisited(data);
+      })
       .catch(() => setNotFound(true));
   }, [id]);
 

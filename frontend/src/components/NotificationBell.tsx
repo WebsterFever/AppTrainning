@@ -1,0 +1,92 @@
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '../lib/api';
+import { seenClasses, ClassNotification } from '../lib/seenClasses';
+import { useLanguage } from '../lib/i18n';
+
+export default function NotificationBell() {
+  const { language, t } = useLanguage();
+  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
+  const [notifications, setNotifications] = useState<ClassNotification[]>([]);
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const refresh = () => {
+    api.listClasses('upcoming').then((list) => {
+      seenClasses.ensureBaseline(list);
+      setNotifications(seenClasses.getNotifications(list));
+    });
+  };
+
+  useEffect(() => {
+    refresh();
+    const poll = setInterval(refresh, 30000);
+    const unsubscribe = seenClasses.onChange(refresh);
+    return () => {
+      clearInterval(poll);
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={t('notificationsAria', { count: notifications.length })}
+        className="relative w-9 h-9 flex items-center justify-center rounded-sm border border-line text-ink hover:bg-surface transition-colors"
+      >
+        🔔
+        {notifications.length > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-coral text-white text-[10px] font-semibold leading-none">
+            {notifications.length}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-72 max-h-96 overflow-y-auto bg-chalk border border-line rounded-sm shadow-2xl z-50 animate-fade-in">
+          <p className="px-3 py-2 text-xs font-mono uppercase tracking-widest text-ink/40 border-b border-line">
+            {t('notifications')}
+          </p>
+          {notifications.length === 0 ? (
+            <p className="px-3 py-4 text-sm text-ink/40 text-center">{t('noNewNotifications')}</p>
+          ) : (
+            <div className="divide-y divide-line">
+              {notifications.map(({ item, isNewClass }) => (
+                <Link
+                  key={item.id}
+                  to={`/classes/${item.id}`}
+                  onClick={() => setOpen(false)}
+                  className="block px-3 py-2.5 hover:bg-surface transition-colors"
+                >
+                  <span className="badge bg-coral text-white text-[9px]">
+                    {isNewClass ? t('newClassBadge') : t('newVideoBadge')}
+                  </span>
+                  <p className="text-sm font-medium text-ink mt-1 line-clamp-1">{item.title}</p>
+                  <p className="text-xs text-ink/50 font-mono mt-0.5">
+                    {item.classDate
+                      ? new Date(item.classDate).toLocaleString(locale, {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })
+                      : t('selfPaced')}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

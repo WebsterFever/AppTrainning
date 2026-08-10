@@ -41,6 +41,16 @@ const dict = {
   switchToLight: { en: 'Switch to light mode', fr: 'Passer au mode clair' },
   switchToDark: { en: 'Switch to dark mode', fr: 'Passer au mode sombre' },
 
+  // Notification bell
+  notifications: { en: 'Notifications', fr: 'Notifications' },
+  notificationsAria: {
+    en: (v: Vars) => (v.count ? `Notifications (${v.count} new)` : 'Notifications'),
+    fr: (v: Vars) => (v.count ? `Notifications (${v.count} nouvelles)` : 'Notifications'),
+  },
+  noNewNotifications: { en: 'No new classes.', fr: 'Aucun nouveau cours.' },
+  newClassBadge: { en: 'New class', fr: 'Nouveau cours' },
+  newVideoBadge: { en: 'New video', fr: 'Nouvelle vidéo' },
+
   // Countdown (frontend/src/lib/countdown.ts, ClassCard/ClassManager)
   startingNow: { en: 'Starting now', fr: 'Commence maintenant' },
   startsIn: {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import LanguageSwitcher from './LanguageSwitcher';
+import NotificationBell from './NotificationBell';
 import { useLanguage } from '../lib/i18n';
 
 export default function Header() {
@@ -45,6 +46,7 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <NotificationBell />
           <LanguageSwitcher />
           <ThemeToggle />
 
