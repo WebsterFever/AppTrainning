@@ -4,10 +4,12 @@ import {
   IsBoolean,
   IsDateString,
   IsEmail,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUrl,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { ExtraVideoDto } from './extra-video.dto';
@@ -69,6 +71,11 @@ export class CreateClassDto {
   @IsOptional()
   @IsBoolean()
   isPaid?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  priceCents?: number | null;
 
   @IsOptional()
   @IsArray()

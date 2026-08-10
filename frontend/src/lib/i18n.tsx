@@ -93,6 +93,20 @@ const dict = {
   checking: { en: 'Checking…', fr: 'Vérification…' },
   unlockThisClass: { en: 'Unlock this class', fr: 'Débloquer ce cours' },
   registerToUnlock: { en: 'Register to unlock details', fr: 'Inscrivez-vous pour voir les détails' },
+  payWithCardOrPaypal: {
+    en: (v: Vars) => `Pay ${v.price} — Card or PayPal`,
+    fr: (v: Vars) => `Payer ${v.price} — Carte ou PayPal`,
+  },
+  startingCheckout: { en: 'Starting checkout…', fr: 'Ouverture du paiement…' },
+  alreadyPurchasedUnlock: { en: 'Already purchased? Unlock', fr: 'Déjà acheté ? Débloquer' },
+  confirmingPayment: {
+    en: 'Confirming your payment — this usually takes just a few seconds…',
+    fr: 'Confirmation de votre paiement — cela prend généralement quelques secondes…',
+  },
+  fillNameEmailFirst: {
+    en: 'Enter your name and email first.',
+    fr: "Entrez d'abord votre nom et e-mail.",
+  },
   studyNotes: { en: 'Study notes', fr: "Notes d'étude" },
   moreVideos: { en: 'More videos', fr: 'Plus de vidéos' },
   unplayableVideo: {

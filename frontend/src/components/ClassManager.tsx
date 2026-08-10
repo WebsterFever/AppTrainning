@@ -49,6 +49,7 @@ function emptyForm() {
     extraVideos: [emptyExtraVideo()] as ExtraVideoForm[],
     classDate: '',
     zoomLink: '',
+    price: '',
     allowedEmails: [''] as string[],
   };
 }
@@ -161,6 +162,7 @@ export default function ClassManager({
         : [emptyExtraVideo()],
       classDate: toDatetimeLocal(c.classDate),
       zoomLink: c.zoomLink ?? '',
+      price: c.priceCents != null ? (c.priceCents / 100).toString() : '',
       allowedEmails: c.allowedEmails?.length ? c.allowedEmails : [''],
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -230,7 +232,10 @@ export default function ClassManager({
         extraVideos: extraVideos.length ? extraVideos : undefined,
         isPaid,
         ...(isPaid
-          ? { allowedEmails: form.allowedEmails.map((e) => e.trim()).filter(Boolean) }
+          ? {
+              allowedEmails: form.allowedEmails.map((e) => e.trim()).filter(Boolean),
+              priceCents: form.price.trim() ? Math.round(parseFloat(form.price) * 100) : null,
+            }
           : {}),
       };
       if (editingId) {
@@ -659,6 +664,27 @@ export default function ClassManager({
               className="input"
             />
           </div>
+
+          {isPaid && (
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
+                Price (USD) <span className="normal-case text-ink/30">(optional)</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="49.99"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                className="input"
+              />
+              <p className="text-[11px] text-ink/40 mt-1">
+                If set, students can pay with card or PayPal to unlock this class themselves.
+                Leave blank to only grant access manually via the email list below.
+              </p>
+            </div>
+          )}
 
           {isPaid && (
             <div>

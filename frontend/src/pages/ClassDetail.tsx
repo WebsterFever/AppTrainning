@@ -9,6 +9,10 @@ import VideoComments from '../components/VideoComments';
 import { useLanguage } from '../lib/i18n';
 import { seenClasses } from '../lib/seenClasses';
 
+function formatPrice(cents: number, locale: string): string {
+  return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(cents / 100);
+}
+
 export default function ClassDetail() {
   const { id } = useParams<{ id: string }>();
   const { language, t } = useLanguage();
@@ -24,6 +28,9 @@ export default function ClassDetail() {
   const [zoomLink, setZoomLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [openVideos, setOpenVideos] = useState<Set<number>>(new Set());
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState('');
 
   const toggleVideo = (i: number) => {
     setOpenVideos((current) => {
@@ -36,18 +43,57 @@ export default function ClassDetail() {
 
   useEffect(() => {
     if (!id) return;
+
+    // Stripe redirects back here with ?payment=success|cancelled — strip it
+    // immediately so a page refresh doesn't re-trigger the retry logic below.
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    if (paymentStatus) window.history.replaceState({}, '', window.location.pathname);
+
     const saved = visitorIdentity.get(id);
     if (saved) {
-      setUnlocked(true);
       setName(saved.name);
       setEmail(saved.email);
-      // Re-registering is idempotent on the backend — this just retrieves
-      // the Zoom link again so it's always available on a return visit.
-      api
-        .register(id, saved.name, saved.email)
-        .then((res) => setZoomLink(res.zoomLink ?? ''))
-        .catch(() => {});
+
+      // Right after a Stripe redirect the webhook that grants access may
+      // not have landed yet — retry briefly instead of failing immediately.
+      const maxAttempts = paymentStatus === 'success' ? 6 : 1;
+      if (paymentStatus === 'success') setConfirmingPayment(true);
+
+      const attemptRegister = (attempt: number) => {
+        api
+          .register(id, saved.name, saved.email)
+          .then((res) => {
+            // Only unlock once registration actually succeeds — a visitor
+            // who abandoned a payment mid-checkout still has a saved
+            // identity locally, but must not see gated content until the
+            // backend confirms they actually have access.
+            setZoomLink(res.zoomLink ?? '');
+            setItem((current) =>
+              current
+                ? {
+                    ...current,
+                    registrationCount: res.registrationCount,
+                    registeredNames: res.alreadyRegistered
+                      ? current.registeredNames
+                      : [...(current.registeredNames ?? []), saved.name],
+                  }
+                : current,
+            );
+            setUnlocked(true);
+            setConfirmingPayment(false);
+          })
+          .catch(() => {
+            if (attempt < maxAttempts) {
+              setTimeout(() => attemptRegister(attempt + 1), 1500);
+            } else {
+              setConfirmingPayment(false);
+            }
+          });
+      };
+      attemptRegister(1);
     }
+
     api
       .getClass(id)
       .then((data) => {
@@ -59,6 +105,27 @@ export default function ClassDetail() {
       })
       .catch(() => setNotFound(true));
   }, [id]);
+
+  const handlePay = async () => {
+    if (!id || !item) return;
+    if (!name.trim() || !email.trim()) {
+      setPayError(t('fillNameEmailFirst'));
+      return;
+    }
+    setPayError('');
+    setPaying(true);
+    try {
+      // Save identity now so the return trip from Stripe can look it up —
+      // handleRegister only unlocks once the backend confirms access, so
+      // saving this early doesn't grant anything by itself.
+      visitorIdentity.set(id, { name: name.trim(), email: email.trim() });
+      const { url } = await api.createCheckout(id, email.trim(), window.location.origin);
+      window.location.href = url;
+    } catch (err) {
+      setPaying(false);
+      setPayError(err instanceof Error ? err.message : t('somethingWentWrong'));
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,6 +314,11 @@ export default function ClassDetail() {
                   </button>
                 </div>
               </div>
+            ) : confirmingPayment ? (
+              <div className="bg-surface border border-line rounded-sm p-5 text-center">
+                <div className="text-3xl mb-2">⏳</div>
+                <p className="text-ink/70 text-sm">{t('confirmingPayment')}</p>
+              </div>
             ) : (
               <div className="bg-surface border border-line rounded-sm p-5">
                 <p className="text-ink/70 text-sm">
@@ -275,13 +347,36 @@ export default function ClassDetail() {
                     />
                   </div>
                   {status === 'error' && <p className="text-coral text-sm">{error}</p>}
-                  <button type="submit" disabled={status === 'loading'} className="btn-primary w-full">
-                    {status === 'loading'
-                      ? t('checking')
-                      : item.isPaid
-                        ? t('unlockThisClass')
-                        : t('registerToUnlock')}
-                  </button>
+                  {payError && <p className="text-coral text-sm">{payError}</p>}
+                  {item.isPaid && item.priceCents ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handlePay}
+                        disabled={paying || status === 'loading'}
+                        className="btn-primary w-full"
+                      >
+                        {paying
+                          ? t('startingCheckout')
+                          : t('payWithCardOrPaypal', { price: formatPrice(item.priceCents, locale) })}
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={status === 'loading' || paying}
+                        className="btn-outline w-full text-sm"
+                      >
+                        {status === 'loading' ? t('checking') : t('alreadyPurchasedUnlock')}
+                      </button>
+                    </>
+                  ) : (
+                    <button type="submit" disabled={status === 'loading'} className="btn-primary w-full">
+                      {status === 'loading'
+                        ? t('checking')
+                        : item.isPaid
+                          ? t('unlockThisClass')
+                          : t('registerToUnlock')}
+                    </button>
+                  )}
                 </form>
               </div>
             )}

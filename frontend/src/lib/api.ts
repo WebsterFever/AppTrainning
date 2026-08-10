@@ -37,6 +37,7 @@ export interface ClassFormData {
   classDate?: string;
   zoomLink?: string | null;
   isPaid?: boolean;
+  priceCents?: number | null;
   allowedEmails?: string[];
 }
 
@@ -127,6 +128,7 @@ export interface ClassItem {
   zoomLink?: string;
   isPast: boolean;
   isPaid: boolean;
+  priceCents?: number;
   allowedEmails?: string[];
   registrationCount: number;
   registeredNames?: string[];
@@ -294,6 +296,15 @@ export const api = {
         alreadyRegistered: boolean;
       }>(r),
     ),
+
+  // Starts a Stripe Checkout session for a paid class; returns the URL to
+  // redirect the browser to (card and PayPal both handled by Stripe).
+  createCheckout: (classId: string, email: string, origin: string) =>
+    fetch(`${BASE_URL}/classes/${classId}/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, origin }),
+    }).then((r) => handle<{ url: string }>(r)),
 
   // Admin only: full registrant list (name, email, registration date) for a class.
   listRegistrations: (classId: string) =>

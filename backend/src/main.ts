@@ -5,7 +5,9 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // rawBody: true exposes req.rawBody alongside the normal parsed req.body,
+  // needed to verify the Stripe webhook signature in PaymentsController.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   const config = app.get(ConfigService);
 
   // Railway terminates TLS at its edge and forwards over plain HTTP, so

@@ -67,7 +67,15 @@ export class TrainingClass {
   @Column({ name: 'is_paid', default: false })
   isPaid: boolean;
 
+  // In cents (USD). Nullable so an existing paid class can predate pricing
+  // — without it, the self-serve "Pay now" button is hidden and the class
+  // falls back to the admin manually granting access via allowedEmails.
+  @Column({ type: 'integer', name: 'price_cents', nullable: true })
+  priceCents?: number | null;
+
   // Admin-managed allowlist: only these emails can register for a paid class.
+  // Populated either by the admin manually, or automatically once a Stripe
+  // payment for that email completes (see PaymentsService).
   @Column('simple-json', { name: 'allowed_emails', nullable: true })
   allowedEmails?: string[];
 

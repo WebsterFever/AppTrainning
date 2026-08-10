@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
 import { ContestModule } from './contest/contest.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { UploadsModule } from './uploads/uploads.module';
     ChatModule,
     ContestModule,
     UploadsModule,
+    PaymentsModule,
   ],
 })
 export class AppModule {}

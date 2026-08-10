@@ -32,6 +32,7 @@ export interface ClassWithCount {
   zoomLink?: string;
   isPast: boolean;
   isPaid: boolean;
+  priceCents?: number;
   allowedEmails?: string[];
   registrationCount: number;
   registeredNames?: string[];
@@ -137,6 +138,16 @@ export class ClassesService {
     return this.update(id, { isPast } as UpdateClassDto);
   }
 
+  // Called by PaymentsService once a Stripe payment for this class/email
+  // completes — grants access the same way an admin manually adding the
+  // email to the allowlist would.
+  async grantAccess(id: string, email: string): Promise<void> {
+    const existing = await this.classesRepo.findOne({ where: { id } });
+    if (!existing) return;
+    existing.allowedEmails = this.normalizeEmails([...(existing.allowedEmails ?? []), email]);
+    await this.classesRepo.save(existing);
+  }
+
   async remove(id: string): Promise<void> {
     const result = await this.classesRepo.delete(id);
     if (!result.affected) throw new NotFoundException('Class not found');
@@ -171,6 +182,7 @@ export class ClassesService {
       zoomLink: row.isPast || revealZoomLink ? row.zoomLink : undefined,
       isPast: row.isPast,
       isPaid: row.isPaid,
+      priceCents: row.priceCents ?? undefined,
       // The allowlist itself is admin-only — never exposed to public/student views.
       ...(revealZoomLink ? { allowedEmails: row.allowedEmails ?? [] } : {}),
       registrationCount: includeNames ? (names?.length ?? 0) : (row.registrationCount ?? 0),
