@@ -29,7 +29,7 @@ export default function Header() {
           <img
             src="/logoDarkMode.png"
             alt="Webster Technology School"
-            className="hidden h-34 sm:h-40 lg:h-54 w-auto dark:block"
+            className="hidden h-20 sm:h-30 lg:h-40 w-auto dark:block"
           />
         </Link>
 
