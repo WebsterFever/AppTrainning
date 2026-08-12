@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ContestService } from './contest.service';
 import { SubscribeContestantDto } from './dto/subscribe-contestant.dto';
 import { SubmitAnswerDto } from './dto/submit-answer.dto';
@@ -30,8 +30,8 @@ export class ContestController {
   }
 
   @Get('question')
-  question() {
-    return this.contestService.getCurrentQuestion();
+  question(@Query('language') language?: 'en' | 'fr' | 'ht') {
+    return this.contestService.getCurrentQuestion(language ?? 'en');
   }
 
   @Post('answer')

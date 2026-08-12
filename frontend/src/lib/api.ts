@@ -79,9 +79,27 @@ export interface AdminQuestion {
   subject: string;
   questionText: string;
   correctAnswer: string;
+  subjectFr?: string;
+  questionTextFr?: string;
+  correctAnswerFr?: string;
+  subjectHt?: string;
+  questionTextHt?: string;
+  correctAnswerHt?: string;
   winnerName?: string;
   answeredAt?: string;
   createdAt: string;
+}
+
+export interface CreateQuestionInput {
+  subjectEn: string;
+  questionTextEn: string;
+  correctAnswerEn: string;
+  subjectFr: string;
+  questionTextFr: string;
+  correctAnswerFr: string;
+  subjectHt: string;
+  questionTextHt: string;
+  correctAnswerHt: string;
 }
 
 export interface AdminContestant {
@@ -463,8 +481,10 @@ export const api = {
   getLeaderboard: () =>
     fetch(`${BASE_URL}/contest/leaderboard`).then((r) => handle<Leaderboard>(r)),
 
-  getCurrentQuestion: () =>
-    fetch(`${BASE_URL}/contest/question`).then((r) => handle<CurrentQuestion | null>(r)),
+  getCurrentQuestion: (language: string) =>
+    fetch(`${BASE_URL}/contest/question?language=${encodeURIComponent(language)}`).then((r) =>
+      handle<CurrentQuestion | null>(r),
+    ),
 
   submitContestAnswer: (email: string, answer: string) =>
     fetch(`${BASE_URL}/contest/answer`, {
@@ -476,11 +496,11 @@ export const api = {
   getContestHistory: () =>
     fetch(`${BASE_URL}/contest/history`).then((r) => handle<MonthlyWinnerEntry[]>(r)),
 
-  createContestQuestion: (subject: string, questionText: string, correctAnswer: string) =>
+  createContestQuestion: (input: CreateQuestionInput) =>
     fetch(`${BASE_URL}/admin/contest/questions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeader() },
-      body: JSON.stringify({ subject, questionText, correctAnswer }),
+      body: JSON.stringify(input),
     }).then((r) => handle<AdminQuestion>(r)),
 
   listContestQuestions: () =>

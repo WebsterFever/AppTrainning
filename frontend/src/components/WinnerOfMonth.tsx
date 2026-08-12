@@ -49,8 +49,14 @@ export default function WinnerOfMonth() {
 
   useEffect(() => {
     loadLeaderboard();
-    api.getCurrentQuestion().then(setQuestion);
   }, []);
+
+  // Re-fetch the question whenever the site language changes so it always
+  // shows the version matching the current language — it's still the same
+  // question/contest, just displayed differently.
+  useEffect(() => {
+    api.getCurrentQuestion(language).then(setQuestion);
+  }, [language]);
 
   useEffect(() => {
     setAlreadyAttempted(!!question && localStorage.getItem(ATTEMPTED_KEY) === question.id);
@@ -61,14 +67,14 @@ export default function WinnerOfMonth() {
   useEffect(() => {
     const tickTimer = setInterval(() => setNow(new Date()), 1000);
     const refreshTimer = setInterval(() => {
-      api.getCurrentQuestion().then(setQuestion);
+      api.getCurrentQuestion(language).then(setQuestion);
       loadLeaderboard();
     }, 60000);
     return () => {
       clearInterval(tickTimer);
       clearInterval(refreshTimer);
     };
-  }, []);
+  }, [language]);
 
   const nextQuestionTime = getNextQuestionTime(now);
   const countdownText = formatCountdown(nextQuestionTime, now, t('anyMomentNow'));

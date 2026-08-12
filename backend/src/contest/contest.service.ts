@@ -13,9 +13,34 @@ import { SubmitAnswerDto } from './dto/submit-answer.dto';
 const FIRST_CORRECT_POINTS = 10;
 const CLOSED_MESSAGE = 'This month\'s contest has ended — the admin needs to reset it before a new one can start.';
 
+type ContestLanguage = 'en' | 'fr' | 'ht';
+
 function currentPeriodMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// Case/whitespace/accent-insensitive comparison so "Inde", "inde", "  INDE "
+// and "Índe" all match — contestants shouldn't lose points to typos in
+// capitalization or accents.
+function normalizeAnswer(value: string): string {
+  const stripped = Array.from(value.normalize('NFD'))
+    .filter((ch) => {
+      const code = ch.codePointAt(0) ?? 0;
+      return code < 0x0300 || code > 0x036f; // drop combining diacritical marks
+    })
+    .join('');
+  return stripped.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function localizedField(
+  question: DailyQuestion,
+  base: 'subject' | 'questionText' | 'correctAnswer',
+  language: ContestLanguage,
+): string {
+  if (language === 'en') return question[base];
+  const key = (base + (language === 'fr' ? 'Fr' : 'Ht')) as keyof DailyQuestion;
+  return (question[key] as string | undefined) || question[base];
 }
 
 // Number of days in a "YYYY-MM" period — the monthly point goal is this many
@@ -103,7 +128,7 @@ export class ContestService {
     };
   }
 
-  async getCurrentQuestion(): Promise<{
+  async getCurrentQuestion(language: ContestLanguage = 'en'): Promise<{
     id: string;
     subject: string;
     questionText: string;
@@ -118,8 +143,8 @@ export class ContestService {
 
     return {
       id: question.id,
-      subject: question.subject,
-      questionText: question.questionText,
+      subject: localizedField(question, 'subject', language),
+      questionText: localizedField(question, 'questionText', language),
       answered: !!question.winnerContestantId,
       winnerName: question.winnerName,
     };
@@ -148,8 +173,13 @@ export class ContestService {
       throw new ConflictException("You've already answered today's question.");
     }
 
-    const isCorrect =
-      dto.answer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
+    // Accept a match against any of the three stored language versions —
+    // a contestant browsing in English can still answer in French or Creole.
+    const submitted = normalizeAnswer(dto.answer);
+    const acceptedAnswers = [question.correctAnswer, question.correctAnswerFr, question.correctAnswerHt]
+      .filter((a): a is string => !!a)
+      .map(normalizeAnswer);
+    const isCorrect = acceptedAnswers.includes(submitted);
 
     await this.attemptsRepo.save(
       this.attemptsRepo.create({
@@ -205,9 +235,15 @@ export class ContestService {
     if (this.isPeriodEnded(settings)) throw new ForbiddenException(CLOSED_MESSAGE);
 
     const question = this.questionsRepo.create({
-      subject: dto.subject,
-      questionText: dto.questionText,
-      correctAnswer: dto.correctAnswer,
+      subject: dto.subjectEn,
+      questionText: dto.questionTextEn,
+      correctAnswer: dto.correctAnswerEn,
+      subjectFr: dto.subjectFr,
+      questionTextFr: dto.questionTextFr,
+      correctAnswerFr: dto.correctAnswerFr,
+      subjectHt: dto.subjectHt,
+      questionTextHt: dto.questionTextHt,
+      correctAnswerHt: dto.correctAnswerHt,
     });
     return this.questionsRepo.save(question);
   }

@@ -2,10 +2,30 @@ import { useEffect, useState } from 'react';
 import { AdminContestant, AdminQuestion, api } from '../lib/api';
 import ConfirmDialog from './ConfirmDialog';
 
+const LANGS = [
+  { code: 'En', label: 'English' },
+  { code: 'Fr', label: 'French' },
+  { code: 'Ht', label: 'Creole' },
+] as const;
+
+type LangCode = (typeof LANGS)[number]['code'];
+
+function emptyForm(): Record<`subject${LangCode}` | `questionText${LangCode}` | `correctAnswer${LangCode}`, string> {
+  return {
+    subjectEn: '',
+    questionTextEn: '',
+    correctAnswerEn: '',
+    subjectFr: '',
+    questionTextFr: '',
+    correctAnswerFr: '',
+    subjectHt: '',
+    questionTextHt: '',
+    correctAnswerHt: '',
+  };
+}
+
 export default function AdminContest() {
-  const [subject, setSubject] = useState('');
-  const [questionText, setQuestionText] = useState('');
-  const [correctAnswer, setCorrectAnswer] = useState('');
+  const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,15 +53,16 @@ export default function AdminContest() {
     load().finally(() => setLoading(false));
   }, []);
 
+  const setField = (key: keyof ReturnType<typeof emptyForm>, value: string) =>
+    setForm((f) => ({ ...f, [key]: value }));
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError('');
     try {
-      await api.createContestQuestion(subject, questionText, correctAnswer);
-      setSubject('');
-      setQuestionText('');
-      setCorrectAnswer('');
+      await api.createContestQuestion(form);
+      setForm(emptyForm());
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to post question');
@@ -75,7 +96,7 @@ export default function AdminContest() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-[320px_1fr] gap-6">
+      <div className="grid md:grid-cols-[420px_1fr] gap-6">
         {periodEnded ? (
           <div className="bg-surface border border-line rounded-sm p-5 h-fit text-center">
             <p className="text-2xl">🏆</p>
@@ -101,48 +122,59 @@ export default function AdminContest() {
           <form onSubmit={submit} className="bg-surface border border-line rounded-sm p-5 h-fit">
             <h3 className="font-display text-lg text-ink mb-1">Post today's question</h3>
             <p className="text-xs text-ink/50 mb-4">
-              Posting a new question replaces today's active one.
+              Posting a new question replaces today's active one. Enter it in all three languages —
+              it's one question that visitors see in whichever language they've selected.
             </p>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-                  Subject
-                </label>
-                <input
-                  required
-                  placeholder="e.g. World History"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="input"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-                  Question
-                </label>
-                <textarea
-                  required
-                  placeholder="What is the capital of France?"
-                  value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
-                  className="input h-20"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-                  Correct answer
-                </label>
-                <input
-                  required
-                  placeholder="Paris"
-                  value={correctAnswer}
-                  onChange={(e) => setCorrectAnswer(e.target.value)}
-                  className="input"
-                />
-                <p className="text-[11px] text-ink/40 mt-1">
-                  Matched case-insensitively against what contestants type.
-                </p>
-              </div>
+            <div className="space-y-4">
+              {LANGS.map(({ code, label }) => (
+                <div key={code} className="border border-line rounded-sm p-3">
+                  <p className="text-[11px] font-mono uppercase tracking-wide text-amber mb-2">
+                    {label}
+                  </p>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
+                        Subject
+                      </label>
+                      <input
+                        required
+                        placeholder="e.g. World History"
+                        value={form[`subject${code}`]}
+                        onChange={(e) => setField(`subject${code}`, e.target.value)}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
+                        Question
+                      </label>
+                      <textarea
+                        required
+                        placeholder="What is the capital of France?"
+                        value={form[`questionText${code}`]}
+                        onChange={(e) => setField(`questionText${code}`, e.target.value)}
+                        className="input h-16"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
+                        Correct answer
+                      </label>
+                      <input
+                        required
+                        placeholder="Paris"
+                        value={form[`correctAnswer${code}`]}
+                        onChange={(e) => setField(`correctAnswer${code}`, e.target.value)}
+                        className="input"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <p className="text-[11px] text-ink/40">
+                Matched case-insensitively (and accent-insensitively) against what contestants type,
+                in any of the three languages.
+              </p>
               {error && <p className="text-coral text-xs">{error}</p>}
               <button disabled={saving} className="btn-primary w-full text-sm">
                 {saving ? 'Posting…' : 'Post question'}
@@ -197,18 +229,42 @@ export default function AdminContest() {
                 {questions.map((q) => (
                   <div key={q.id} className="bg-surface border border-line rounded-sm p-3">
                     <p className="text-[11px] font-mono uppercase tracking-wide text-ink/40">
-                      {q.subject} ·{' '}
                       {new Date(q.createdAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}
-                    </p>
-                    <p className="text-sm text-ink mt-1">{q.questionText}</p>
-                    <p className="text-xs text-ink/50 mt-1">
-                      Answer: <span className="font-mono">{q.correctAnswer}</span>
                       {q.winnerName ? (
                         <span className="text-sage"> · won by {q.winnerName}</span>
                       ) : (
                         <span className="text-ink/40"> · not yet answered</span>
                       )}
                     </p>
+                    <div className="mt-2 space-y-2">
+                      {[
+                        { label: 'English', subject: q.subject, question: q.questionText, answer: q.correctAnswer },
+                        {
+                          label: 'French',
+                          subject: q.subjectFr,
+                          question: q.questionTextFr,
+                          answer: q.correctAnswerFr,
+                        },
+                        {
+                          label: 'Creole',
+                          subject: q.subjectHt,
+                          question: q.questionTextHt,
+                          answer: q.correctAnswerHt,
+                        },
+                      ]
+                        .filter((v) => v.subject || v.question || v.answer)
+                        .map((v) => (
+                          <div key={v.label} className="border-l-2 border-line pl-2">
+                            <p className="text-[10px] font-mono uppercase tracking-wide text-amber">
+                              {v.label} · {v.subject}
+                            </p>
+                            <p className="text-sm text-ink">{v.question}</p>
+                            <p className="text-xs text-ink/50">
+                              Answer: <span className="font-mono">{v.answer}</span>
+                            </p>
+                          </div>
+                        ))}
+                    </div>
                   </div>
                 ))}
               </div>
