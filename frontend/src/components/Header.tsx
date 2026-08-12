@@ -17,7 +17,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-chalk/90 backdrop-blur">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-4">
-        <Link to="/" className="flex items-center shrink-0" onClick={() => setMenuOpen(false)}>
+        <Link to="/" className="flex items-center" onClick={() => setMenuOpen(false)}>
           {/* Light Mode Logo */}
           <img
             src="/logoLightMode.png"
@@ -25,11 +25,11 @@ export default function Header() {
             className="h-34 sm:h-40 lg:h-54 w-auto dark:hidden"
           />
 
-          {/* Dark Mode Logo - Reduced */}
-          <img
+          {/* Dark Mode Logo */}
+        <img
             src="/logoDarkMode.png"
-            alt="Webster Technology School"
-            className="hidden h-12 sm:h-16 lg:h-20 w-auto dark:block"
+            alt="WEBSTER TECHNOLOGY SCHOOL"
+            className="hidden h-12 sm:h-14 lg:h-16 w-auto dark:block"
           />
         </Link>
 
