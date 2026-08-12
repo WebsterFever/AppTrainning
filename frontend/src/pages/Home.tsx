@@ -203,7 +203,9 @@ const ClassListSection: React.FC<{
       <section className="py-4 text-center">
         <div className="rounded-2xl border border-line bg-surface px-6 py-12 shadow-sm">
           <p className="font-display text-2xl text-ink/70">{emptyMessage}</p>
-          <p className="mt-2 text-sm text-ink/50 sm:text-base">{emptySubMessage}</p>
+          {emptySubMessage && (
+            <p className="mt-2 text-sm text-ink/50 sm:text-base">{emptySubMessage}</p>
+          )}
         </div>
       </section>
     );
@@ -227,24 +229,36 @@ const ClassListSection: React.FC<{
 
 // Main Component
 export default function Home() {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [upcoming, setUpcoming] = useState<ClassItem[]>([]);
   const [past, setPast] = useState<ClassItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // A class only shows for visitors browsing in its tagged audience
+  // language — classes left untagged by the admin (the common case for
+  // anything created before this feature) show for everyone.
+  const visibleUpcoming = useMemo(
+    () => upcoming.filter((c) => !c.language || c.language === language),
+    [upcoming, language],
+  );
+  const visiblePast = useMemo(
+    () => past.filter((c) => !c.language || c.language === language),
+    [past, language],
+  );
+
   const totalRegistrations = useMemo(
-    () => calculateTotalRegistrations([...upcoming, ...past]),
-    [upcoming, past]
+    () => calculateTotalRegistrations([...visibleUpcoming, ...visiblePast]),
+    [visibleUpcoming, visiblePast]
   );
 
   const stats = useMemo(
     () => ({
-      upcoming: upcoming.length,
-      past: past.length,
+      upcoming: visibleUpcoming.length,
+      past: visiblePast.length,
       registrations: totalRegistrations,
     }),
-    [upcoming.length, past.length, totalRegistrations]
+    [visibleUpcoming.length, visiblePast.length, totalRegistrations]
   );
 
   const fetchClasses = useCallback(async () => {
@@ -288,14 +302,14 @@ export default function Home() {
     <>
       <ClassListSection
         title={t('upcoming')}
-        classes={upcoming}
-        emptyMessage={t('noUpcomingClasses')}
-        emptySubMessage={t('checkBackSoon')}
+        classes={visibleUpcoming}
+        emptyMessage={upcoming.length > 0 ? t('noClassesForLanguage') : t('noUpcomingClasses')}
+        emptySubMessage={upcoming.length > 0 ? undefined : t('checkBackSoon')}
       />
 
-      {past.length > 0 && (
+      {visiblePast.length > 0 && (
         <div className="mt-12 border-t border-line pt-10" id={SECTION_IDS.PAST}>
-          <ClassListSection title={t('pastClasses')} classes={past} />
+          <ClassListSection title={t('pastClasses')} classes={visiblePast} />
         </div>
       )}
     </>

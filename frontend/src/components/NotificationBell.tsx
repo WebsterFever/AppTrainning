@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { seenClasses, ClassNotification } from '../lib/seenClasses';
-import { useLanguage } from '../lib/i18n';
+import { useLanguage, localeFor } from '../lib/i18n';
 
 export default function NotificationBell() {
   const { language, t } = useLanguage();
-  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
+  const locale = localeFor(language);
   const [notifications, setNotifications] = useState<ClassNotification[]>([]);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);

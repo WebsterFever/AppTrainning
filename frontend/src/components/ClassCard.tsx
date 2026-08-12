@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ClassItem } from '../lib/api';
 import { formatCountdown } from '../lib/countdown';
-import { useLanguage } from '../lib/i18n';
+import { useLanguage, localeFor } from '../lib/i18n';
 
 function formatDateParts(iso: string | undefined, locale: string) {
   if (!iso) return null;
@@ -26,7 +26,7 @@ function formatDateParts(iso: string | undefined, locale: string) {
 
 export default function ClassCard({ item }: { item: ClassItem }) {
   const { language, t } = useLanguage();
-  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
+  const locale = localeFor(language);
   const dateParts = formatDateParts(item.classDate, locale);
   const [now, setNow] = useState(() => new Date());
 

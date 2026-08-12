@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import { ClassDetailSkeleton } from '../components/Skeletons';
 import { getVideoEmbed } from '../lib/video';
 import VideoComments from '../components/VideoComments';
-import { useLanguage } from '../lib/i18n';
+import { useLanguage, localeFor } from '../lib/i18n';
 import { seenClasses } from '../lib/seenClasses';
 
 function formatPrice(cents: number, locale: string): string {
@@ -16,7 +16,7 @@ function formatPrice(cents: number, locale: string): string {
 export default function ClassDetail() {
   const { id } = useParams<{ id: string }>();
   const { language, t } = useLanguage();
-  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
+  const locale = localeFor(language);
   const [item, setItem] = useState<ClassItem | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [unlocked, setUnlocked] = useState(false);

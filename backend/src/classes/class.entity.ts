@@ -67,6 +67,12 @@ export class TrainingClass {
   @Column({ name: 'is_paid', default: false })
   isPaid: boolean;
 
+  // Target-audience language the admin taught/uploaded this class in.
+  // Nullable so existing classes (created before this field existed) keep
+  // showing up regardless of which language a visitor has selected.
+  @Column({ type: 'varchar', name: 'language', nullable: true })
+  language?: 'en' | 'fr' | 'ht' | null;
+
   // In cents (USD). Nullable so an existing paid class can predate pricing
   // — without it, the self-serve "Pay now" button is hidden and the class
   // falls back to the admin manually granting access via allowedEmails.

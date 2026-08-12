@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { api, SCHOOL_NAME, VideoComment, visitorIdentity } from '../lib/api';
-import { useLanguage } from '../lib/i18n';
+import { useLanguage, localeFor } from '../lib/i18n';
 
 export default function VideoComments({ classId, videoRef }: { classId: string; videoRef: string }) {
   const { language, t } = useLanguage();
-  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
+  const locale = localeFor(language);
   const identity = visitorIdentity.get(classId);
   const [comments, setComments] = useState<VideoComment[]>([]);
   const [loading, setLoading] = useState(true);

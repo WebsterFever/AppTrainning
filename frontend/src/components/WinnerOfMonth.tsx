@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api, ContestantEntry, contestIdentity, CurrentQuestion, MonthlyWinnerEntry } from '../lib/api';
 import { formatCountdown, getNextQuestionTime } from '../lib/contestSchedule';
-import { useLanguage } from '../lib/i18n';
+import { useLanguage, localeFor } from '../lib/i18n';
 
 const ATTEMPTED_KEY = 'classboard_contest_attempted_question';
 
 export default function WinnerOfMonth() {
   const { language, t } = useLanguage();
-  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
+  const locale = localeFor(language);
   const [goal, setGoal] = useState(300);
   const [periodEnded, setPeriodEnded] = useState(false);
   const [monthWinner, setMonthWinner] = useState<

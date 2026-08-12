@@ -277,7 +277,141 @@ const bannersFr: Banner[] = [
   },
 ];
 
-const bannersByLanguage: Record<Language, Banner[]> = { en: bannersEn, fr: bannersFr };
+const bannersHt: Banner[] = [
+  {
+    label: 'Byenveni',
+    title: 'Webster Technology School',
+    description:
+      'Aprann konpetans teknolojik pratik atravè kou an dirèk, entèraktif e ki fokis sou karyè.',
+    technology: 'Aprann. Bati. Grandi.',
+    action: 'Dekouvri kou nou yo',
+    href: '#upcoming-classes',
+    imageUrl:
+      'https://imageio.forbes.com/specials-images/imageserve/66e8ad4b29ea61509edd8b63/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds',
+    items: ['Kou an dirèk sou Zoom', 'Pwojè pratik', 'Fòmasyon pou debitan'],
+  },
+  {
+    label: 'Pwochen kou an dirèk',
+    title: 'Enjenyè IA – Depi Debitan Rive Avanse',
+    description:
+      'Aprann entèlijans atifisyèl, React, Node.js, Python, RAG, ajan IA ak devlopman aplikasyon modèn.',
+    technology: 'An dirèk sou Zoom',
+    action: 'Enskri kounye a',
+    href: '#upcoming-classes',
+    imageUrl: 'https://www.aiu.edu/wp-content/uploads/2024/04/72-1024x550.webp',
+    items: ['Enstriktè an dirèk', 'Pwojè pratik', 'Depi debitan rive avanse'],
+  },
+  {
+    label: 'Poukisa chwazi nou',
+    title: 'Yon Edikasyon Pratik pou Lavni Ou',
+    description:
+      'Pwogram nou yo fèt pou ede elèv devlope konpetans itil epi kreye vrè pwojè pwofesyonèl.',
+    technology: 'Aprantisaj ki fokis sou karyè',
+    action: 'Gade pwogram nou yo',
+    href: '#upcoming-classes',
+    imageUrl:
+      'https://static.canadianmetalworking.com/a/invest-in-new-technology-regardless-of-size-cost-1635773656.jpg',
+    items: [
+      'Kou an dirèk ak enstriktè',
+      'Ti gwoup aprantisaj',
+      'Sètifika pwofesyonèl',
+      'Pwojè reyèl',
+    ],
+  },
+  {
+    label: 'Wout aprantisaj',
+    title: 'Kòmanse Nan Baz yo epi Vin Pare pou Travay',
+    description:
+      'Swiv yon chemen aprantisaj klè ki fèt pou mennen ou soti nan konpetans debaz òdinatè rive nan devlopman teknolojik avanse.',
+    technology: 'Vwayaj aprantisaj ou',
+    action: 'Kòmanse aprann',
+    href: '#upcoming-classes',
+    imageUrl: 'https://www.ineteconomics.org/uploads/featured/iStock-1171902434.jpg',
+    items: [
+      'Baz òdinatè',
+      'Fondamantal pwogramasyon',
+      'React ak Node.js',
+      'Entèlijans atifisyèl',
+      'Enjenyè IA',
+    ],
+  },
+  {
+    label: 'Opòtinite karyè',
+    title: 'Prepare pou Karyè Teknolojik',
+    description:
+      'Devlope konpetans pratik ki ka prepare ou pou karyè modèn nan devlopman lojisyèl, cloud computing, done ak IA.',
+    technology: 'Bati karyè ou',
+    action: 'Dekouvri kou karyè yo',
+    href: '#upcoming-classes',
+    imageUrl:
+      'https://imageio.forbes.com/specials-images/imageserve/66e8ad4b29ea61509edd8b63/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds',
+    items: ['Enjenyè IA', 'Devlopè Full Stack', 'Devlopè Frontend', 'Devlopè Backend', 'Enjenyè Cloud'],
+  },
+  {
+    label: 'Teknoloji',
+    title: 'Aprann Zouti Endistri Modèn',
+    description: 'Travay ak teknoloji yo itilize pou bati, deplwaye ak antretni aplikasyon pwofesyonèl.',
+    technology: 'Zouti ou pral aprann',
+    action: 'Gade kou teknoloji yo',
+    href: '#upcoming-classes',
+    imageUrl:
+      'https://static.canadianmetalworking.com/a/invest-in-new-technology-regardless-of-size-cost-1635773656.jpg',
+    items: ['React', 'Node.js', 'Python', 'TypeScript', 'OpenAI', 'Docker', 'AWS', 'PostgreSQL'],
+  },
+  {
+    label: 'Anons',
+    title: 'Nouvo Kou ak Pwogram',
+    description:
+      'Rete enfòme sou kou k ap vini yo, dat enskripsyon ak nouvo pwogram nan Webster Technology School.',
+    technology: 'Dènye aktyalite lekòl la',
+    action: 'Gade kou k ap vini yo',
+    href: '#upcoming-classes',
+    imageUrl: 'https://www.ineteconomics.org/uploads/featured/iStock-1171902434.jpg',
+    items: [
+      'Pwogram Enjenyè IA disponib',
+      'Kou anglè pou debitan',
+      'Kou baz òdinatè',
+      'Plis kou ap vini byento',
+    ],
+  },
+  {
+    label: 'Avi elèv yo',
+    title: 'Aprann ak Konfyans',
+    description:
+      'Objektif nou se ofri eksplikasyon klè, aktivite pratik ak yon eksperyans aprantisaj ki ankouraje.',
+    technology: 'Eksperyans elèv',
+    action: 'Vin jwenn elèv nou yo',
+    href: '#upcoming-classes',
+    imageUrl: 'https://www.aiu.edu/wp-content/uploads/2024/04/72-1024x550.webp',
+    items: ['★★★★★ Leson pratik', '★★★★★ Eksplikasyon klè', '★★★★★ Enstriktè ki ankouraje'],
+  },
+  {
+    label: 'Bezwen èd?',
+    title: 'Nou Isit la pou Sipòte Ou',
+    description:
+      'Ou gen kesyon sou enskripsyon, nivo kou oswa orè yo? Kontakte lekòl nou an pou jwenn èd.',
+    technology: 'Sipò pou elèv',
+    action: 'Kontakte nou',
+    href: 'mailto:support@webstertechnologyschool.com',
+    imageUrl:
+      'https://static.canadianmetalworking.com/a/invest-in-new-technology-regardless-of-size-cost-1635773656.jpg',
+    items: ['Enfòmasyon sou kou', 'Èd pou enskripsyon', 'Sipò teknik'],
+  },
+  {
+    label: 'Enskri jodi a',
+    title: 'Kòmanse Vwayaj Teknolojik Ou',
+    description:
+      'Chwazi yon kou, enskri sou entènèt epi kòmanse devlope konpetans ou bezwen pou edikasyon ak karyè ou.',
+    technology: 'Lavni ou kòmanse isit la',
+    action: 'Enskri jodi a',
+    href: '#upcoming-classes',
+    imageUrl:
+      'https://imageio.forbes.com/specials-images/imageserve/66e8ad4b29ea61509edd8b63/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds',
+    items: ['Chwazi kou ou', 'Enskri sou entènèt', 'Resevwa lyen Zoom ou', 'Kòmanse aprann'],
+  },
+];
+
+const bannersByLanguage: Record<Language, Banner[]> = { en: bannersEn, fr: bannersFr, ht: bannersHt };
 
 export default function TechnologyAside() {
   const { language, t } = useLanguage();

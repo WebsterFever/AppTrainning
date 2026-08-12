@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsDateString,
   IsEmail,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -71,6 +72,10 @@ export class CreateClassDto {
   @IsOptional()
   @IsBoolean()
   isPaid?: boolean;
+
+  @IsOptional()
+  @IsIn(['en', 'fr', 'ht'])
+  language?: 'en' | 'fr' | 'ht' | null;
 
   @IsOptional()
   @IsInt()

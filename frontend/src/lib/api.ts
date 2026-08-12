@@ -37,6 +37,7 @@ export interface ClassFormData {
   classDate?: string;
   zoomLink?: string | null;
   isPaid?: boolean;
+  language?: 'en' | 'fr' | 'ht' | null;
   priceCents?: number | null;
   allowedEmails?: string[];
 }
@@ -128,6 +129,7 @@ export interface ClassItem {
   zoomLink?: string;
   isPast: boolean;
   isPaid: boolean;
+  language?: 'en' | 'fr' | 'ht';
   priceCents?: number;
   allowedEmails?: string[];
   registrationCount: number;

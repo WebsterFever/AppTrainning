@@ -32,6 +32,7 @@ export interface ClassWithCount {
   zoomLink?: string;
   isPast: boolean;
   isPaid: boolean;
+  language?: 'en' | 'fr' | 'ht';
   priceCents?: number;
   allowedEmails?: string[];
   registrationCount: number;
@@ -182,6 +183,7 @@ export class ClassesService {
       zoomLink: row.isPast || revealZoomLink ? row.zoomLink : undefined,
       isPast: row.isPast,
       isPaid: row.isPaid,
+      language: row.language ?? undefined,
       priceCents: row.priceCents ?? undefined,
       // The allowlist itself is admin-only — never exposed to public/student views.
       ...(revealZoomLink ? { allowedEmails: row.allowedEmails ?? [] } : {}),
