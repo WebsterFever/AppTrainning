@@ -23,6 +23,32 @@ export interface NewExtraVideo {
   imageName?: string | null;
 }
 
+export interface CurriculumTopic {
+  id: string;
+  title: string;
+}
+
+export interface CurriculumModule {
+  id: string;
+  title: string;
+  objective?: string;
+  project?: string;
+  topics: CurriculumTopic[];
+}
+
+export interface NewCurriculumTopic {
+  id?: string;
+  title: string;
+}
+
+export interface NewCurriculumModule {
+  id?: string;
+  title: string;
+  objective?: string;
+  project?: string;
+  topics: NewCurriculumTopic[];
+}
+
 export interface ClassFormData {
   title: string;
   description: string;
@@ -34,6 +60,7 @@ export interface ClassFormData {
   videoResourceImageUrl?: string | null;
   videoResourceImageName?: string | null;
   extraVideos?: NewExtraVideo[];
+  curriculumModules?: NewCurriculumModule[];
   classDate?: string;
   zoomLink?: string | null;
   isPaid?: boolean;
@@ -143,6 +170,7 @@ export interface ClassItem {
   videoResourceImageUrl?: string;
   videoResourceImageName?: string;
   extraVideos?: ExtraVideo[];
+  curriculumModules?: CurriculumModule[];
   classDate?: string;
   zoomLink?: string;
   isPast: boolean;

@@ -14,6 +14,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ExtraVideoDto } from './extra-video.dto';
+import { CurriculumModuleDto } from './curriculum-module.dto';
 
 export class CreateClassDto {
   @IsString()
@@ -90,4 +91,12 @@ export class CreateClassDto {
   @Transform(({ value }) => (Array.isArray(value) ? value.map((v: string) => v.trim()) : value))
   @IsEmail({}, { each: true })
   allowedEmails?: string[];
+
+  // Optional marketing curriculum — public before purchase/unlock. Array
+  // order is the module order (M1, M2, …).
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CurriculumModuleDto)
+  curriculumModules?: CurriculumModuleDto[];
 }

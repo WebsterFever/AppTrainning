@@ -54,6 +54,19 @@ export class TrainingClass {
     imageName?: string;
   }[];
 
+  // Optional marketing curriculum, shown publicly before purchase/unlock —
+  // array order is display/module order (M1, M2, …), same convention as
+  // extraVideos above. Nullable/absent means "no curriculum" and the whole
+  // section is hidden on the public page.
+  @Column('simple-json', { name: 'curriculum_modules', nullable: true })
+  curriculumModules?: {
+    id: string;
+    title: string;
+    objective?: string;
+    project?: string;
+    topics: { id: string; title: string }[];
+  }[];
+
   // Optional: paid classes may not have a fixed live session (e.g. self-paced content).
   @Column({ name: 'class_date', type: 'timestamptz', nullable: true })
   classDate?: Date;

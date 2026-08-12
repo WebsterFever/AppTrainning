@@ -28,6 +28,7 @@ export default function ClassDetail() {
   const [zoomLink, setZoomLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [openVideos, setOpenVideos] = useState<Set<number>>(new Set());
+  const [openModules, setOpenModules] = useState<Set<string>>(new Set());
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
@@ -37,6 +38,15 @@ export default function ClassDetail() {
       const next = new Set(current);
       if (next.has(i)) next.delete(i);
       else next.add(i);
+      return next;
+    });
+  };
+
+  const toggleModule = (id: string) => {
+    setOpenModules((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -98,6 +108,9 @@ export default function ClassDetail() {
       .getClass(id)
       .then((data) => {
         setItem(data);
+        // First module expanded by default, matching a modern
+        // bootcamp/university curriculum accordion.
+        if (data.curriculumModules?.[0]) setOpenModules(new Set([data.curriculumModules[0].id]));
         // Marks the class, and every video currently on it, as seen — if
         // the admin later adds another video, only that one shows up as
         // a new notification.
@@ -223,6 +236,82 @@ export default function ClassDetail() {
     );
   };
 
+  // Marketing curriculum — always visible, even pre-purchase/unlock (see
+  // ClassesService.toPublicShape, which never gates this field). Hidden
+  // entirely when the admin hasn't added any modules.
+  const renderCurriculum = () => {
+    if (!item.curriculumModules || item.curriculumModules.length === 0) return null;
+    return (
+      <div className="mt-6">
+        <p className="font-mono text-xs tracking-widest text-ink/40 uppercase">
+          {t('whatYoullLearn')}
+        </p>
+        <p className="text-sm text-ink/60 mt-1">{t('curriculumIntro')}</p>
+        <div className="mt-3 space-y-2">
+          {item.curriculumModules.map((mod, i) => {
+            const isOpen = openModules.has(mod.id);
+            return (
+              <div key={mod.id} className="border border-line rounded-sm overflow-hidden bg-surface">
+                <button
+                  type="button"
+                  onClick={() => toggleModule(mod.id)}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+                >
+                  <span className="text-sm font-medium text-ink">
+                    M{i + 1}: {mod.title}
+                  </span>
+                  <span
+                    className={`text-ink/50 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+                    aria-hidden="true"
+                  >
+                    ▾
+                  </span>
+                </button>
+                {isOpen && (
+                  <div className="border-t border-line p-4 space-y-3">
+                    {mod.objective && (
+                      <div>
+                        <p className="text-xs font-semibold text-ink/60">
+                          {t('moduleObjectiveLabel')}
+                        </p>
+                        <p className="text-sm text-ink/80 mt-0.5 leading-relaxed whitespace-pre-line">
+                          {mod.objective}
+                        </p>
+                      </div>
+                    )}
+                    {mod.topics.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-ink/60">{t('moduleTopicsLabel')}</p>
+                        <ul className="mt-1 space-y-1">
+                          {mod.topics.map((topic) => (
+                            <li key={topic.id} className="text-sm text-ink/80 flex items-start gap-2">
+                              <span className="text-amber mt-1 flex-shrink-0" aria-hidden="true">
+                                •
+                              </span>
+                              <span>{topic.title}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {mod.project && (
+                      <div>
+                        <p className="text-xs font-semibold text-ink/60">{t('moduleProjectLabel')}</p>
+                        <p className="text-sm text-ink/80 mt-0.5 leading-relaxed whitespace-pre-line">
+                          {mod.project}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const date = item.classDate ? new Date(item.classDate) : null;
   const videoEmbed = item.videoUrl ? getVideoEmbed(item.videoUrl) : null;
   const gated = !item.isPast && !unlocked;
@@ -292,6 +381,7 @@ export default function ClassDetail() {
             <p className="text-ink/70 mt-4 leading-relaxed whitespace-pre-line">
               {item.description}
             </p>
+            {renderCurriculum()}
           </div>
         )}
 
@@ -407,6 +497,7 @@ export default function ClassDetail() {
             <p className="text-ink/70 mt-4 leading-relaxed whitespace-pre-line">
               {item.description}
             </p>
+            {renderCurriculum()}
 
             {item.extraVideos && item.extraVideos.length > 0 && (
               <div className="mt-6 space-y-2">

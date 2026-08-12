@@ -164,6 +164,15 @@ const dict = {
   },
   studyNotes: { en: 'Study notes', fr: "Notes d'étude", ht: 'Nòt etid' },
   moreVideos: { en: 'More videos', fr: 'Plus de vidéos', ht: 'Plis videyo' },
+  whatYoullLearn: { en: "What You'll Learn", fr: 'Ce que vous allez apprendre', ht: 'Sa ou pral aprann' },
+  curriculumIntro: {
+    en: 'Explore the complete curriculum before enrolling.',
+    fr: "Explorez le programme complet avant de vous inscrire.",
+    ht: 'Gade tout pwogram nan anvan ou enskri.',
+  },
+  moduleObjectiveLabel: { en: 'Objective', fr: 'Objectif', ht: 'Objektif' },
+  moduleTopicsLabel: { en: 'Topics', fr: 'Sujets', ht: 'Sijè' },
+  moduleProjectLabel: { en: 'Project', fr: 'Projet', ht: 'Pwojè' },
   unplayableVideo: {
     en: (v: Vars) =>
       `This link couldn't be recognized as a playable video (${v.url}). It needs to be a specific YouTube/Vimeo video link, or a direct .mp4 file — not just the site's homepage.`,

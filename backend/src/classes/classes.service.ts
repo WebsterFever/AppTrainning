@@ -6,6 +6,7 @@ import { TrainingClass } from './class.entity';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { ExtraVideoDto } from './dto/extra-video.dto';
+import { CurriculumModuleDto } from './dto/curriculum-module.dto';
 
 export interface ClassWithCount {
   id: string;
@@ -37,6 +38,13 @@ export interface ClassWithCount {
   allowedEmails?: string[];
   registrationCount: number;
   registeredNames?: string[];
+  curriculumModules?: {
+    id: string;
+    title: string;
+    objective?: string;
+    project?: string;
+    topics: { id: string; title: string }[];
+  }[];
 }
 
 @Injectable()
@@ -91,6 +99,7 @@ export class ClassesService {
     const entity = this.classesRepo.create({
       ...dto,
       extraVideos: this.withVideoIds(dto.extraVideos),
+      curriculumModules: this.withModuleIds(dto.curriculumModules),
       classDate: dto.classDate ? new Date(dto.classDate) : undefined,
       ...(dto.allowedEmails ? { allowedEmails: this.normalizeEmails(dto.allowedEmails) } : {}),
     });
@@ -104,6 +113,9 @@ export class ClassesService {
     Object.assign(existing, {
       ...dto,
       ...(dto.extraVideos ? { extraVideos: this.withVideoIds(dto.extraVideos) } : {}),
+      ...(dto.curriculumModules
+        ? { curriculumModules: this.withModuleIds(dto.curriculumModules) }
+        : {}),
       ...(dto.allowedEmails ? { allowedEmails: this.normalizeEmails(dto.allowedEmails) } : {}),
       classDate: dto.classDate ? new Date(dto.classDate) : existing.classDate,
     });
@@ -129,6 +141,16 @@ export class ClassesService {
       pdfName: v.pdfName ?? undefined,
       imageUrl: v.imageUrl ?? undefined,
       imageName: v.imageName ?? undefined,
+    }));
+  }
+
+  private withModuleIds(modules?: CurriculumModuleDto[]): TrainingClass['curriculumModules'] {
+    return modules?.map((m) => ({
+      id: m.id ?? randomUUID(),
+      title: m.title,
+      objective: m.objective || undefined,
+      project: m.project || undefined,
+      topics: m.topics.map((t) => ({ id: t.id ?? randomUUID(), title: t.title })),
     }));
   }
 
@@ -181,6 +203,8 @@ export class ClassesService {
       videoResourceImageUrl: row.videoResourceImageUrl,
       videoResourceImageName: row.videoResourceImageName,
       extraVideos: row.extraVideos,
+      // Marketing curriculum — always public, even pre-purchase/unlock.
+      curriculumModules: row.curriculumModules,
       classDate: row.classDate,
       // Hide link publicly pre-registration, unless explicitly revealed (admin views).
       zoomLink: row.isPast || revealZoomLink ? row.zoomLink : undefined,
