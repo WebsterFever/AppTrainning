@@ -449,114 +449,331 @@ export default function TechnologyAside() {
     setCurrentBanner((current) => (current + 1) % banners.length);
   };
 
-  return (
-    <aside
-      className="w-full"
-      aria-label={t('schoolInfoAria')}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
+ return (
+  <aside
+    className="w-full"
+    aria-label={t('schoolInfoAria')}
+    onMouseEnter={() => setIsPaused(true)}
+    onMouseLeave={() => setIsPaused(false)}
+  >
+    <div
+      className="
+        relative h-[520px] w-full overflow-hidden
+        rounded-2xl border border-line
+        bg-[#f7f3ea] shadow-lg
+        sm:h-[560px] lg:h-[600px]
+        dark:bg-slate-950
+      "
     >
-      <div className="relative h-[520px] w-full overflow-hidden rounded-2xl border border-line shadow-lg sm:h-[560px] lg:h-[600px]">
-        <img
-          key={banner.imageUrl}
-          src={banner.imageUrl}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover animate-fade-in"
-        />
+      {/* Background image */}
+      <img
+        key={banner.imageUrl}
+        src={banner.imageUrl}
+        alt=""
+        className="
+          absolute inset-0 h-full w-full object-cover
+          opacity-[0.14] animate-fade-in
+          dark:opacity-100
+        "
+      />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-slate-950/25" />
+      {/* LIGHT MODE overlay */}
+      <div
+        className="
+          absolute inset-0
+          bg-gradient-to-t
+          from-[#f7f3ea]
+          via-[#f7f3ea]/90
+          to-white/55
 
-        <div className="relative z-10 flex h-full flex-col justify-between p-5 text-white sm:p-6 lg:p-7">
-          <div className="flex items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-white backdrop-blur-md">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber" />
-              {banner.label}
-            </span>
+          dark:hidden
+        "
+      />
 
-            <span className="rounded-full border border-white/20 bg-black/30 px-3 py-1.5 font-mono text-[10px] text-white/80 backdrop-blur-md">
-              {String(currentBanner + 1).padStart(2, '0')} /{' '}
-              {String(banners.length).padStart(2, '0')}
-            </span>
-          </div>
+      {/* DARK MODE overlay */}
+      <div
+        className="
+          absolute inset-0 hidden
+          bg-gradient-to-t
+          from-slate-950
+          via-slate-950/75
+          to-slate-950/25
 
-          <div
-            key={currentBanner}
-            className="animate-fade-in rounded-xl border border-white/15 bg-black/45 p-5 shadow-xl backdrop-blur-md sm:p-6 lg:p-7"
+          dark:block
+        "
+      />
+
+      {/* Decorative light */}
+      <div
+        className="
+          pointer-events-none absolute
+          -right-20 -top-20
+          h-64 w-64 rounded-full
+          bg-amber/15 blur-3xl
+
+          dark:bg-indigo-500/10
+        "
+      />
+
+      <div
+        className="
+          relative z-10
+          flex h-full flex-col justify-between
+          p-5 text-ink
+          sm:p-6 lg:p-7
+
+          dark:text-white
+        "
+      >
+        {/* TOP */}
+        <div className="flex items-center justify-between gap-3">
+          <span
+            className="
+              inline-flex items-center gap-2
+              rounded-full
+              border border-line
+              bg-white/80
+              px-3 py-1.5
+              font-mono text-[10px]
+              uppercase tracking-widest
+              text-ink
+              shadow-sm
+              backdrop-blur-md
+
+              dark:border-white/20
+              dark:bg-black/30
+              dark:text-white
+            "
           >
-            <p className="font-mono text-xs uppercase tracking-widest text-amber">
-              {banner.technology}
-            </p>
+            <span className="h-1.5 w-1.5 rounded-full bg-amber" />
 
-            <h2 className="mt-2 font-display text-2xl font-semibold leading-tight text-white sm:text-3xl">
-              {banner.title}
-            </h2>
+            {banner.label}
+          </span>
 
-            <p className="mt-3 text-sm leading-6 text-white/75 sm:text-base sm:leading-7">
-              {banner.description}
-            </p>
+          <span
+            className="
+              rounded-full
+              border border-line
+              bg-white/80
+              px-3 py-1.5
+              font-mono text-[10px]
+              text-ink/60
+              shadow-sm
+              backdrop-blur-md
 
-            {banner.items && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {banner.items.map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] text-white/90 backdrop-blur-sm sm:text-xs"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            )}
+              dark:border-white/20
+              dark:bg-black/30
+              dark:text-white/80
+            "
+          >
+            {String(currentBanner + 1).padStart(2, '0')} /{' '}
+            {String(banners.length).padStart(2, '0')}
+          </span>
+        </div>
 
-            <a
-              href={banner.href}
-              className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-amber px-5 text-sm font-semibold text-midnight shadow-md transition hover:-translate-y-0.5 hover:bg-coral"
-            >
-              {banner.action}
-              <span aria-hidden="true">→</span>
-            </a>
-          </div>
+        {/* MAIN CARD */}
+        <div
+          key={currentBanner}
+          className="
+            animate-fade-in
+            rounded-xl
+            border border-line
+            bg-white/90
+            p-5
+            shadow-xl
+            backdrop-blur-md
 
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex max-w-[68%] items-center gap-1.5 overflow-hidden">
-              {banners.map((item, index) => (
-                <button
-                  key={item.title}
-                  type="button"
-                  aria-label={t('openSlide', { index: index + 1, label: item.label })}
-                  aria-current={index === currentBanner ? 'true' : undefined}
-                  onClick={() => setCurrentBanner(index)}
-                  className={`h-1.5 flex-shrink-0 rounded-full transition-all ${
-                    index === currentBanner
-                      ? 'w-6 bg-amber'
-                      : 'w-1.5 bg-white/35 hover:bg-white/60'
-                  }`}
-                />
+            sm:p-6
+            lg:p-7
+
+            dark:border-white/15
+            dark:bg-black/45
+          "
+        >
+          <p className="font-mono text-xs uppercase tracking-widest text-amber">
+            {banner.technology}
+          </p>
+
+          <h2
+            className="
+              mt-2
+              font-display
+              text-2xl
+              font-semibold
+              leading-tight
+              text-ink
+
+              sm:text-3xl
+
+              dark:text-white
+            "
+          >
+            {banner.title}
+          </h2>
+
+          <p
+            className="
+              mt-3
+              text-sm
+              leading-6
+              text-ink/65
+
+              sm:text-base
+              sm:leading-7
+
+              dark:text-white/75
+            "
+          >
+            {banner.description}
+          </p>
+
+          {banner.items && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {banner.items.map((item) => (
+                <span
+                  key={item}
+                  className="
+                    rounded-full
+                    border border-line
+                    bg-[#f7f3ea]
+                    px-3 py-1.5
+                    text-[11px]
+                    text-ink/75
+                    backdrop-blur-sm
+
+                    sm:text-xs
+
+                    dark:border-white/15
+                    dark:bg-white/10
+                    dark:text-white/90
+                  "
+                >
+                  {item}
+                </span>
               ))}
             </div>
+          )}
 
-            <div className="flex flex-shrink-0 items-center gap-2">
-              <button
-                type="button"
-                onClick={previousBanner}
-                aria-label={t('previousSlide')}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-md transition hover:bg-white/20"
-              >
-                ←
-              </button>
+          <a
+            href={banner.href}
+            className="
+              mt-5
+              inline-flex
+              min-h-11
+              items-center
+              justify-center
+              gap-2
+              rounded-lg
+              bg-amber
+              px-5
+              text-sm
+              font-semibold
+              text-midnight
+              shadow-md
+              transition
 
+              hover:-translate-y-0.5
+              hover:bg-coral
+            "
+          >
+            {banner.action}
+
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+
+        {/* BOTTOM NAVIGATION */}
+        <div className="flex items-center justify-between gap-4">
+          {/* Dots */}
+          <div className="flex max-w-[68%] items-center gap-1.5 overflow-hidden">
+            {banners.map((item, index) => (
               <button
+                key={item.title}
                 type="button"
-                onClick={nextBanner}
-                aria-label={t('nextSlide')}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-md transition hover:bg-white/20"
-              >
-                →
-              </button>
-            </div>
+                aria-label={t('openSlide', {
+                  index: index + 1,
+                  label: item.label,
+                })}
+                aria-current={
+                  index === currentBanner ? 'true' : undefined
+                }
+                onClick={() => setCurrentBanner(index)}
+                className={`
+                  h-1.5 flex-shrink-0 rounded-full transition-all
+                  ${
+                    index === currentBanner
+                      ? 'w-6 bg-amber'
+                      : `
+                        w-1.5
+                        bg-ink/25
+                        hover:bg-ink/45
+                        dark:bg-white/35
+                        dark:hover:bg-white/60
+                      `
+                  }
+                `}
+              />
+            ))}
+          </div>
+
+          {/* Arrows */}
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={previousBanner}
+              aria-label={t('previousSlide')}
+              className="
+                flex h-9 w-9
+                items-center justify-center
+                rounded-full
+                border border-line
+                bg-white/80
+                text-ink
+                shadow-sm
+                backdrop-blur-md
+                transition
+
+                hover:bg-white
+
+                dark:border-white/20
+                dark:bg-black/30
+                dark:text-white
+                dark:hover:bg-white/20
+              "
+            >
+              ←
+            </button>
+
+            <button
+              type="button"
+              onClick={nextBanner}
+              aria-label={t('nextSlide')}
+              className="
+                flex h-9 w-9
+                items-center justify-center
+                rounded-full
+                border border-line
+                bg-white/80
+                text-ink
+                shadow-sm
+                backdrop-blur-md
+                transition
+
+                hover:bg-white
+
+                dark:border-white/20
+                dark:bg-black/30
+                dark:text-white
+                dark:hover:bg-white/20
+              "
+            >
+              →
+            </button>
           </div>
         </div>
       </div>
-    </aside>
-  );
+    </div>
+  </aside>
+);
 }
+
