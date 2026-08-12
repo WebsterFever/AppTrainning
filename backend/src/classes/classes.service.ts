@@ -46,7 +46,7 @@ export class ClassesService {
     private readonly classesRepo: Repository<TrainingClass>,
   ) {}
 
-  async findAll(status?: 'upcoming' | 'past'): Promise<ClassWithCount[]> {
+  async findAll(status?: 'upcoming' | 'past', language?: 'en' | 'fr' | 'ht'): Promise<ClassWithCount[]> {
     const qb = this.classesRepo
       .createQueryBuilder('class')
       .loadRelationCountAndMap('class.registrationCount', 'class.registrations')
@@ -54,6 +54,9 @@ export class ClassesService {
 
     if (status === 'upcoming') qb.where('class.isPast = false');
     if (status === 'past') qb.where('class.isPast = true');
+    // Strict match only — a class with no language set (legacy rows from
+    // before this field existed) does not leak into every section.
+    if (language) qb.andWhere('class.language = :language', { language });
 
     const rows = await qb.getMany();
     return rows.map((row) => this.toPublicShape(row));

@@ -271,10 +271,13 @@ async function handle<T>(res: Response): Promise<T> {
 }
 
 export const api = {
-  listClasses: (status?: 'upcoming' | 'past') =>
-    fetch(`${BASE_URL}/classes${status ? `?status=${status}` : ''}`).then((r) =>
-      handle<ClassItem[]>(r),
-    ),
+  listClasses: (status?: 'upcoming' | 'past', language?: 'en' | 'fr' | 'ht') => {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (language) params.set('language', language);
+    const query = params.toString();
+    return fetch(`${BASE_URL}/classes${query ? `?${query}` : ''}`).then((r) => handle<ClassItem[]>(r));
+  },
 
   getClass: (id: string) => fetch(`${BASE_URL}/classes/${id}`).then((r) => handle<ClassItem>(r)),
 

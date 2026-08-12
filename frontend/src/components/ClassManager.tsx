@@ -669,21 +669,24 @@ export default function ClassManager({
           </div>
           <div>
             <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-              Audience language <span className="normal-case text-ink/30">(optional)</span>
+              Audience language
             </label>
             <select
+              required
               value={form.language}
               onChange={(e) => setForm({ ...form, language: e.target.value as typeof form.language })}
               className="input"
             >
-              <option value="">Show to everyone</option>
-              <option value="en">English speakers only</option>
-              <option value="fr">French speakers only</option>
-              <option value="ht">Creole speakers only</option>
+              <option value="" disabled>
+                Choose a language…
+              </option>
+              <option value="en">English</option>
+              <option value="fr">French</option>
+              <option value="ht">Creole</option>
             </select>
             <p className="text-[11px] text-ink/40 mt-1">
-              Only shown to visitors browsing the site in this language. Leave as "Show to
-              everyone" to appear regardless of language.
+              This class only shows to visitors browsing the site in this language — never in
+              the other two.
             </p>
           </div>
 

@@ -235,15 +235,17 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // A class only shows for visitors browsing in its tagged audience
-  // language — classes left untagged by the admin (the common case for
-  // anything created before this feature) show for everyone.
+  // The backend already scopes these fetches to the current language (see
+  // fetchClasses below) — this is a strict client-side re-check on top of
+  // that, using the class's actual saved language field (never the
+  // translated UI text). No fallback for untagged classes: a class only
+  // ever shows in the language it was explicitly saved with.
   const visibleUpcoming = useMemo(
-    () => upcoming.filter((c) => !c.language || c.language === language),
+    () => upcoming.filter((c) => c.language === language),
     [upcoming, language],
   );
   const visiblePast = useMemo(
-    () => past.filter((c) => !c.language || c.language === language),
+    () => past.filter((c) => c.language === language),
     [past, language],
   );
 
@@ -267,8 +269,8 @@ export default function Home() {
       setError(null);
 
       const [upcomingClasses, pastClasses] = await Promise.all([
-        api.listClasses('upcoming'),
-        api.listClasses('past'),
+        api.listClasses('upcoming', language),
+        api.listClasses('past', language),
       ]);
 
       setUpcoming(upcomingClasses);
@@ -279,7 +281,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     fetchClasses();
@@ -303,8 +305,8 @@ export default function Home() {
       <ClassListSection
         title={t('upcoming')}
         classes={visibleUpcoming}
-        emptyMessage={upcoming.length > 0 ? t('noClassesForLanguage') : t('noUpcomingClasses')}
-        emptySubMessage={upcoming.length > 0 ? undefined : t('checkBackSoon')}
+        emptyMessage={t('noClassesForLanguage')}
+        emptySubMessage={t('checkBackSoon')}
       />
 
       {visiblePast.length > 0 && (

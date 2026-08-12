@@ -18,10 +18,15 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class ClassesController {
   constructor(private readonly classesService: ClassesService) {}
 
-  // Public: list classes, optionally filtered to upcoming or past.
+  // Public: list classes, optionally filtered to upcoming/past and/or to a
+  // single audience language (classes with no language — legacy rows only,
+  // since new ones require it — are excluded unless language is omitted).
   @Get()
-  findAll(@Query('status') status?: 'upcoming' | 'past') {
-    return this.classesService.findAll(status);
+  findAll(
+    @Query('status') status?: 'upcoming' | 'past',
+    @Query('language') language?: 'en' | 'fr' | 'ht',
+  ) {
+    return this.classesService.findAll(status, language);
   }
 
   // Public: single class detail (includes live registration count).

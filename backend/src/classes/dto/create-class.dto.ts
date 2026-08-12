@@ -73,9 +73,12 @@ export class CreateClassDto {
   @IsBoolean()
   isPaid?: boolean;
 
-  @IsOptional()
+  // Required — a class only shows to visitors browsing the site in this
+  // language (see ClassesService.findAll's language filter). Without a
+  // required, always-explicit value here, an admin could accidentally
+  // leave it unset and have the class leak into every language section.
   @IsIn(['en', 'fr', 'ht'])
-  language?: 'en' | 'fr' | 'ht' | null;
+  language: 'en' | 'fr' | 'ht';
 
   @IsOptional()
   @IsInt()

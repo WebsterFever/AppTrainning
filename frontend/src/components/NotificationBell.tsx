@@ -15,8 +15,16 @@ export default function NotificationBell() {
 
   const refresh = () => {
     api.listClasses('upcoming').then((list) => {
+      // Baseline against the FULL list regardless of language, so a class
+      // that already existed before a visitor's first-ever visit never
+      // retroactively becomes "new" just because they later switch to its
+      // language.
       seenClasses.ensureBaseline(list);
-      setNotifications(seenClasses.getNotifications(list));
+      // But only notify about classes tagged for the language currently
+      // selected (or untagged, which show to everyone) — a Creole class
+      // must not notify an English or French visitor, and vice versa.
+      const visible = list.filter((c) => !c.language || c.language === language);
+      setNotifications(seenClasses.getNotifications(visible));
     });
   };
 
@@ -30,7 +38,7 @@ export default function NotificationBell() {
       clearInterval(poll);
       unsubscribe();
     };
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     if (!open) return;

@@ -43,10 +43,16 @@ export const seenClasses = {
   ensureBaseline(classes: ClassItem[]) {
     if (localStorage.getItem(BASELINE_KEY)) return;
     const seenVideos = getStringSet(SEEN_VIDEOS_KEY);
+    const visited = getStringSet(VISITED_CLASSES_KEY);
     for (const item of classes) {
       for (const key of videoKeysFor(item)) seenVideos.add(compositeKey(item.id, key));
+      // Also mark pre-existing classes as "visited" — otherwise a class
+      // with no video yet (so it has no video keys to mark seen) would
+      // incorrectly keep showing as a "new class" notification forever.
+      visited.add(item.id);
     }
     saveStringSet(SEEN_VIDEOS_KEY, seenVideos);
+    saveStringSet(VISITED_CLASSES_KEY, visited);
     localStorage.setItem(BASELINE_KEY, '1');
   },
   // Call when a visitor opens a class's detail page — marks that class,
@@ -68,11 +74,16 @@ export const seenClasses = {
     const visited = getStringSet(VISITED_CLASSES_KEY);
     const notifications: ClassNotification[] = [];
     for (const item of classes) {
+      const isNewClass = !visited.has(item.id);
       const unseenVideoCount = videoKeysFor(item).filter(
         (key) => !seenVideos.has(compositeKey(item.id, key)),
       ).length;
-      if (unseenVideoCount === 0) continue;
-      notifications.push({ item, isNewClass: !visited.has(item.id), unseenVideoCount });
+      // A never-visited class always notifies, even with zero videos so
+      // far (e.g. the admin created it before adding a video). A
+      // previously-visited class only notifies again if it has unseen
+      // video content.
+      if (!isNewClass && unseenVideoCount === 0) continue;
+      notifications.push({ item, isNewClass, unseenVideoCount });
     }
     return notifications;
   },
