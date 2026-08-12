@@ -10,7 +10,7 @@ export default function Footer() {
           <img
             src="/logoLightMode.png"
             alt="Webster Technology School"
-            className="h-20 w-auto dark:hidden"
+            className="h-40 w-auto dark:hidden"
           />
           <img
             src="/logoDarkMode.png"
