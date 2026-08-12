@@ -7,8 +7,10 @@ import { useLanguage, localeFor } from '../lib/i18n';
 export default function NotificationBell() {
   const { language, t } = useLanguage();
   const locale = localeFor(language);
+
   const [notifications, setNotifications] = useState<ClassNotification[]>([]);
   const [open, setOpen] = useState(false);
+
   const rootRef = useRef<HTMLDivElement>(null);
 
   const refresh = () => {
@@ -20,8 +22,10 @@ export default function NotificationBell() {
 
   useEffect(() => {
     refresh();
+
     const poll = setInterval(refresh, 30000);
     const unsubscribe = seenClasses.onChange(refresh);
+
     return () => {
       clearInterval(poll);
       unsubscribe();
@@ -30,11 +34,21 @@ export default function NotificationBell() {
 
   useEffect(() => {
     if (!open) return;
+
     const onClickOutside = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      if (
+        rootRef.current &&
+        !rootRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
     };
+
     document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+    };
   }, [open]);
 
   return (
@@ -42,24 +56,102 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={t('notificationsAria', { count: notifications.length })}
-        className="relative w-9 h-9 flex items-center justify-center rounded-sm border border-line text-ink hover:bg-surface transition-colors"
+        aria-label={t('notificationsAria', {
+          count: notifications.length,
+        })}
+        className="
+          relative
+          w-9
+          h-9
+          flex
+          items-center
+          justify-center
+          rounded-sm
+          border
+          border-line
+          text-ink
+          hover:bg-surface
+          transition-colors
+        "
       >
         🔔
+
         {notifications.length > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-coral text-white text-[10px] font-semibold leading-none">
+          <span
+            className="
+              absolute
+              -top-1
+              -right-1
+              min-w-[18px]
+              h-[18px]
+              px-1
+              flex
+              items-center
+              justify-center
+              rounded-full
+              bg-coral
+              text-white
+              text-[10px]
+              font-semibold
+              leading-none
+            "
+          >
             {notifications.length}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-72 max-h-96 overflow-y-auto bg-chalk border border-line rounded-sm shadow-2xl z-50 animate-fade-in">
-          <p className="px-3 py-2 text-xs font-mono uppercase tracking-widest text-ink/40 border-b border-line">
+        <div
+          className="
+            fixed
+            left-3
+            right-3
+            top-20
+            z-[100]
+            max-h-[70vh]
+            overflow-y-auto
+            rounded-sm
+            border
+            border-line
+            bg-chalk
+            shadow-2xl
+            animate-fade-in
+
+            sm:left-4
+            sm:right-4
+
+            md:absolute
+            md:left-auto
+            md:right-0
+            md:top-full
+            md:mt-2
+            md:w-80
+            md:max-h-96
+
+            dark:bg-surface
+          "
+        >
+          <p
+            className="
+              px-3
+              py-2
+              text-xs
+              font-mono
+              uppercase
+              tracking-widest
+              text-ink/40
+              border-b
+              border-line
+            "
+          >
             {t('notifications')}
           </p>
+
           {notifications.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-ink/40 text-center">{t('noNewNotifications')}</p>
+            <p className="px-3 py-4 text-sm text-ink/40 text-center">
+              {t('noNewNotifications')}
+            </p>
           ) : (
             <div className="divide-y divide-line">
               {notifications.map(({ item, isNewClass }) => (
@@ -67,12 +159,24 @@ export default function NotificationBell() {
                   key={item.id}
                   to={`/classes/${item.id}`}
                   onClick={() => setOpen(false)}
-                  className="block px-3 py-2.5 hover:bg-surface transition-colors"
+                  className="
+                    block
+                    px-3
+                    py-3
+                    hover:bg-surface
+                    transition-colors
+                  "
                 >
                   <span className="badge bg-coral text-white text-[9px]">
-                    {isNewClass ? t('newClassBadge') : t('newVideoBadge')}
+                    {isNewClass
+                      ? t('newClassBadge')
+                      : t('newVideoBadge')}
                   </span>
-                  <p className="text-sm font-medium text-ink mt-1 line-clamp-1">{item.title}</p>
+
+                  <p className="text-sm font-medium text-ink mt-1 line-clamp-2">
+                    {item.title}
+                  </p>
+
                   <p className="text-xs text-ink/50 font-mono mt-0.5">
                     {item.classDate
                       ? new Date(item.classDate).toLocaleString(locale, {
