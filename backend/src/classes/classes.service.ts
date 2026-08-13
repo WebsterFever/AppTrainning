@@ -169,10 +169,18 @@ export class ClassesService {
     }));
   }
 
-  async videoExists(classId: string, videoRef: string): Promise<boolean> {
-    if (videoRef === 'main') return true;
+  // Comments are keyed by an opaque "ref" string within a class — either a
+  // video ('main', or an extraVideos id) or a curriculum module
+  // ('module-<moduleId>', for the per-module discussion at the bottom of
+  // each module's lesson content). This just validates the ref actually
+  // belongs to the class before letting a comment attach to it.
+  async commentTargetExists(classId: string, ref: string): Promise<boolean> {
+    if (ref === 'main') return true;
     const row = await this.classesRepo.findOne({ where: { id: classId } });
-    return !!row?.extraVideos?.some((v) => v.id === videoRef);
+    if (!row) return false;
+    if (row.extraVideos?.some((v) => v.id === ref)) return true;
+    const moduleId = ref.startsWith('module-') ? ref.slice('module-'.length) : null;
+    return !!moduleId && !!row.curriculumModules?.some((m) => m.id === moduleId);
   }
 
   async markPast(id: string, isPast: boolean): Promise<TrainingClass> {

@@ -18,7 +18,7 @@ export class CommentsService {
   ) {}
 
   async list(classId: string, videoRef: string) {
-    if (!(await this.classesService.videoExists(classId, videoRef))) {
+    if (!(await this.classesService.commentTargetExists(classId, videoRef))) {
       throw new NotFoundException('Video not found');
     }
 
@@ -39,7 +39,7 @@ export class CommentsService {
 
   async create(classId: string, videoRef: string, dto: CreateCommentDto) {
     const trainingClass = await this.classesService.getEntity(classId);
-    if (!(await this.classesService.videoExists(classId, videoRef))) {
+    if (!(await this.classesService.commentTargetExists(classId, videoRef))) {
       throw new NotFoundException('Video not found');
     }
 
@@ -98,10 +98,19 @@ export class CommentsService {
   }
 
   private videoLabel(
-    trainingClass: { videoUrl?: string | null; extraVideos?: { id: string; title: string }[] },
+    trainingClass: {
+      videoUrl?: string | null;
+      extraVideos?: { id: string; title: string }[];
+      curriculumModules?: { id: string; title?: string }[];
+    },
     videoRef: string,
   ): string {
     if (videoRef === 'main') return 'Main video';
+    if (videoRef.startsWith('module-')) {
+      const moduleId = videoRef.slice('module-'.length);
+      const mod = trainingClass.curriculumModules?.find((m) => m.id === moduleId);
+      return mod ? `Module: ${mod.title ?? 'Untitled'}` : 'Module';
+    }
     return trainingClass.extraVideos?.find((v) => v.id === videoRef)?.title ?? 'Video';
   }
 }

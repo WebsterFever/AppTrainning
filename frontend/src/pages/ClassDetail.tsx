@@ -357,7 +357,7 @@ export default function ClassDetail() {
   // with content simply renders as an inner accordion; without it, as the
   // same plain bullet the curriculum preview has always shown. Hidden
   // entirely when the admin hasn't added any modules.
-  const renderCurriculum = () => {
+  const renderCurriculum = (allowComments: boolean) => {
     if (!item.curriculumModules || item.curriculumModules.length === 0) return null;
     return (
       <div className="mt-6">
@@ -461,6 +461,7 @@ export default function ClassDetail() {
                         </p>
                       </div>
                     )}
+                    {allowComments && <VideoComments classId={item.id} videoRef={`module-${mod.id}`} />}
                   </div>
                 )}
               </div>
@@ -540,7 +541,7 @@ export default function ClassDetail() {
             <p className="text-ink/70 mt-4 leading-relaxed whitespace-pre-line">
               {item.description}
             </p>
-            {renderCurriculum()}
+            {renderCurriculum(false)}
           </div>
         )}
 
@@ -656,7 +657,7 @@ export default function ClassDetail() {
             <p className="text-ink/70 mt-4 leading-relaxed whitespace-pre-line">
               {item.description}
             </p>
-            {renderCurriculum()}
+            {renderCurriculum(true)}
 
             {item.extraVideos && item.extraVideos.length > 0 && (
               <div className="mt-6 space-y-2">
