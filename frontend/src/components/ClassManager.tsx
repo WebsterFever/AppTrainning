@@ -1,8 +1,41 @@
 import { useEffect, useState } from 'react';
-import { api, ClassItem, NewCurriculumModule, NewExtraVideo, RegistrationDetail } from '../lib/api';
+import { api, ClassItem, ContentBlockType, NewExtraVideo, RegistrationDetail } from '../lib/api';
 import { formatCountdown } from '../lib/countdown';
 import { useLanguage } from '../lib/i18n';
 import ConfirmDialog from './ConfirmDialog';
+
+const BLOCK_TYPES: { value: ContentBlockType; label: string }[] = [
+  { value: 'text', label: 'Text' },
+  { value: 'video', label: 'Video' },
+  { value: 'heading', label: 'Heading' },
+  { value: 'image', label: 'Image' },
+  { value: 'divider', label: 'Divider' },
+  { value: 'code', label: 'Code' },
+  { value: 'resource', label: 'Resource' },
+  { value: 'exercise', label: 'Exercise' },
+];
+
+interface ContentBlockForm {
+  id?: string;
+  type: ContentBlockType;
+  content: string;
+  label: string;
+}
+
+interface TopicForm {
+  id?: string;
+  title: string;
+  description: string;
+  contentBlocks: ContentBlockForm[];
+}
+
+interface ModuleForm {
+  id?: string;
+  title: string;
+  objective: string;
+  project: string;
+  topics: TopicForm[];
+}
 
 type ExtraVideoForm = Omit<NewExtraVideo, 'pdfUrl' | 'pdfName' | 'imageUrl' | 'imageName'> & {
   pdfUrl: string;
@@ -31,11 +64,15 @@ function emptyExtraVideo(): ExtraVideoForm {
   };
 }
 
-function emptyTopic(): NewCurriculumModule['topics'][number] {
-  return { title: '' };
+function emptyBlock(): ContentBlockForm {
+  return { type: 'text', content: '', label: '' };
 }
 
-function emptyModule(): NewCurriculumModule {
+function emptyTopic(): TopicForm {
+  return { title: '', description: '', contentBlocks: [] };
+}
+
+function emptyModule(): ModuleForm {
   return { title: '', objective: '', project: '', topics: [emptyTopic()] };
 }
 
@@ -55,7 +92,7 @@ function emptyForm() {
     videoPdfRemoved: false,
     videoImageRemoved: false,
     extraVideos: [emptyExtraVideo()] as ExtraVideoForm[],
-    curriculumModules: [] as NewCurriculumModule[],
+    curriculumModules: [] as ModuleForm[],
     classDate: '',
     zoomLink: '',
     price: '',
@@ -173,10 +210,22 @@ export default function ClassManager({
       curriculumModules: c.curriculumModules?.length
         ? c.curriculumModules.map((m) => ({
             id: m.id,
-            title: m.title,
+            title: m.title ?? '',
             objective: m.objective ?? '',
             project: m.project ?? '',
-            topics: m.topics.length ? m.topics.map((t) => ({ id: t.id, title: t.title })) : [emptyTopic()],
+            topics: m.topics.length
+              ? m.topics.map((t) => ({
+                  id: t.id,
+                  title: t.title ?? '',
+                  description: t.description ?? '',
+                  contentBlocks: (t.contentBlocks ?? []).map((b) => ({
+                    id: b.id,
+                    type: b.type,
+                    content: b.content ?? '',
+                    label: b.label ?? '',
+                  })),
+                }))
+              : [emptyTopic()],
           }))
         : [],
       classDate: toDatetimeLocal(c.classDate),
@@ -235,14 +284,28 @@ export default function ClassManager({
       const curriculumModules = form.curriculumModules
         .map((m) => ({
           id: m.id,
-          title: m.title.trim(),
-          objective: (m.objective ?? '').trim() || undefined,
-          project: (m.project ?? '').trim() || undefined,
+          title: m.title.trim() || undefined,
+          objective: m.objective.trim() || undefined,
+          project: m.project.trim() || undefined,
           topics: m.topics
-            .map((t) => ({ id: t.id, title: t.title.trim() }))
-            .filter((t) => t.title),
+            .map((t) => ({
+              id: t.id,
+              title: t.title.trim() || undefined,
+              description: t.description.trim() || undefined,
+              contentBlocks: t.contentBlocks
+                .map((b) => ({
+                  id: b.id,
+                  type: b.type,
+                  content: b.content.trim() || undefined,
+                  label: b.label.trim() || undefined,
+                }))
+                // A divider needs no content to be meaningful; every other
+                // block type does.
+                .filter((b) => b.type === 'divider' || b.content),
+            }))
+            .filter((t) => t.title || t.description || t.contentBlocks.length),
         }))
-        .filter((m) => m.title);
+        .filter((m) => m.title || m.objective || m.project || m.topics.length);
 
       const payload = {
         title: form.title,
@@ -680,11 +743,13 @@ export default function ClassManager({
 
           <div>
             <label className="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1">
-              Course curriculum <span className="normal-case text-ink/30">(optional)</span>
+              Course content <span className="normal-case text-ink/30">(optional)</span>
             </label>
             <p className="text-[11px] text-ink/40 mb-2">
-              Shown publicly on the class page before purchase — helps visitors see exactly
-              what they'll learn. Leave empty for a class with no curriculum breakdown.
+              Organize the course into modules → topics → lesson content. Module/topic titles
+              and descriptions are shown publicly as a curriculum preview. The lesson content
+              inside each topic (text, video, etc.) stays protected until a student registers
+              or unlocks the class.
             </p>
             <div className="space-y-3">
               {form.curriculumModules.map((mod, mi) => (
@@ -747,7 +812,7 @@ export default function ClassManager({
                   />
                   <textarea
                     placeholder="Objective (optional)"
-                    value={mod.objective ?? ''}
+                    value={mod.objective}
                     onChange={(e) => {
                       const next = [...form.curriculumModules];
                       next[mi] = { ...next[mi], objective: e.target.value };
@@ -755,45 +820,301 @@ export default function ClassManager({
                     }}
                     className="input h-16 text-sm"
                   />
-                  <div>
-                    <p className="text-[11px] font-mono uppercase tracking-wide text-ink/40 mb-1">
+
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-mono uppercase tracking-wide text-ink/40">
                       Topics
                     </p>
-                    <div className="space-y-1.5">
-                      {mod.topics.map((topic, ti) => (
-                        <div key={ti} className="flex gap-2 items-center">
-                          <input
-                            placeholder="e.g. Semantic HTML"
-                            value={topic.title}
-                            onChange={(e) => {
+                    {mod.topics.map((topic, ti) => (
+                      <div key={ti} className="border border-line/70 rounded-sm p-2.5 space-y-2 bg-chalk">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-mono text-ink/40">Topic {ti + 1}</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              disabled={ti === 0}
+                              onClick={() => {
+                                const next = [...form.curriculumModules];
+                                const topics = [...next[mi].topics];
+                                [topics[ti - 1], topics[ti]] = [topics[ti], topics[ti - 1]];
+                                next[mi] = { ...next[mi], topics };
+                                setForm({ ...form, curriculumModules: next });
+                              }}
+                              aria-label="Move topic up"
+                              className="btn-outline text-xs px-2 py-0.5 disabled:opacity-30"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              disabled={ti === mod.topics.length - 1}
+                              onClick={() => {
+                                const next = [...form.curriculumModules];
+                                const topics = [...next[mi].topics];
+                                [topics[ti + 1], topics[ti]] = [topics[ti], topics[ti + 1]];
+                                next[mi] = { ...next[mi], topics };
+                                setForm({ ...form, curriculumModules: next });
+                              }}
+                              aria-label="Move topic down"
+                              className="btn-outline text-xs px-2 py-0.5 disabled:opacity-30"
+                            >
+                              ↓
+                            </button>
+                            {mod.topics.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = [...form.curriculumModules];
+                                  next[mi] = {
+                                    ...next[mi],
+                                    topics: next[mi].topics.filter((_, j) => j !== ti),
+                                  };
+                                  setForm({ ...form, curriculumModules: next });
+                                }}
+                                aria-label="Remove this topic"
+                                className="btn-danger-outline text-xs px-2 py-0.5"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <input
+                          placeholder="Topic title (e.g. Introduction to HTML)"
+                          value={topic.title}
+                          onChange={(e) => {
+                            const next = [...form.curriculumModules];
+                            const topics = [...next[mi].topics];
+                            topics[ti] = { ...topics[ti], title: e.target.value };
+                            next[mi] = { ...next[mi], topics };
+                            setForm({ ...form, curriculumModules: next });
+                          }}
+                          className="input text-sm"
+                        />
+                        <textarea
+                          placeholder="Topic description (optional)"
+                          value={topic.description}
+                          onChange={(e) => {
+                            const next = [...form.curriculumModules];
+                            const topics = [...next[mi].topics];
+                            topics[ti] = { ...topics[ti], description: e.target.value };
+                            next[mi] = { ...next[mi], topics };
+                            setForm({ ...form, curriculumModules: next });
+                          }}
+                          className="input h-12 text-sm"
+                        />
+
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-mono uppercase tracking-wide text-ink/40">
+                            Lesson content — appears in this exact order
+                          </p>
+                          {topic.contentBlocks.map((block, bi) => (
+                            <div key={bi} className="border border-line rounded-sm p-2 bg-surface space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <select
+                                  value={block.type}
+                                  onChange={(e) => {
+                                    const next = [...form.curriculumModules];
+                                    const topics = [...next[mi].topics];
+                                    const blocks = [...topics[ti].contentBlocks];
+                                    blocks[bi] = { ...blocks[bi], type: e.target.value as ContentBlockType };
+                                    topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                    next[mi] = { ...next[mi], topics };
+                                    setForm({ ...form, curriculumModules: next });
+                                  }}
+                                  className="input text-xs py-1 flex-1"
+                                >
+                                  {BLOCK_TYPES.map((bt) => (
+                                    <option key={bt.value} value={bt.value}>
+                                      {bt.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  disabled={bi === 0}
+                                  onClick={() => {
+                                    const next = [...form.curriculumModules];
+                                    const topics = [...next[mi].topics];
+                                    const blocks = [...topics[ti].contentBlocks];
+                                    [blocks[bi - 1], blocks[bi]] = [blocks[bi], blocks[bi - 1]];
+                                    topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                    next[mi] = { ...next[mi], topics };
+                                    setForm({ ...form, curriculumModules: next });
+                                  }}
+                                  aria-label="Move content block up"
+                                  className="btn-outline text-xs px-2 py-0.5 disabled:opacity-30 flex-shrink-0"
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={bi === topic.contentBlocks.length - 1}
+                                  onClick={() => {
+                                    const next = [...form.curriculumModules];
+                                    const topics = [...next[mi].topics];
+                                    const blocks = [...topics[ti].contentBlocks];
+                                    [blocks[bi + 1], blocks[bi]] = [blocks[bi], blocks[bi + 1]];
+                                    topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                    next[mi] = { ...next[mi], topics };
+                                    setForm({ ...form, curriculumModules: next });
+                                  }}
+                                  aria-label="Move content block down"
+                                  className="btn-outline text-xs px-2 py-0.5 disabled:opacity-30 flex-shrink-0"
+                                >
+                                  ↓
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...form.curriculumModules];
+                                    const topics = [...next[mi].topics];
+                                    topics[ti] = {
+                                      ...topics[ti],
+                                      contentBlocks: topics[ti].contentBlocks.filter((_, j) => j !== bi),
+                                    };
+                                    next[mi] = { ...next[mi], topics };
+                                    setForm({ ...form, curriculumModules: next });
+                                  }}
+                                  aria-label="Remove this content block"
+                                  className="btn-danger-outline text-xs px-2 py-0.5 flex-shrink-0"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+
+                              {block.type === 'divider' ? (
+                                <p className="text-[11px] text-ink/40 italic">— visual divider, no content —</p>
+                              ) : block.type === 'text' || block.type === 'exercise' ? (
+                                <textarea
+                                  placeholder={
+                                    block.type === 'exercise'
+                                      ? 'Exercise instructions'
+                                      : 'Study notes / paragraph text'
+                                  }
+                                  value={block.content}
+                                  onChange={(e) => {
+                                    const next = [...form.curriculumModules];
+                                    const topics = [...next[mi].topics];
+                                    const blocks = [...topics[ti].contentBlocks];
+                                    blocks[bi] = { ...blocks[bi], content: e.target.value };
+                                    topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                    next[mi] = { ...next[mi], topics };
+                                    setForm({ ...form, curriculumModules: next });
+                                  }}
+                                  className="input h-16 text-sm"
+                                />
+                              ) : block.type === 'heading' ? (
+                                <input
+                                  placeholder="Heading text"
+                                  value={block.content}
+                                  onChange={(e) => {
+                                    const next = [...form.curriculumModules];
+                                    const topics = [...next[mi].topics];
+                                    const blocks = [...topics[ti].contentBlocks];
+                                    blocks[bi] = { ...blocks[bi], content: e.target.value };
+                                    topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                    next[mi] = { ...next[mi], topics };
+                                    setForm({ ...form, curriculumModules: next });
+                                  }}
+                                  className="input text-sm"
+                                />
+                              ) : block.type === 'code' ? (
+                                <>
+                                  <textarea
+                                    placeholder="Code"
+                                    value={block.content}
+                                    onChange={(e) => {
+                                      const next = [...form.curriculumModules];
+                                      const topics = [...next[mi].topics];
+                                      const blocks = [...topics[ti].contentBlocks];
+                                      blocks[bi] = { ...blocks[bi], content: e.target.value };
+                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                      next[mi] = { ...next[mi], topics };
+                                      setForm({ ...form, curriculumModules: next });
+                                    }}
+                                    className="input h-16 text-sm font-mono"
+                                  />
+                                  <input
+                                    placeholder="Language (optional, e.g. javascript)"
+                                    value={block.label}
+                                    onChange={(e) => {
+                                      const next = [...form.curriculumModules];
+                                      const topics = [...next[mi].topics];
+                                      const blocks = [...topics[ti].contentBlocks];
+                                      blocks[bi] = { ...blocks[bi], label: e.target.value };
+                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                      next[mi] = { ...next[mi], topics };
+                                      setForm({ ...form, curriculumModules: next });
+                                    }}
+                                    className="input text-xs py-1"
+                                  />
+                                </>
+                              ) : (
+                                <>
+                                  <input
+                                    placeholder={
+                                      block.type === 'video'
+                                        ? 'YouTube, Vimeo, or direct .mp4 link'
+                                        : block.type === 'image'
+                                          ? 'Image URL'
+                                          : 'Resource/download URL'
+                                    }
+                                    value={block.content}
+                                    onChange={(e) => {
+                                      const next = [...form.curriculumModules];
+                                      const topics = [...next[mi].topics];
+                                      const blocks = [...topics[ti].contentBlocks];
+                                      blocks[bi] = { ...blocks[bi], content: e.target.value };
+                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                      next[mi] = { ...next[mi], topics };
+                                      setForm({ ...form, curriculumModules: next });
+                                    }}
+                                    className="input text-sm"
+                                  />
+                                  <input
+                                    placeholder={
+                                      block.type === 'video'
+                                        ? 'Video title/caption (optional)'
+                                        : block.type === 'image'
+                                          ? 'Caption/alt text (optional)'
+                                          : 'Label (optional, e.g. Exercise starter files)'
+                                    }
+                                    value={block.label}
+                                    onChange={(e) => {
+                                      const next = [...form.curriculumModules];
+                                      const topics = [...next[mi].topics];
+                                      const blocks = [...topics[ti].contentBlocks];
+                                      blocks[bi] = { ...blocks[bi], label: e.target.value };
+                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                      next[mi] = { ...next[mi], topics };
+                                      setForm({ ...form, curriculumModules: next });
+                                    }}
+                                    className="input text-xs py-1"
+                                  />
+                                </>
+                              )}
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
                               const next = [...form.curriculumModules];
                               const topics = [...next[mi].topics];
-                              topics[ti] = { ...topics[ti], title: e.target.value };
+                              topics[ti] = {
+                                ...topics[ti],
+                                contentBlocks: [...topics[ti].contentBlocks, emptyBlock()],
+                              };
                               next[mi] = { ...next[mi], topics };
                               setForm({ ...form, curriculumModules: next });
                             }}
-                            className="input flex-1 text-sm"
-                          />
-                          {mod.topics.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = [...form.curriculumModules];
-                                next[mi] = {
-                                  ...next[mi],
-                                  topics: next[mi].topics.filter((_, j) => j !== ti),
-                                };
-                                setForm({ ...form, curriculumModules: next });
-                              }}
-                              aria-label="Remove this topic"
-                              className="btn-outline text-xs px-2.5 flex-shrink-0"
-                            >
-                              ✕
-                            </button>
-                          )}
+                            className="text-xs font-semibold text-amber hover:text-coral"
+                          >
+                            + Add content
+                          </button>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                     <button
                       type="button"
                       onClick={() => {
@@ -801,14 +1122,15 @@ export default function ClassManager({
                         next[mi] = { ...next[mi], topics: [...next[mi].topics, emptyTopic()] };
                         setForm({ ...form, curriculumModules: next });
                       }}
-                      className="text-xs font-semibold text-amber hover:text-coral mt-1.5"
+                      className="text-xs font-semibold text-amber hover:text-coral"
                     >
                       + Add topic
                     </button>
                   </div>
+
                   <textarea
                     placeholder="Project / practical exercise (optional)"
-                    value={mod.project ?? ''}
+                    value={mod.project}
                     onChange={(e) => {
                       const next = [...form.curriculumModules];
                       next[mi] = { ...next[mi], project: e.target.value };

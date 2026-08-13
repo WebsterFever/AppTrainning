@@ -40,10 +40,15 @@ export interface ClassWithCount {
   registeredNames?: string[];
   curriculumModules?: {
     id: string;
-    title: string;
+    title?: string;
     objective?: string;
     project?: string;
-    topics: { id: string; title: string }[];
+    topics: {
+      id: string;
+      title?: string;
+      description?: string;
+      contentBlocks?: { id: string; type?: string; content?: string; label?: string }[];
+    }[];
   }[];
 }
 
@@ -147,10 +152,20 @@ export class ClassesService {
   private withModuleIds(modules?: CurriculumModuleDto[]): TrainingClass['curriculumModules'] {
     return modules?.map((m) => ({
       id: m.id ?? randomUUID(),
-      title: m.title,
+      title: m.title || undefined,
       objective: m.objective || undefined,
       project: m.project || undefined,
-      topics: m.topics.map((t) => ({ id: t.id ?? randomUUID(), title: t.title })),
+      topics: (m.topics ?? []).map((t) => ({
+        id: t.id ?? randomUUID(),
+        title: t.title || undefined,
+        description: t.description || undefined,
+        contentBlocks: t.contentBlocks?.map((b) => ({
+          id: b.id ?? randomUUID(),
+          type: b.type || 'text',
+          content: b.content || undefined,
+          label: b.label || undefined,
+        })),
+      })),
     }));
   }
 
@@ -191,6 +206,19 @@ export class ClassesService {
     revealZoomLink = false,
   ): ClassWithCount {
     const names = includeNames ? (row.registrations ?? []).map((r) => r.name) : undefined;
+    // Same rule as the Zoom link below: private lesson content (contentBlocks)
+    // is only included once a visitor has actually registered/unlocked the
+    // class (delivered via RegistrationsService.register instead), or for
+    // admin views, or once a class is past (archival, no longer gated). The
+    // module/topic titles + descriptions themselves stay public always —
+    // that's the marketing curriculum.
+    const revealPrivateContent = row.isPast || revealZoomLink;
+    const curriculumModules = revealPrivateContent
+      ? row.curriculumModules
+      : row.curriculumModules?.map((m) => ({
+          ...m,
+          topics: m.topics.map((t) => ({ id: t.id, title: t.title, description: t.description })),
+        }));
     return {
       id: row.id,
       title: row.title,
@@ -203,8 +231,7 @@ export class ClassesService {
       videoResourceImageUrl: row.videoResourceImageUrl,
       videoResourceImageName: row.videoResourceImageName,
       extraVideos: row.extraVideos,
-      // Marketing curriculum — always public, even pre-purchase/unlock.
-      curriculumModules: row.curriculumModules,
+      curriculumModules,
       classDate: row.classDate,
       // Hide link publicly pre-registration, unless explicitly revealed (admin views).
       zoomLink: row.isPast || revealZoomLink ? row.zoomLink : undefined,

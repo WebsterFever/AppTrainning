@@ -173,6 +173,8 @@ const dict = {
   moduleObjectiveLabel: { en: 'Objective', fr: 'Objectif', ht: 'Objektif' },
   moduleTopicsLabel: { en: 'Topics', fr: 'Sujets', ht: 'Sijè' },
   moduleProjectLabel: { en: 'Project', fr: 'Projet', ht: 'Pwojè' },
+  exerciseLabel: { en: 'Exercise', fr: 'Exercice', ht: 'Egzèsis' },
+  downloadResource: { en: 'Download', fr: 'Télécharger', ht: 'Telechaje' },
   unplayableVideo: {
     en: (v: Vars) =>
       `This link couldn't be recognized as a playable video (${v.url}). It needs to be a specific YouTube/Vimeo video link, or a direct .mp4 file — not just the site's homepage.`,

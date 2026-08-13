@@ -1,15 +1,17 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CurriculumTopicDto } from './curriculum-topic.dto';
 
+// All fields optional — admins can save a module with just a title, or a
+// fully-fleshed-out one with objective/project/topics all filled in.
 export class CurriculumModuleDto {
   @IsOptional()
   @IsString()
   id?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  title: string;
+  title?: string;
 
   @IsOptional()
   @IsString()
@@ -19,8 +21,9 @@ export class CurriculumModuleDto {
   @IsString()
   project?: string;
 
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CurriculumTopicDto)
-  topics: CurriculumTopicDto[];
+  topics?: CurriculumTopicDto[];
 }

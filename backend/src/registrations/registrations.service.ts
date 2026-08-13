@@ -49,6 +49,11 @@ export class RegistrationsService {
       success: true,
       registrationCount: count,
       zoomLink: trainingClass.zoomLink,
+      // Full lesson content (with contentBlocks), unredacted — mirrors
+      // zoomLink above. The public GET /classes/:id only ever returns the
+      // marketing preview (titles/descriptions, no contentBlocks) until
+      // this proves the visitor actually has access.
+      curriculumModules: trainingClass.curriculumModules,
       alreadyRegistered: !!existing,
     };
   }

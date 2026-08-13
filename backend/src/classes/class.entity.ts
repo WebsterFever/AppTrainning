@@ -54,17 +54,34 @@ export class TrainingClass {
     imageName?: string;
   }[];
 
-  // Optional marketing curriculum, shown publicly before purchase/unlock —
-  // array order is display/module order (M1, M2, …), same convention as
-  // extraVideos above. Nullable/absent means "no curriculum" and the whole
-  // section is hidden on the public page.
+  // Optional course curriculum, shown publicly (as a marketing preview)
+  // before purchase/unlock — array order is display/module order (M1, M2,
+  // …), same convention as extraVideos above. Nullable/absent means "no
+  // curriculum" and the whole section is hidden on the public page.
+  //
+  // Each topic's `contentBlocks` is the actual lesson (private content) —
+  // an ordered sequence of text/video/image/etc. blocks. It's gated the
+  // same way zoomLink is: stripped from public reads until the visitor
+  // registers/unlocks the class (see ClassesService.toPublicShape and
+  // RegistrationsService.register). Title/description stay public — that's
+  // the marketing curriculum.
   @Column('simple-json', { name: 'curriculum_modules', nullable: true })
   curriculumModules?: {
     id: string;
-    title: string;
+    title?: string;
     objective?: string;
     project?: string;
-    topics: { id: string; title: string }[];
+    topics: {
+      id: string;
+      title?: string;
+      description?: string;
+      contentBlocks?: {
+        id: string;
+        type?: string;
+        content?: string;
+        label?: string;
+      }[];
+    }[];
   }[];
 
   // Optional: paid classes may not have a fixed live session (e.g. self-paced content).

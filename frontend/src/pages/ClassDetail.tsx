@@ -29,6 +29,7 @@ export default function ClassDetail() {
   const [copied, setCopied] = useState(false);
   const [openVideos, setOpenVideos] = useState<Set<number>>(new Set());
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
+  const [openTopics, setOpenTopics] = useState<Set<string>>(new Set());
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
@@ -44,6 +45,15 @@ export default function ClassDetail() {
 
   const toggleModule = (id: string) => {
     setOpenModules((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleTopic = (id: string) => {
+    setOpenTopics((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -87,6 +97,10 @@ export default function ClassDetail() {
                     registeredNames: res.alreadyRegistered
                       ? current.registeredNames
                       : [...(current.registeredNames ?? []), saved.name],
+                    // The public fetch only ever returns the curriculum
+                    // preview (no lesson content) — this response is the
+                    // one place the full, unlocked version is delivered.
+                    curriculumModules: res.curriculumModules ?? current.curriculumModules,
                   }
                 : current,
             );
@@ -157,6 +171,7 @@ export default function ClassDetail() {
               registeredNames: res.alreadyRegistered
                 ? current.registeredNames
                 : [...(current.registeredNames ?? []), name],
+              curriculumModules: res.curriculumModules ?? current.curriculumModules,
             }
           : current,
       );
@@ -236,8 +251,111 @@ export default function ClassDetail() {
     );
   };
 
-  // Marketing curriculum — always visible, even pre-purchase/unlock (see
-  // ClassesService.toPublicShape, which never gates this field). Hidden
+  // A block's contentBlocks are only ever present once access is proven
+  // (see ClassesService.toPublicShape / RegistrationsService.register) — so
+  // this simply renders whatever the API actually sent.
+  const renderContentBlock = (
+    block: { id: string; type: string; content?: string; label?: string },
+    key: string,
+  ) => {
+    switch (block.type) {
+      case 'heading':
+        return (
+          <h4 key={key} className="font-display text-base text-ink">
+            {block.content}
+          </h4>
+        );
+      case 'divider':
+        return <hr key={key} className="border-line" />;
+      case 'image':
+        return (
+          <figure key={key}>
+            <img
+              src={block.content}
+              alt={block.label || ''}
+              className="w-full rounded-sm border border-line"
+            />
+            {block.label && <figcaption className="text-xs text-ink/50 mt-1">{block.label}</figcaption>}
+          </figure>
+        );
+      case 'video': {
+        const embed = block.content ? getVideoEmbed(block.content) : null;
+        return (
+          <div key={key}>
+            {block.label && <p className="text-sm font-medium text-ink mb-1.5">{block.label}</p>}
+            {embed ? (
+              embed.kind === 'file' ? (
+                <video
+                  src={embed.src}
+                  controls
+                  className="w-full h-56 sm:h-64 object-cover rounded-sm bg-black"
+                />
+              ) : (
+                <div className="w-full aspect-video rounded-sm overflow-hidden bg-black">
+                  <iframe
+                    src={embed.src}
+                    title={block.label || 'Lesson video'}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              )
+            ) : (
+              <p className="text-sm text-coral">{t('unplayableVideo', { url: block.content ?? '' })}</p>
+            )}
+          </div>
+        );
+      }
+      case 'code':
+        return (
+          <div key={key}>
+            {block.label && (
+              <p className="text-[11px] font-mono text-ink/40 uppercase mb-1">{block.label}</p>
+            )}
+            <pre className="bg-midnight text-chalk rounded-sm p-3 overflow-x-auto text-xs font-mono whitespace-pre">
+              {block.content}
+            </pre>
+          </div>
+        );
+      case 'resource':
+        return (
+          <a
+            key={key}
+            href={block.content}
+            target="_blank"
+            rel="noopener noreferrer"
+            download
+            className="btn-outline text-xs px-3 py-1.5 inline-block"
+          >
+            {block.label || t('downloadResource')}
+          </a>
+        );
+      case 'exercise':
+        return (
+          <div key={key} className="bg-chalk border border-amber/40 rounded-sm p-3">
+            <p className="text-[11px] font-mono uppercase tracking-wide text-amber mb-1">
+              {t('exerciseLabel')}
+            </p>
+            <p className="text-sm text-ink/80 whitespace-pre-line">{block.content}</p>
+          </div>
+        );
+      case 'text':
+      default:
+        return (
+          <p key={key} className="text-sm text-ink/80 leading-relaxed whitespace-pre-line">
+            {block.content}
+          </p>
+        );
+    }
+  };
+
+  // Marketing curriculum — module/topic titles + descriptions are always
+  // visible, even pre-purchase/unlock (see ClassesService.toPublicShape,
+  // which never gates those). The actual lesson content inside a topic
+  // (contentBlocks) is only present once access is proven, so a topic
+  // with content simply renders as an inner accordion; without it, as the
+  // same plain bullet the curriculum preview has always shown. Hidden
   // entirely when the admin hasn't added any modules.
   const renderCurriculum = () => {
     if (!item.curriculumModules || item.curriculumModules.length === 0) return null;
@@ -282,16 +400,57 @@ export default function ClassDetail() {
                     {mod.topics.length > 0 && (
                       <div>
                         <p className="text-xs font-semibold text-ink/60">{t('moduleTopicsLabel')}</p>
-                        <ul className="mt-1 space-y-1">
-                          {mod.topics.map((topic) => (
-                            <li key={topic.id} className="text-sm text-ink/80 flex items-start gap-2">
-                              <span className="text-amber mt-1 flex-shrink-0" aria-hidden="true">
-                                •
-                              </span>
-                              <span>{topic.title}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        <div className="mt-1 space-y-1.5">
+                          {mod.topics.map((topic) => {
+                            const hasContent = (topic.contentBlocks?.length ?? 0) > 0;
+                            if (!hasContent) {
+                              return (
+                                <div key={topic.id} className="text-sm text-ink/80 flex items-start gap-2">
+                                  <span className="text-amber mt-1 flex-shrink-0" aria-hidden="true">
+                                    •
+                                  </span>
+                                  <div>
+                                    <span>{topic.title}</span>
+                                    {topic.description && (
+                                      <p className="text-xs text-ink/60 mt-0.5">{topic.description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+                            const topicOpen = openTopics.has(topic.id);
+                            return (
+                              <div
+                                key={topic.id}
+                                className="border border-line/70 rounded-sm overflow-hidden bg-chalk"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => toggleTopic(topic.id)}
+                                  className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
+                                >
+                                  <span className="text-sm text-ink">{topic.title}</span>
+                                  <span
+                                    className={`text-ink/50 text-xs transition-transform flex-shrink-0 ${topicOpen ? 'rotate-180' : ''}`}
+                                    aria-hidden="true"
+                                  >
+                                    ▾
+                                  </span>
+                                </button>
+                                {topicOpen && (
+                                  <div className="border-t border-line p-3 space-y-3">
+                                    {topic.description && (
+                                      <p className="text-xs text-ink/60">{topic.description}</p>
+                                    )}
+                                    {topic.contentBlocks!.map((block, bi) =>
+                                      renderContentBlock(block, `${topic.id}-${bi}`),
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                     {mod.project && (

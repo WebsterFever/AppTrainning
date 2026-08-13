@@ -23,14 +23,42 @@ export interface NewExtraVideo {
   imageName?: string | null;
 }
 
+export type ContentBlockType =
+  | 'text'
+  | 'video'
+  | 'heading'
+  | 'image'
+  | 'divider'
+  | 'code'
+  | 'resource'
+  | 'exercise';
+
+export interface ContentBlock {
+  id: string;
+  type: ContentBlockType;
+  content?: string;
+  label?: string;
+}
+
+export interface NewContentBlock {
+  id?: string;
+  type: ContentBlockType;
+  content?: string;
+  label?: string;
+}
+
 export interface CurriculumTopic {
   id: string;
-  title: string;
+  title?: string;
+  description?: string;
+  // Absent/undefined pre-registration on paid & unregistered-free classes —
+  // the backend strips it until access is proven (see api.register below).
+  contentBlocks?: ContentBlock[];
 }
 
 export interface CurriculumModule {
   id: string;
-  title: string;
+  title?: string;
   objective?: string;
   project?: string;
   topics: CurriculumTopic[];
@@ -38,15 +66,17 @@ export interface CurriculumModule {
 
 export interface NewCurriculumTopic {
   id?: string;
-  title: string;
+  title?: string;
+  description?: string;
+  contentBlocks?: NewContentBlock[];
 }
 
 export interface NewCurriculumModule {
   id?: string;
-  title: string;
+  title?: string;
   objective?: string;
   project?: string;
-  topics: NewCurriculumTopic[];
+  topics?: NewCurriculumTopic[];
 }
 
 export interface ClassFormData {
@@ -344,6 +374,9 @@ export const api = {
         success: boolean;
         registrationCount: number;
         zoomLink?: string;
+        // Full lesson content (with contentBlocks) — only present here, once
+        // access is proven. GET /classes/:id never includes contentBlocks.
+        curriculumModules?: CurriculumModule[];
         alreadyRegistered: boolean;
       }>(r),
     ),
