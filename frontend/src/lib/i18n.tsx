@@ -208,14 +208,12 @@ const dict = {
     fr: "Retour de votre instructeur",
     ht: 'Kòmantè enstriktè ou',
   },
-  unplayableVideo: {
-    en: (v: Vars) =>
-      `This link couldn't be recognized as a playable video (${v.url}). It needs to be a specific YouTube/Vimeo video link, or a direct .mp4 file — not just the site's homepage.`,
-    fr: (v: Vars) =>
-      `Ce lien n'a pas pu être reconnu comme une vidéo lisible (${v.url}). Il doit s'agir d'un lien précis vers une vidéo YouTube/Vimeo, ou d'un fichier .mp4 direct — pas seulement la page d'accueil du site.`,
-    ht: (v: Vars) =>
-      `Lyen sa a pa t' rekonèt kòm yon videyo ki ka jwe (${v.url}). Li dwe yon lyen espesifik YouTube/Vimeo, oswa yon fichye .mp4 dirèk — pa jis paj dakèy sit la.`,
+  videoUnavailable: {
+    en: 'This video is currently unavailable.',
+    fr: "Cette vidéo n'est actuellement pas disponible.",
+    ht: 'Videyo sa a pa disponib kounye a.',
   },
+  watchOriginalLink: { en: 'Watch original link', fr: 'Voir le lien original', ht: 'Gade lyen orijinal la' },
   yourZoomLink: { en: 'Your Zoom link', fr: 'Votre lien Zoom', ht: 'Lyen Zoom ou' },
   zoomLinkLabel: { en: 'Zoom link:', fr: 'Lien Zoom :', ht: 'Lyen Zoom:' },
   peopleRegistered: {

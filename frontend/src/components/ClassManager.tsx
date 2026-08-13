@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, ClassItem, ContentBlockType, NewExtraVideo, RegistrationDetail } from '../lib/api';
 import { formatCountdown } from '../lib/countdown';
 import { useLanguage } from '../lib/i18n';
+import { getVideoEmbed } from '../lib/video';
 import ConfirmDialog from './ConfirmDialog';
 
 const BLOCK_TYPES: { value: ContentBlockType; label: string }[] = [
@@ -1072,6 +1073,30 @@ export default function ClassManager({
                                     }}
                                     className="input text-sm"
                                   />
+                                  {block.type === 'video' &&
+                                    block.content.trim() &&
+                                    (() => {
+                                      const preview = getVideoEmbed(block.content.trim());
+                                      return preview ? (
+                                        <div className="space-y-1.5">
+                                          <p className="text-[11px] text-sage">✓ Valid video link</p>
+                                          {preview.kind !== 'file' && (
+                                            <div className="w-full aspect-video rounded-sm overflow-hidden bg-black">
+                                              <iframe
+                                                src={preview.src}
+                                                title="Video preview"
+                                                className="w-full h-full"
+                                                allowFullScreen
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <p className="text-[11px] text-coral">
+                                          Please enter a valid YouTube, Vimeo, or direct video URL.
+                                        </p>
+                                      );
+                                    })()}
                                   <input
                                     placeholder={
                                       block.type === 'video'

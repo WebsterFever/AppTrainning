@@ -13,6 +13,13 @@ function formatPrice(cents: number, locale: string): string {
   return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(cents / 100);
 }
 
+// Guards the "watch original link" fallback — an unparseable video URL
+// might not even be a URL at all (e.g. pasted into the wrong field), so
+// only link out when it's actually http(s).
+function isHttpUrl(value?: string): boolean {
+  return !!value && /^https?:\/\//i.test(value.trim());
+}
+
 export default function ClassDetail() {
   const { id } = useParams<{ id: string }>();
   const { language, t } = useLanguage();
@@ -334,7 +341,19 @@ export default function ClassDetail() {
                 </div>
               )
             ) : (
-              <p className="text-sm text-coral">{t('unplayableVideo', { url: block.content ?? '' })}</p>
+              <div className="text-sm text-ink/60 bg-chalk border border-line rounded-sm p-3">
+                <p>{t('videoUnavailable')}</p>
+                {isHttpUrl(block.content) && (
+                  <a
+                    href={block.content}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-amber hover:text-coral text-xs mt-1 inline-block"
+                  >
+                    {t('watchOriginalLink')} ↗
+                  </a>
+                )}
+              </div>
             )}
           </div>
         );
@@ -853,7 +872,19 @@ export default function ClassDetail() {
                               </div>
                             )
                           ) : (
-                            <p className="text-sm text-coral">{t('unplayableVideo', { url: video.url })}</p>
+                            <div className="text-sm text-ink/60 bg-chalk border border-line rounded-sm p-3">
+                              <p>{t('videoUnavailable')}</p>
+                              {isHttpUrl(video.url) && (
+                                <a
+                                  href={video.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-amber hover:text-coral text-xs mt-1 inline-block"
+                                >
+                                  {t('watchOriginalLink')} ↗
+                                </a>
+                              )}
+                            </div>
                           )}
                           {video.notes && (
                             <div className="mt-3 bg-chalk border border-line rounded-sm p-3">
