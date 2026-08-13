@@ -5,9 +5,10 @@ import { RegistrationsService } from './registrations.service';
 import { RegistrationsController } from './registrations.controller';
 import { AdminRegistrationsController } from './admin-registrations.controller';
 import { ClassesModule } from '../classes/classes.module';
+import { SubmissionsModule } from '../submissions/submissions.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Registration]), ClassesModule],
+  imports: [TypeOrmModule.forFeature([Registration]), ClassesModule, SubmissionsModule],
   controllers: [RegistrationsController, AdminRegistrationsController],
   providers: [RegistrationsService],
 })

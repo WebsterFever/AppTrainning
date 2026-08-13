@@ -79,6 +79,41 @@ export interface NewCurriculumModule {
   topics?: NewCurriculumTopic[];
 }
 
+export type SubmissionStatus = 'pending' | 'approved' | 'changes_requested';
+
+export interface ModuleSubmissionInfo {
+  id: string;
+  githubUrl: string;
+  studentNotes?: string;
+  status: SubmissionStatus;
+  adminFeedback?: string;
+  submittedAt: string;
+  reviewedAt?: string;
+}
+
+export interface ModuleAccess {
+  moduleId: string;
+  unlocked: boolean;
+  submission?: ModuleSubmissionInfo;
+}
+
+export interface AdminSubmission {
+  id: string;
+  classId: string;
+  classTitle: string;
+  moduleId: string;
+  moduleTitle: string;
+  name: string;
+  email: string;
+  githubUrl: string;
+  studentNotes?: string;
+  status: SubmissionStatus;
+  adminFeedback?: string;
+  submittedAt: string;
+  reviewedAt?: string;
+  approvedAt?: string;
+}
+
 export interface ClassFormData {
   title: string;
   description: string;
@@ -374,12 +409,29 @@ export const api = {
         success: boolean;
         registrationCount: number;
         zoomLink?: string;
-        // Full lesson content (with contentBlocks) — only present here, once
-        // access is proven. GET /classes/:id never includes contentBlocks.
+        // Only unlocked modules include contentBlocks — locked ones get the
+        // same title/objective/topics/project-only preview an anonymous
+        // visitor sees. GET /classes/:id never includes contentBlocks at all.
         curriculumModules?: CurriculumModule[];
+        // Per-module unlock + submission status for this student.
+        moduleAccess?: ModuleAccess[];
         alreadyRegistered: boolean;
       }>(r),
     ),
+
+  submitModuleProject: (
+    classId: string,
+    moduleId: string,
+    name: string,
+    email: string,
+    githubUrl: string,
+    studentNotes: string,
+  ) =>
+    fetch(`${BASE_URL}/classes/${classId}/modules/${moduleId}/submissions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, githubUrl, studentNotes: studentNotes || undefined }),
+    }).then((r) => handle<ModuleSubmissionInfo>(r)),
 
   // Starts a Stripe Checkout session for a paid class; returns the URL to
   // redirect the browser to (card and PayPal both handled by Stripe).
@@ -482,6 +534,18 @@ export const api = {
       method: 'DELETE',
       headers: authHeader(),
     }).then((r) => handle<void>(r)),
+
+  listAllSubmissions: () =>
+    fetch(`${BASE_URL}/admin/submissions`, { headers: authHeader() }).then((r) =>
+      handle<AdminSubmission[]>(r),
+    ),
+
+  reviewSubmission: (id: string, status: 'approved' | 'changes_requested', adminFeedback?: string) =>
+    fetch(`${BASE_URL}/admin/submissions/${id}/review`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify({ status, adminFeedback }),
+    }).then((r) => handle<ModuleSubmissionInfo>(r)),
 
   sendChatMessage: (name: string, email: string, text: string) =>
     fetch(`${BASE_URL}/chat/messages`, {

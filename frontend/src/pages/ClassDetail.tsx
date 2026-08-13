@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, ClassItem, visitorIdentity } from '../lib/api';
+import { api, ClassItem, ModuleAccess, visitorIdentity } from '../lib/api';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ClassDetailSkeleton } from '../components/Skeletons';
@@ -33,6 +33,10 @@ export default function ClassDetail() {
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
+  const [moduleAccess, setModuleAccess] = useState<ModuleAccess[]>([]);
+  const [projectDrafts, setProjectDrafts] = useState<Record<string, { githubUrl: string; notes: string }>>({});
+  const [submittingModuleId, setSubmittingModuleId] = useState<string | null>(null);
+  const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({});
 
   const toggleVideo = (i: number) => {
     setOpenVideos((current) => {
@@ -104,6 +108,7 @@ export default function ClassDetail() {
                   }
                 : current,
             );
+            setModuleAccess(res.moduleAccess ?? []);
             setUnlocked(true);
             setConfirmingPayment(false);
           })
@@ -175,6 +180,7 @@ export default function ClassDetail() {
             }
           : current,
       );
+      setModuleAccess(res.moduleAccess ?? []);
       setUnlocked(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : t('somethingWentWrong');
@@ -187,6 +193,32 @@ export default function ClassDetail() {
     await navigator.clipboard.writeText(zoomLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const submitProject = async (moduleId: string) => {
+    if (!id) return;
+    const draft = projectDrafts[moduleId] ?? { githubUrl: '', notes: '' };
+    if (!draft.githubUrl.trim()) return;
+    setSubmittingModuleId(moduleId);
+    setSubmitErrors((current) => ({ ...current, [moduleId]: '' }));
+    try {
+      await api.submitModuleProject(id, moduleId, name, email, draft.githubUrl.trim(), draft.notes.trim());
+      // Submitting never unlocks anything by itself — only admin approval
+      // does. Re-registering (idempotent) picks up the new pending status
+      // and, on a later visit after approval, the next unlocked module.
+      const res = await api.register(id, name, email);
+      setItem((current) =>
+        current ? { ...current, curriculumModules: res.curriculumModules ?? current.curriculumModules } : current,
+      );
+      setModuleAccess(res.moduleAccess ?? []);
+    } catch (err) {
+      setSubmitErrors((current) => ({
+        ...current,
+        [moduleId]: err instanceof Error ? err.message : t('somethingWentWrong'),
+      }));
+    } finally {
+      setSubmittingModuleId(null);
+    }
   };
 
   if (notFound) {
@@ -368,6 +400,13 @@ export default function ClassDetail() {
         <div className="mt-3 space-y-2">
           {item.curriculumModules.map((mod, i) => {
             const isOpen = openModules.has(mod.id);
+            const access = allowComments ? moduleAccess.find((a) => a.moduleId === mod.id) : undefined;
+            // Absence of an access entry (e.g. course has no submission
+            // gating configured yet) defaults to unlocked, matching prior
+            // behavior — locking only kicks in once module-access data
+            // exists for this student.
+            const isUnlocked = !access || access.unlocked;
+            const submission = access?.submission;
             return (
               <div key={mod.id} className="border border-line rounded-sm overflow-hidden bg-surface">
                 <button
@@ -375,8 +414,28 @@ export default function ClassDetail() {
                   onClick={() => toggleModule(mod.id)}
                   className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
                 >
-                  <span className="text-sm font-medium text-ink">
+                  <span className="text-sm font-medium text-ink flex items-center gap-2 flex-wrap">
                     M{i + 1}: {mod.title}
+                    {allowComments && !isUnlocked && (
+                      <span className="badge bg-line text-ink/60 normal-case tracking-normal">
+                        {t('moduleLocked')}
+                      </span>
+                    )}
+                    {allowComments && isUnlocked && submission?.status === 'approved' && (
+                      <span className="badge bg-sage text-chalk normal-case tracking-normal">
+                        {t('moduleApproved')}
+                      </span>
+                    )}
+                    {allowComments && isUnlocked && submission?.status === 'pending' && (
+                      <span className="badge bg-amber text-midnight normal-case tracking-normal">
+                        {t('modulePending')}
+                      </span>
+                    )}
+                    {allowComments && isUnlocked && submission?.status === 'changes_requested' && (
+                      <span className="badge bg-coral text-chalk normal-case tracking-normal">
+                        {t('moduleNeedsChanges')}
+                      </span>
+                    )}
                   </span>
                   <span
                     className={`text-ink/50 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
@@ -461,7 +520,95 @@ export default function ClassDetail() {
                         </p>
                       </div>
                     )}
-                    {allowComments && <VideoComments classId={item.id} videoRef={`module-${mod.id}`} />}
+
+                    {allowComments && !isUnlocked && (
+                      <p className="text-xs text-ink/50 bg-chalk border border-line rounded-sm p-3">
+                        🔒 {t('completeToUnlock')}
+                      </p>
+                    )}
+
+                    {allowComments && isUnlocked && (
+                      <>
+                        {submission?.status === 'approved' ? (
+                          <div className="bg-sage/10 border border-sage/40 rounded-sm p-3">
+                            <p className="text-sm font-medium text-sage">
+                              {t('moduleApproved')} — {t('projectApprovedMessage')}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="border border-line rounded-sm p-3 bg-chalk">
+                            <p className="text-xs font-mono uppercase tracking-wide text-ink/50 mb-2">
+                              {t('submitModuleProject', { module: `M${i + 1}` })}
+                            </p>
+                            {submission?.status === 'changes_requested' && submission.adminFeedback && (
+                              <div className="mb-3">
+                                <p className="text-[11px] font-mono uppercase tracking-wide text-coral mb-1">
+                                  {t('yourFeedbackFromInstructor')}
+                                </p>
+                                <p className="text-sm text-ink/80 bg-surface border border-line rounded-sm p-2 whitespace-pre-line">
+                                  {submission.adminFeedback}
+                                </p>
+                              </div>
+                            )}
+                            <label className="block text-xs font-medium text-ink/70 mb-1">
+                              {t('githubUrlLabel')}
+                            </label>
+                            <input
+                              placeholder="https://github.com/username/project-name"
+                              value={projectDrafts[mod.id]?.githubUrl ?? submission?.githubUrl ?? ''}
+                              onChange={(e) =>
+                                setProjectDrafts((current) => ({
+                                  ...current,
+                                  [mod.id]: {
+                                    githubUrl: e.target.value,
+                                    notes: current[mod.id]?.notes ?? submission?.studentNotes ?? '',
+                                  },
+                                }))
+                              }
+                              className="input text-sm"
+                            />
+                            <label className="block text-xs font-medium text-ink/70 mb-1 mt-2">
+                              {t('optionalNotesToInstructor')}
+                            </label>
+                            <textarea
+                              value={projectDrafts[mod.id]?.notes ?? submission?.studentNotes ?? ''}
+                              onChange={(e) =>
+                                setProjectDrafts((current) => ({
+                                  ...current,
+                                  [mod.id]: {
+                                    githubUrl: current[mod.id]?.githubUrl ?? submission?.githubUrl ?? '',
+                                    notes: e.target.value,
+                                  },
+                                }))
+                              }
+                              className="input text-sm h-16"
+                            />
+                            {submitErrors[mod.id] && (
+                              <p className="text-coral text-xs mt-1">{submitErrors[mod.id]}</p>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => submitProject(mod.id)}
+                              disabled={
+                                submittingModuleId === mod.id ||
+                                !(projectDrafts[mod.id]?.githubUrl ?? submission?.githubUrl ?? '').trim()
+                              }
+                              className="btn-primary text-sm mt-2"
+                            >
+                              {submittingModuleId === mod.id
+                                ? t('submittingProject')
+                                : submission
+                                  ? t('resubmitProject')
+                                  : t('submitProject')}
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {allowComments && isUnlocked && (
+                      <VideoComments classId={item.id} videoRef={`module-${mod.id}`} />
+                    )}
                   </div>
                 )}
               </div>

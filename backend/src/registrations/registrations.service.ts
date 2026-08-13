@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Registration } from './registration.entity';
 import { RegisterDto } from './dto/register.dto';
 import { ClassesService } from '../classes/classes.service';
+import { SubmissionsService } from '../submissions/submissions.service';
 
 @Injectable()
 export class RegistrationsService {
@@ -11,6 +12,7 @@ export class RegistrationsService {
     @InjectRepository(Registration)
     private readonly registrationsRepo: Repository<Registration>,
     private readonly classesService: ClassesService,
+    private readonly submissionsService: SubmissionsService,
   ) {}
 
   async register(classId: string, dto: RegisterDto) {
@@ -45,15 +47,23 @@ export class RegistrationsService {
       where: { trainingClass: { id: classId } },
     });
 
+    // Per-student sequential module unlock: module 1 is open once
+    // registered; each module after that only unlocks once the previous
+    // module's GitHub submission has been admin-approved. A locked module
+    // still gets its marketing-curriculum preview (title/objective/topics/
+    // project) — just not the actual lesson content (contentBlocks).
+    const moduleAccess = await this.submissionsService.getModuleAccess(classId, email);
+    const unlockedModuleIds = new Set(moduleAccess.filter((a) => a.unlocked).map((a) => a.moduleId));
+    const curriculumModules = trainingClass.curriculumModules?.map((m) =>
+      unlockedModuleIds.has(m.id) ? m : this.classesService.previewModule(m),
+    );
+
     return {
       success: true,
       registrationCount: count,
       zoomLink: trainingClass.zoomLink,
-      // Full lesson content (with contentBlocks), unredacted — mirrors
-      // zoomLink above. The public GET /classes/:id only ever returns the
-      // marketing preview (titles/descriptions, no contentBlocks) until
-      // this proves the visitor actually has access.
-      curriculumModules: trainingClass.curriculumModules,
+      curriculumModules,
+      moduleAccess,
       alreadyRegistered: !!existing,
     };
   }

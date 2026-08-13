@@ -175,6 +175,39 @@ const dict = {
   moduleProjectLabel: { en: 'Project', fr: 'Projet', ht: 'Pwojè' },
   exerciseLabel: { en: 'Exercise', fr: 'Exercice', ht: 'Egzèsis' },
   downloadResource: { en: 'Download', fr: 'Télécharger', ht: 'Telechaje' },
+  moduleLocked: { en: '🔒 Locked', fr: '🔒 Verrouillé', ht: '🔒 Fèmen' },
+  moduleApproved: { en: '✓ Approved', fr: '✓ Approuvé', ht: '✓ Apwouve' },
+  modulePending: { en: 'Pending review', fr: 'En attente', ht: 'Ap tann revizyon' },
+  moduleNeedsChanges: { en: 'Needs changes', fr: 'Modifications requises', ht: 'Bezwen chanjman' },
+  completeToUnlock: {
+    en: 'Complete and get approval on the previous module to unlock this one.',
+    fr: 'Terminez et faites approuver le module précédent pour débloquer celui-ci.',
+    ht: 'Fini epi fè apwouve modil anvan an pou debloke sa a.',
+  },
+  submitModuleProject: {
+    en: (v: Vars) => `Submit ${v.module} project`,
+    fr: (v: Vars) => `Soumettre le projet ${v.module}`,
+    ht: (v: Vars) => `Soumèt pwojè ${v.module}`,
+  },
+  githubUrlLabel: { en: 'GitHub repository URL', fr: 'URL du dépôt GitHub', ht: 'URL depo GitHub' },
+  optionalNotesToInstructor: {
+    en: 'Optional notes for the instructor',
+    fr: "Notes facultatives pour l'instructeur",
+    ht: 'Nòt opsyonèl pou enstriktè a',
+  },
+  submitProject: { en: 'Submit project', fr: 'Soumettre le projet', ht: 'Soumèt pwojè a' },
+  resubmitProject: { en: 'Resubmit project', fr: 'Resoumettre le projet', ht: 'Re-soumèt pwojè a' },
+  submittingProject: { en: 'Submitting…', fr: 'Envoi…', ht: 'Ap voye…' },
+  projectApprovedMessage: {
+    en: 'Your project was approved — the next module is unlocked.',
+    fr: 'Votre projet a été approuvé — le module suivant est débloqué.',
+    ht: 'Yo apwouve pwojè ou — pwochen modil la debloke.',
+  },
+  yourFeedbackFromInstructor: {
+    en: 'Feedback from your instructor',
+    fr: "Retour de votre instructeur",
+    ht: 'Kòmantè enstriktè ou',
+  },
   unplayableVideo: {
     en: (v: Vars) =>
       `This link couldn't be recognized as a playable video (${v.url}). It needs to be a specific YouTube/Vimeo video link, or a direct .mp4 file — not just the site's homepage.`,

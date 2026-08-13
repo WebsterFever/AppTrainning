@@ -208,6 +208,21 @@ export class ClassesService {
     return row;
   }
 
+  // Strips a module's private lesson content (contentBlocks), keeping only
+  // the public marketing-curriculum shape (title/objective/topics'
+  // titles+descriptions/project). Used both for anonymous visitors (see
+  // toPublicShape) and for a registered student who hasn't yet unlocked a
+  // given module (see RegistrationsService.register — a locked module still
+  // shows its outline, just not the actual lesson).
+  previewModule(
+    m: NonNullable<TrainingClass['curriculumModules']>[number],
+  ): NonNullable<TrainingClass['curriculumModules']>[number] {
+    return {
+      ...m,
+      topics: m.topics.map((t) => ({ id: t.id, title: t.title, description: t.description })),
+    };
+  }
+
   private toPublicShape(
     row: TrainingClass & { registrationCount?: number },
     includeNames = false,
@@ -223,10 +238,7 @@ export class ClassesService {
     const revealPrivateContent = row.isPast || revealZoomLink;
     const curriculumModules = revealPrivateContent
       ? row.curriculumModules
-      : row.curriculumModules?.map((m) => ({
-          ...m,
-          topics: m.topics.map((t) => ({ id: t.id, title: t.title, description: t.description })),
-        }));
+      : row.curriculumModules?.map((m) => this.previewModule(m));
     return {
       id: row.id,
       title: row.title,
