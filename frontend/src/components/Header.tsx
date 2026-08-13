@@ -15,62 +15,115 @@ export default function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-chalk/90 backdrop-blur">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-40 w-full border-b border-line bg-chalk/95 backdrop-blur">
+      {/* Main header row */}
+      <div
+        className="
+          mx-auto
+          flex
+          w-full
+          max-w-6xl
+          items-center
+          justify-between
+          gap-2
+          px-3
+          py-2
+          sm:px-4
+          sm:py-3
+          md:px-6
+          lg:py-4
+        "
+      >
+        {/* Logo */}
         <Link
           to="/"
-          className="flex items-center shrink-0"
           onClick={() => setMenuOpen(false)}
+          className="min-w-0 shrink"
         >
-          {/* Light Mode Logo */}
+          {/* Light Mode */}
           <img
             src="/logoLightMode.png"
             alt="Webster Technology School"
-            className="h-24 sm:h-32 lg:h-40 w-auto dark:hidden"
+            className="
+              block
+              h-10
+              w-auto
+              max-w-[135px]
+              object-contain
+              sm:h-12
+              sm:max-w-[170px]
+              md:h-14
+              md:max-w-[210px]
+              lg:h-16
+              lg:max-w-none
+              dark:hidden
+            "
           />
 
-          {/* Dark Mode Logo */}
+          {/* Dark Mode */}
           <img
             src="/logoDarkMode.png"
             alt="Webster Technology School"
-            className="hidden h-12 sm:h-14 lg:h-16 w-auto dark:block"
+            className="
+              hidden
+              h-10
+              w-auto
+              max-w-[135px]
+              object-contain
+              sm:h-12
+              sm:max-w-[170px]
+              md:h-14
+              md:max-w-[210px]
+              lg:h-16
+              lg:max-w-none
+              dark:block
+            "
           />
         </Link>
 
-        {/* Desktop navigation - only 1024px+ */}
-        <nav className="hidden lg:flex flex-wrap items-center gap-2">
+        {/* Desktop navigation */}
+        <nav className="hidden lg:flex items-center gap-2">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="btn-outline text-sm"
+              className="btn-outline whitespace-nowrap text-sm"
             >
               {link.label}
             </a>
           ))}
 
-          <Link to="/book" className="btn-primary text-sm">
+          <Link
+            to="/book"
+            className="btn-primary whitespace-nowrap text-sm"
+          >
             {t('navBookClass')}
           </Link>
         </nav>
 
-        {/* Right controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Right side */}
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          {/* Always visible */}
           <NotificationBell />
 
-          <LanguageSwitcher />
+          {/* Tablet and desktop */}
+          <div className="hidden sm:block">
+            <LanguageSwitcher />
+          </div>
 
-          <ThemeToggle />
+          <div className="hidden md:block">
+            <ThemeToggle />
+          </div>
 
-          {/* Desktop Teacher button */}
+          {/* Teacher button desktop */}
           <Link
             to="/admin"
-            className="hidden lg:inline-flex btn-outline text-sm"
+            className="hidden lg:inline-flex btn-outline whitespace-nowrap text-sm"
           >
             {t('navTeacher')}
           </Link>
 
-          {/* Mobile + Tablet burger */}
+          {/* Burger */}
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
@@ -79,14 +132,21 @@ export default function Header() {
             }
             aria-expanded={menuOpen}
             className="
-              lg:hidden
-              w-9 h-9
-              flex items-center justify-center
-              rounded-sm
-              border border-line
+              flex
+              h-10
+              w-10
+              shrink-0
+              items-center
+              justify-center
+              rounded-md
+              border
+              border-line
+              bg-surface
+              text-xl
               text-ink
-              hover:bg-surface
-              transition-colors
+              transition
+              hover:bg-chalk
+              lg:hidden
             "
           >
             {menuOpen ? '✕' : '☰'}
@@ -94,46 +154,118 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile + Tablet menu */}
+      {/* Mobile / tablet dropdown */}
       {menuOpen && (
         <nav
           className="
             lg:hidden
-            border-t border-line
+            border-t
+            border-line
             bg-chalk
-            px-4 sm:px-6
+            px-3
             py-4
-            flex flex-col
-            gap-2
-            animate-fade-in
+            sm:px-4
+            md:px-6
           "
         >
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
+          <div className="mx-auto flex max-w-6xl flex-col gap-3">
+            {/* Navigation */}
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className="
+                  flex
+                  min-h-11
+                  w-full
+                  items-center
+                  rounded-md
+                  border
+                  border-line
+                  px-4
+                  text-sm
+                  font-medium
+                  text-ink
+                  transition
+                  hover:bg-surface
+                "
+              >
+                {link.label}
+              </a>
+            ))}
+
+            {/* Book */}
+            <Link
+              to="/book"
               onClick={() => setMenuOpen(false)}
-              className="btn-outline text-sm w-full justify-start"
+              className="
+                btn-primary
+                flex
+                min-h-11
+                w-full
+                items-center
+                justify-center
+                text-sm
+              "
             >
-              {link.label}
-            </a>
-          ))}
+              {t('navBookClass')}
+            </Link>
 
-          <Link
-            to="/book"
-            onClick={() => setMenuOpen(false)}
-            className="btn-primary text-sm w-full text-center"
-          >
-            {t('navBookClass')}
-          </Link>
+            {/* Teacher */}
+            <Link
+              to="/admin"
+              onClick={() => setMenuOpen(false)}
+              className="
+                flex
+                min-h-11
+                w-full
+                items-center
+                rounded-md
+                border
+                border-line
+                px-4
+                text-sm
+                font-medium
+                text-ink
+                transition
+                hover:bg-surface
+              "
+            >
+              {t('navTeacher')}
+            </Link>
 
-          <Link
-            to="/admin"
-            onClick={() => setMenuOpen(false)}
-            className="btn-outline text-sm w-full justify-start"
-          >
-            {t('navTeacher')}
-          </Link>
+            {/* Mobile settings */}
+            <div
+              className="
+                mt-1
+                flex
+                flex-col
+                gap-3
+                border-t
+                border-line
+                pt-4
+              "
+            >
+              {/* Hidden from header below sm */}
+              <div className="flex items-center justify-between sm:hidden">
+                <span className="text-sm font-medium text-ink">
+                  Language
+                </span>
+
+                <LanguageSwitcher />
+              </div>
+
+              {/* Hidden from header below md */}
+              <div className="flex items-center justify-between md:hidden">
+                <span className="text-sm font-medium text-ink">
+                  Theme
+                </span>
+
+                <ThemeToggle />
+              </div>
+            </div>
+          </div>
         </nav>
       )}
     </header>
