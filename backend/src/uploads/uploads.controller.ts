@@ -22,6 +22,13 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif
 const MAX_RESOURCE_SIZE = 20 * 1024 * 1024; // 20 MB
 const ALLOWED_RESOURCE_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'];
 
+// Object-key prefixes that must never be served by the generic, unauthenticated
+// file route below. Anything uploaded under one of these prefixes carries its
+// own access-controlled streaming endpoint (e.g. AI Teacher audio, gated by
+// registration + module-unlock) — this route only exists for assets that are
+// genuinely public once uploaded (contest photos, class resources).
+const PRIVATE_KEY_PREFIXES = ['ai-teacher-audio'];
+
 @Controller('uploads')
 export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {}
@@ -66,6 +73,9 @@ export class UploadsController {
     @Param('filename') filename: string,
     @Res() res: Response,
   ) {
+    if (PRIVATE_KEY_PREFIXES.includes(folder)) {
+      throw new NotFoundException('File not found');
+    }
     try {
       const { body, contentType } = await this.uploadsService.getObject(`${folder}/${filename}`);
       res.setHeader('Content-Type', contentType ?? 'application/octet-stream');

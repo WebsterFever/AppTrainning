@@ -86,6 +86,20 @@ export class TrainingClass {
         rate?: number;
         avatarStyle?: string;
         instructions?: string;
+        showScript?: boolean;
+        // Generated neural-voice audio for this ai_teacher block (optional
+        // upgrade over the browser-only speechSynthesis fallback — see
+        // AiTeacherService). `audioKey` is the private S3 object key; it's
+        // never resolved to a fetchable URL for any client — playback goes
+        // through a protected streaming endpoint that re-checks course
+        // access by blockId instead.
+        audioStatus?: 'none' | 'generating' | 'ready' | 'failed';
+        audioKey?: string;
+        audioProvider?: string;
+        audioVoice?: string;
+        audioGeneratedAt?: string;
+        audioScriptHash?: string;
+        audioError?: string;
       }[];
     }[];
   }[];

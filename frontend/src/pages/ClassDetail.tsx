@@ -305,12 +305,15 @@ export default function ClassDetail() {
       rate?: number;
       avatarStyle?: string;
       instructions?: string;
+      showScript?: boolean;
+      audioStatus?: 'none' | 'generating' | 'ready' | 'failed';
+      audioStale?: boolean;
     },
     key: string,
   ) => {
     switch (block.type) {
       case 'ai_teacher':
-        return <RobotTeacher key={key} block={block} />;
+        return <RobotTeacher key={key} block={block} classId={item.id} studentEmail={email} />;
       case 'heading':
         return (
           <h4 key={key} className="font-display text-base text-ink">

@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { api, ClassItem, ContentBlockType, NewExtraVideo, RegistrationDetail } from '../lib/api';
+import {
+  AiTeacherAudioStatus,
+  api,
+  ClassItem,
+  ContentBlockType,
+  NewExtraVideo,
+  RegistrationDetail,
+} from '../lib/api';
 import { formatCountdown } from '../lib/countdown';
 import { useLanguage } from '../lib/i18n';
 import { getVideoEmbed } from '../lib/video';
@@ -19,6 +26,11 @@ const BLOCK_TYPES: { value: ContentBlockType; label: string }[] = [
 
 const AI_TEACHER_AVATAR_STYLES = ['amber', 'sage', 'coral'] as const;
 
+// Stable OpenAI tts-1 voice names — also reused as the browser-speech
+// fallback's "voice name hint" (harmless there: the browser just won't
+// find a literal match and falls back to a language-appropriate voice).
+const AI_TEACHER_NEURAL_VOICES = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'] as const;
+
 interface ContentBlockForm {
   id?: string;
   type: ContentBlockType;
@@ -31,6 +43,19 @@ interface ContentBlockForm {
   rate: string;
   avatarStyle: string;
   instructions: string;
+  // Whether students also see the lesson script as readable text, or just
+  // hear the robot (audio-only). Defaults to true (shown) — the original,
+  // only behavior before this became optional.
+  showScript: boolean;
+  // Generated-audio status, read-only from the admin's point of view here
+  // (set by loading an existing block, or after a successful generate call
+  // — see generateVoice below). Never sent back on a normal class save.
+  audioStatus?: AiTeacherAudioStatus;
+  audioProvider?: string;
+  audioVoice?: string;
+  audioGeneratedAt?: string;
+  audioError?: string;
+  audioStale?: boolean;
 }
 
 interface TopicForm {
@@ -85,6 +110,7 @@ function emptyBlock(): ContentBlockForm {
     rate: '1',
     avatarStyle: 'amber',
     instructions: '',
+    showScript: true,
   };
 }
 
@@ -171,11 +197,68 @@ export default function ClassManager({
   const [registrantsByClass, setRegistrantsByClass] = useState<Record<string, RegistrationDetail[]>>({});
   const [loadingRegistrants, setLoadingRegistrants] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [audioUi, setAudioUi] = useState<
+    Record<string, { generating?: boolean; error?: string; previewUrl?: string }>
+  >({});
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(timer);
   }, []);
+
+  // Generates (or regenerates) neural voice audio for one ai_teacher block.
+  // Requires the block to already exist server-side (i.e. the class has
+  // been saved at least once since this block was added) — otherwise
+  // there's nothing to attach the audio metadata to.
+  const generateVoice = async (mi: number, ti: number, bi: number) => {
+    if (!editingId) return;
+    const block = form.curriculumModules[mi].topics[ti].contentBlocks[bi];
+    if (!block.id) return;
+    const blockId = block.id;
+    setAudioUi((s) => ({ ...s, [blockId]: { generating: true } }));
+    try {
+      const result = await api.generateAiTeacherAudio(editingId, blockId, {
+        script: block.content.trim(),
+        label: block.label.trim() || undefined,
+        language: (block.language || 'en') as 'en' | 'fr' | 'ht',
+        voice: block.voice.trim() || undefined,
+        rate: block.rate.trim() ? parseFloat(block.rate) : undefined,
+      });
+      const next = [...form.curriculumModules];
+      const topics = [...next[mi].topics];
+      const blocks = [...topics[ti].contentBlocks];
+      blocks[bi] = {
+        ...blocks[bi],
+        content: result.content ?? blocks[bi].content,
+        label: result.label ?? blocks[bi].label,
+        audioStatus: result.audioStatus,
+        audioProvider: result.audioProvider,
+        audioVoice: result.audioVoice,
+        audioGeneratedAt: result.audioGeneratedAt,
+        audioError: result.audioError,
+        audioStale: false,
+      };
+      topics[ti] = { ...topics[ti], contentBlocks: blocks };
+      next[mi] = { ...next[mi], topics };
+      setForm({ ...form, curriculumModules: next });
+      setAudioUi((s) => ({ ...s, [blockId]: { generating: false } }));
+    } catch (err) {
+      setAudioUi((s) => ({
+        ...s,
+        [blockId]: { generating: false, error: err instanceof Error ? err.message : 'Generation failed' },
+      }));
+    }
+  };
+
+  const previewVoice = async (blockId: string) => {
+    if (!editingId) return;
+    try {
+      const url = await api.previewAiTeacherAudio(editingId, blockId);
+      setAudioUi((s) => ({ ...s, [blockId]: { ...s[blockId], previewUrl: url, error: undefined } }));
+    } catch {
+      setAudioUi((s) => ({ ...s, [blockId]: { ...s[blockId], error: 'No generated audio available yet.' } }));
+    }
+  };
 
   const toggleRegistrants = async (classId: string) => {
     if (expandedClassId === classId) {
@@ -248,6 +331,13 @@ export default function ClassManager({
                     rate: b.rate != null ? String(b.rate) : '1',
                     avatarStyle: b.avatarStyle ?? 'amber',
                     instructions: b.instructions ?? '',
+                    showScript: b.showScript ?? true,
+                    audioStatus: b.audioStatus,
+                    audioProvider: b.audioProvider,
+                    audioVoice: b.audioVoice,
+                    audioGeneratedAt: b.audioGeneratedAt,
+                    audioError: b.audioError,
+                    audioStale: b.audioStale,
                   })),
                 }))
               : [emptyTopic()],
@@ -330,6 +420,7 @@ export default function ClassManager({
                         rate: b.rate.trim() ? parseFloat(b.rate) : undefined,
                         avatarStyle: b.avatarStyle || undefined,
                         instructions: b.instructions.trim() || undefined,
+                        showScript: b.showScript,
                       }
                     : {}),
                 }))
@@ -1154,8 +1245,7 @@ export default function ClassManager({
                                     </select>
                                   </div>
                                   <div className="grid grid-cols-2 gap-1.5">
-                                    <input
-                                      placeholder="Voice name hint (optional)"
+                                    <select
                                       value={block.voice}
                                       onChange={(e) => {
                                         const next = [...form.curriculumModules];
@@ -1167,7 +1257,14 @@ export default function ClassManager({
                                         setForm({ ...form, curriculumModules: next });
                                       }}
                                       className="input text-xs py-1"
-                                    />
+                                    >
+                                      <option value="">Auto voice</option>
+                                      {AI_TEACHER_NEURAL_VOICES.map((v) => (
+                                        <option key={v} value={v}>
+                                          {v[0].toUpperCase() + v.slice(1)}
+                                        </option>
+                                      ))}
+                                    </select>
                                     <input
                                       type="number"
                                       min={0.5}
@@ -1188,8 +1285,9 @@ export default function ClassManager({
                                     />
                                   </div>
                                   <p className="text-[11px] text-ink/40">
-                                    Voice name is a best-effort hint — students' browsers pick the closest
-                                    available voice for the chosen language if it's not installed.
+                                    Speed and voice also drive the generated neural audio below. If a
+                                    student's browser plays the fallback voice instead, it picks its own
+                                    closest match for the chosen language.
                                   </p>
                                   <textarea
                                     placeholder="Instructions shown to the student (optional)"
@@ -1205,6 +1303,90 @@ export default function ClassManager({
                                     }}
                                     className="input h-12 text-sm"
                                   />
+
+                                  <label className="flex items-center gap-1.5 text-[11px] text-ink/60">
+                                    <input
+                                      type="checkbox"
+                                      checked={block.showScript}
+                                      onChange={(e) => {
+                                        const next = [...form.curriculumModules];
+                                        const topics = [...next[mi].topics];
+                                        const blocks = [...topics[ti].contentBlocks];
+                                        blocks[bi] = { ...blocks[bi], showScript: e.target.checked };
+                                        topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                        next[mi] = { ...next[mi], topics };
+                                        setForm({ ...form, curriculumModules: next });
+                                      }}
+                                    />
+                                    Also show the lesson script as readable text (optional — leave
+                                    unchecked for audio-only)
+                                  </label>
+
+                                  <div className="border border-line/70 rounded-sm p-2 bg-chalk space-y-1.5">
+                                    <p className="text-[11px] font-mono uppercase tracking-wide text-ink/50">
+                                      Teacher Voice (neural, generated once)
+                                    </p>
+                                    {!block.id ? (
+                                      <p className="text-[11px] text-ink/40">
+                                        Save the class first, then generate the voice.
+                                      </p>
+                                    ) : (
+                                      <>
+                                        {(() => {
+                                          const ui = audioUi[block.id] ?? {};
+                                          const status = block.audioStatus ?? 'none';
+                                          return (
+                                            <>
+                                              <p className="text-[11px]">
+                                                {ui.generating || status === 'generating' ? (
+                                                  <span className="text-amber">Generating…</span>
+                                                ) : status === 'ready' && block.audioStale ? (
+                                                  <span className="text-coral">
+                                                    ⚠ Script changed — regenerate voice
+                                                  </span>
+                                                ) : status === 'ready' ? (
+                                                  <span className="text-sage">
+                                                    ✓ Ready{block.audioVoice ? ` (${block.audioVoice})` : ''}
+                                                  </span>
+                                                ) : status === 'failed' ? (
+                                                  <span className="text-coral">
+                                                    ✗ Generation failed{block.audioError ? `: ${block.audioError}` : ''}
+                                                  </span>
+                                                ) : (
+                                                  <span className="text-ink/40">Not generated</span>
+                                                )}
+                                              </p>
+                                              {ui.error && <p className="text-[11px] text-coral">{ui.error}</p>}
+                                              <div className="flex flex-wrap items-center gap-1.5">
+                                                <button
+                                                  type="button"
+                                                  disabled={ui.generating || status === 'generating' || !block.content.trim()}
+                                                  onClick={() => generateVoice(mi, ti, bi)}
+                                                  className="btn-outline text-[11px] px-2 py-1"
+                                                >
+                                                  {status === 'ready' || status === 'failed'
+                                                    ? 'Regenerate Voice'
+                                                    : 'Generate Voice'}
+                                                </button>
+                                                {status === 'ready' && !block.audioStale && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => previewVoice(block.id!)}
+                                                    className="btn-outline text-[11px] px-2 py-1"
+                                                  >
+                                                    Load preview
+                                                  </button>
+                                                )}
+                                              </div>
+                                              {ui.previewUrl && (
+                                                <audio controls src={ui.previewUrl} className="w-full h-8 mt-1" />
+                                              )}
+                                            </>
+                                          );
+                                        })()}
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
                               ) : (
                                 <>

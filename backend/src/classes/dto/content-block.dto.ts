@@ -1,4 +1,4 @@
-import { IsIn, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 export const CONTENT_BLOCK_TYPES = [
   'text',
@@ -72,4 +72,12 @@ export class ContentBlockDto {
   @IsString()
   @MaxLength(2000)
   instructions?: string;
+
+  // Whether the lesson script is also shown as readable text alongside the
+  // robot (vs. an audio/voice-only experience). Undefined/omitted means
+  // "show it" — the original, only behavior before this became optional —
+  // so existing blocks keep working exactly as they did.
+  @IsOptional()
+  @IsBoolean()
+  showScript?: boolean;
 }

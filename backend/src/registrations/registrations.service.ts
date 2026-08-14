@@ -54,8 +54,12 @@ export class RegistrationsService {
     // project) — just not the actual lesson content (contentBlocks).
     const moduleAccess = await this.submissionsService.getModuleAccess(classId, email);
     const unlockedModuleIds = new Set(moduleAccess.filter((a) => a.unlocked).map((a) => a.moduleId));
-    const curriculumModules = trainingClass.curriculumModules?.map((m) =>
-      unlockedModuleIds.has(m.id) ? m : this.classesService.previewModule(m),
+    const curriculumModules = this.classesService.stripPrivateAudioFields(
+      this.classesService.withAudioStaleness(
+        trainingClass.curriculumModules?.map((m) =>
+          unlockedModuleIds.has(m.id) ? m : this.classesService.previewModule(m),
+        ),
+      ),
     );
 
     return {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { api, AiTeacherAudioStatus } from '../lib/api';
 import { useLanguage, localeFor, Language } from '../lib/i18n';
 
 export interface RobotTeacherBlock {
@@ -6,10 +7,15 @@ export interface RobotTeacherBlock {
   content?: string; // the lesson script
   label?: string; // optional lesson title
   language?: Language;
-  voice?: string; // best-effort admin voice-name hint
+  voice?: string; // best-effort admin voice-name hint (browser fallback)
   rate?: number;
   avatarStyle?: string;
   instructions?: string;
+  // Undefined means "show it" — the original, only behavior before this
+  // became optional. Admin can turn it off for an audio-only experience.
+  showScript?: boolean;
+  audioStatus?: AiTeacherAudioStatus;
+  audioStale?: boolean;
 }
 
 type PlaybackStatus = 'idle' | 'speaking' | 'paused';
@@ -24,11 +30,18 @@ function accentColor(style?: string): string {
   return ACCENTS[style ?? 'amber'] ?? ACCENTS.amber;
 }
 
+// Only one AI Teacher lesson plays at a time anywhere on the page, whether
+// it's using generated audio or the browser voice — starting one broadcasts
+// this event so every other mounted instance stops itself, regardless of
+// which playback mode it's in.
+const PLAYBACK_START_EVENT = 'ai-teacher-playback-start';
+
 // Splits into rough sentences with their character offset in the original
 // script, so a `boundary` event's charIndex can be mapped back to "which
 // sentence is being read right now" — a coarser, more robust signal than
 // trying to track individual words (browser word-boundary timing is
-// inconsistent across engines).
+// inconsistent across engines). Only used for the browser-voice path —
+// generated audio has no alignment data to sync against (see below).
 function splitSentences(text: string): { text: string; start: number }[] {
   if (!text.trim()) return [];
   const results: { text: string; start: number }[] = [];
@@ -87,14 +100,36 @@ function RobotAvatar({ status, glow }: { status: PlaybackStatus; glow: string })
   );
 }
 
-export default function RobotTeacher({ block }: { block: RobotTeacherBlock }) {
+export default function RobotTeacher({
+  block,
+  classId,
+  studentEmail,
+}: {
+  block: RobotTeacherBlock;
+  classId: string;
+  studentEmail?: string;
+}) {
   const { t, language: siteLanguage } = useLanguage();
   const script = (block.content ?? '').trim();
   const glow = accentColor(block.avatarStyle);
   const lessonLanguage = block.language ?? siteLanguage;
   const localeCode = localeFor(lessonLanguage);
+  // Undefined/omitted means "show it" — existing blocks (saved before this
+  // became optional) keep their original always-shown behavior.
+  const showScript = block.showScript !== false;
 
-  const supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  // Priority: ready (non-stale) generated audio > browser speechSynthesis >
+  // script text only. A stale or failed generation falls back to the
+  // browser voice rather than playing audio that no longer matches the
+  // script.
+  const hasGeneratedAudio = block.audioStatus === 'ready' && !block.audioStale && !!studentEmail;
+  const speechSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  const mode: 'generated' | 'browser' | 'text-only' = hasGeneratedAudio
+    ? 'generated'
+    : speechSupported
+      ? 'browser'
+      : 'text-only';
+
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [status, setStatus] = useState<PlaybackStatus>('idle');
   const [hasStarted, setHasStarted] = useState(false);
@@ -102,26 +137,62 @@ export default function RobotTeacher({ block }: { block: RobotTeacherBlock }) {
   const [rate, setRate] = useState(block.rate ?? 1);
   const [volume, setVolume] = useState(1);
   const [voiceName, setVoiceName] = useState(block.voice ?? '');
+  const [audioLoadError, setAudioLoadError] = useState(false);
+
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const stoppingRef = useRef(false);
+  const instanceId = useRef(`${block.id}-${Math.random().toString(36).slice(2)}`).current;
 
   const sentences = useMemo(() => splitSentences(script), [script]);
+  const audioSrc = hasGeneratedAudio ? api.aiTeacherAudioUrl(classId, block.id, studentEmail!) : undefined;
 
   useEffect(() => {
-    if (!supported) return;
+    if (mode !== 'browser') return;
     const load = () => setVoices(window.speechSynthesis.getVoices());
     load();
     window.speechSynthesis.addEventListener('voiceschanged', load);
     return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
-  }, [supported]);
+  }, [mode]);
 
   // Stop narration when this block unmounts (student navigates away or the
   // topic/module list re-renders around a different lesson).
   useEffect(() => {
     return () => {
-      if (supported) window.speechSynthesis.cancel();
+      if (speechSupported) window.speechSynthesis.cancel();
+      audioRef.current?.pause();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [block.id]);
+
+  // Only one lesson (generated audio OR browser voice, in any block on the
+  // page) plays at a time — when another instance claims playback, this one
+  // stops itself.
+  useEffect(() => {
+    const onOtherStart = (e: Event) => {
+      const startedId = (e as CustomEvent<string>).detail;
+      if (startedId === instanceId) return;
+      if (mode === 'generated') {
+        const el = audioRef.current;
+        if (el && !el.paused) {
+          stoppingRef.current = true;
+          el.pause();
+        } else {
+          resetToIdle();
+        }
+      } else if (mode === 'browser' && speechSupported) {
+        window.speechSynthesis.cancel();
+        setStatus('idle');
+        setActiveSentence(-1);
+      }
+    };
+    window.addEventListener(PLAYBACK_START_EVENT, onOtherStart);
+    return () => window.removeEventListener(PLAYBACK_START_EVENT, onOtherStart);
+  }, [instanceId, mode, speechSupported]);
+
+  const broadcastStart = () => {
+    window.dispatchEvent(new CustomEvent(PLAYBACK_START_EVENT, { detail: instanceId }));
+  };
 
   const matchingVoices = useMemo(() => {
     const prefix = localeCode.split('-')[0].toLowerCase();
@@ -145,10 +216,10 @@ export default function RobotTeacher({ block }: { block: RobotTeacherBlock }) {
     setActiveSentence(-1);
   };
 
-  const start = () => {
-    if (!supported || !script) return;
-    // Only one lesson speaks at a time — cancelling here also stops any
-    // other RobotTeacher block currently narrating elsewhere on the page.
+  // --- Browser speechSynthesis controls ---
+  const startBrowserSpeech = () => {
+    if (!speechSupported || !script) return;
+    broadcastStart();
     window.speechSynthesis.cancel();
 
     const utter = new SpeechSynthesisUtterance(script);
@@ -175,22 +246,65 @@ export default function RobotTeacher({ block }: { block: RobotTeacherBlock }) {
     window.speechSynthesis.speak(utter);
   };
 
-  const pause = () => {
-    if (!supported) return;
+  const pauseBrowserSpeech = () => {
     window.speechSynthesis.pause();
     setStatus('paused');
   };
-
-  const resume = () => {
-    if (!supported) return;
+  const resumeBrowserSpeech = () => {
     window.speechSynthesis.resume();
     setStatus('speaking');
   };
-
-  const stop = () => {
-    if (supported) window.speechSynthesis.cancel();
+  const stopBrowserSpeech = () => {
+    window.speechSynthesis.cancel();
     resetToIdle();
   };
+
+  // --- Generated <audio> controls ---
+  const startGeneratedAudio = () => {
+    const el = audioRef.current;
+    if (!el) return;
+    broadcastStart();
+    setAudioLoadError(false);
+    el.currentTime = 0;
+    el.playbackRate = rate;
+    el.volume = volume;
+    setHasStarted(true);
+    el.play().catch(() => setAudioLoadError(true));
+  };
+  const pauseGeneratedAudio = () => audioRef.current?.pause();
+  const resumeGeneratedAudio = () => {
+    broadcastStart();
+    audioRef.current?.play().catch(() => setAudioLoadError(true));
+  };
+  const stopGeneratedAudio = () => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (el.paused) {
+      // Already paused (e.g. Pause was clicked, then Stop) — calling
+      // .pause() again fires no new 'pause' event, so nothing would ever
+      // reset the status. Reset directly instead of waiting for one.
+      el.currentTime = 0;
+      resetToIdle();
+    } else {
+      stoppingRef.current = true;
+      el.pause();
+      el.currentTime = 0;
+    }
+  };
+
+  // Live volume/speed updates while playing — the <audio> element supports
+  // this natively, unlike the browser-speech utterance.
+  useEffect(() => {
+    if (mode === 'generated' && audioRef.current) audioRef.current.volume = volume;
+  }, [mode, volume]);
+  useEffect(() => {
+    if (mode === 'generated' && audioRef.current) audioRef.current.playbackRate = rate;
+  }, [mode, rate]);
+
+  const start = mode === 'generated' ? startGeneratedAudio : startBrowserSpeech;
+  const pause = mode === 'generated' ? pauseGeneratedAudio : pauseBrowserSpeech;
+  const resume = mode === 'generated' ? resumeGeneratedAudio : resumeBrowserSpeech;
+  const stop = mode === 'generated' ? stopGeneratedAudio : stopBrowserSpeech;
 
   if (!script) {
     return (
@@ -202,6 +316,26 @@ export default function RobotTeacher({ block }: { block: RobotTeacherBlock }) {
 
   return (
     <div className="border border-line rounded-sm overflow-hidden bg-surface">
+      {mode === 'generated' && (
+        <audio
+          ref={audioRef}
+          src={audioSrc}
+          preload="none"
+          onPlay={() => setStatus('speaking')}
+          onPause={() => {
+            if (stoppingRef.current) {
+              stoppingRef.current = false;
+              resetToIdle();
+            } else {
+              setStatus('paused');
+            }
+          }}
+          onEnded={resetToIdle}
+          onError={() => setAudioLoadError(true)}
+          className="hidden"
+        />
+      )}
+
       {/* Stage — deliberately a fixed dark panel regardless of site theme,
           same convention as the black video-embed backgrounds elsewhere. */}
       <div className="bg-midnight px-4 py-6 sm:px-6 sm:py-8 flex flex-col items-center text-center">
@@ -216,7 +350,7 @@ export default function RobotTeacher({ block }: { block: RobotTeacherBlock }) {
           {status === 'speaking' ? t('robotSpeaking') : status === 'paused' ? t('robotPaused') : ''}
         </p>
 
-        {!supported ? (
+        {mode === 'text-only' ? (
           <p className="text-xs text-coral mt-3 max-w-xs">{t('speechNotSupported')}</p>
         ) : (
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
@@ -256,7 +390,11 @@ export default function RobotTeacher({ block }: { block: RobotTeacherBlock }) {
           </div>
         )}
 
-        {supported && (
+        {audioLoadError && (
+          <p className="text-xs text-coral mt-2 max-w-xs">{t('audioUnavailable')}</p>
+        )}
+
+        {mode !== 'text-only' && (
           <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-chalk/70">
             <label className="flex items-center gap-1.5 text-xs">
               🔊 {t('volumeLabel')}
@@ -284,7 +422,7 @@ export default function RobotTeacher({ block }: { block: RobotTeacherBlock }) {
                 <option value={1.5}>1.5x</option>
               </select>
             </label>
-            {matchingVoices.length > 1 && (
+            {mode === 'browser' && matchingVoices.length > 1 && (
               <label className="flex items-center gap-1.5 text-xs">
                 {t('voiceLabel')}
                 <select
@@ -305,27 +443,38 @@ export default function RobotTeacher({ block }: { block: RobotTeacherBlock }) {
         )}
       </div>
 
-      {/* Script panel */}
-      <div className="p-4 sm:p-5">
-        {block.instructions && (
-          <div className="mb-3">
-            <p className="font-mono text-[11px] tracking-widest text-ink/40 uppercase mb-1">
-              {t('instructionsLabel')}
-            </p>
-            <p className="text-sm text-ink/70 whitespace-pre-line">{block.instructions}</p>
-          </div>
-        )}
-        <p className="text-sm text-ink/80 leading-relaxed whitespace-pre-line">
-          {sentences.map((s, i) => (
-            <span
-              key={i}
-              className={i === activeSentence ? 'bg-amber/20 rounded px-0.5 transition-colors' : undefined}
-            >
-              {s.text}{' '}
-            </span>
-          ))}
-        </p>
-      </div>
+      {/* Script panel — the transcript itself is optional (admin-controlled);
+          instructions are a separate "what to do" note and always shown.
+          If speech isn't playable at all here, the transcript is the only
+          way to reach the lesson, so it's shown regardless of the setting
+          rather than leaving the student with nothing. */}
+      {(block.instructions || showScript || mode === 'text-only') && (
+        <div className="p-4 sm:p-5">
+          {block.instructions && (
+            <div className={showScript ? 'mb-3' : undefined}>
+              <p className="font-mono text-[11px] tracking-widest text-ink/40 uppercase mb-1">
+                {t('instructionsLabel')}
+              </p>
+              <p className="text-sm text-ink/70 whitespace-pre-line">{block.instructions}</p>
+            </div>
+          )}
+          {(showScript || mode === 'text-only') &&
+            (mode === 'browser' ? (
+              <p className="text-sm text-ink/80 leading-relaxed whitespace-pre-line">
+                {sentences.map((s, i) => (
+                  <span
+                    key={i}
+                    className={i === activeSentence ? 'bg-amber/20 rounded px-0.5 transition-colors' : undefined}
+                  >
+                    {s.text}{' '}
+                  </span>
+                ))}
+              </p>
+            ) : (
+              <p className="text-sm text-ink/80 leading-relaxed whitespace-pre-line">{script}</p>
+            ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -233,6 +233,11 @@ const dict = {
   },
   noScriptYet: { en: 'No lesson script yet.', fr: "Aucun script de leçon pour l'instant.", ht: 'Pa gen skript leson toujou.' },
   instructionsLabel: { en: 'Instructions', fr: 'Instructions', ht: 'Enstriksyon' },
+  audioUnavailable: {
+    en: "This lesson's voice audio is unavailable right now.",
+    fr: "L'audio de cette leçon n'est pas disponible pour le moment.",
+    ht: 'Odyo leson sa a pa disponib kounye a.',
+  },
   yourZoomLink: { en: 'Your Zoom link', fr: 'Votre lien Zoom', ht: 'Lyen Zoom ou' },
   zoomLinkLabel: { en: 'Zoom link:', fr: 'Lien Zoom :', ht: 'Lyen Zoom:' },
   peopleRegistered: {

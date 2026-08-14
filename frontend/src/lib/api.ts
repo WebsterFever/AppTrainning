@@ -34,6 +34,8 @@ export type ContentBlockType =
   | 'exercise'
   | 'ai_teacher';
 
+export type AiTeacherAudioStatus = 'none' | 'generating' | 'ready' | 'failed';
+
 export interface ContentBlock {
   id: string;
   type: ContentBlockType;
@@ -45,6 +47,22 @@ export interface ContentBlock {
   rate?: number;
   avatarStyle?: string;
   instructions?: string;
+  // Whether the lesson script is also shown as readable text. Undefined
+  // means "show it" (the original, only behavior) — existing blocks keep
+  // working exactly as before this became optional.
+  showScript?: boolean;
+  // Generated neural-voice audio metadata — never a raw playable URL. The
+  // audio itself is fetched through a protected endpoint (see
+  // api.aiTeacherAudioUrl) that re-checks course access by blockId.
+  audioStatus?: AiTeacherAudioStatus;
+  audioProvider?: string;
+  audioVoice?: string;
+  audioGeneratedAt?: string;
+  audioScriptHash?: string;
+  audioError?: string;
+  // Computed server-side: true when the script/language/voice/rate have
+  // changed since this audio was generated.
+  audioStale?: boolean;
 }
 
 export interface NewContentBlock {
@@ -57,6 +75,7 @@ export interface NewContentBlock {
   rate?: number;
   avatarStyle?: string;
   instructions?: string;
+  showScript?: boolean;
 }
 
 export interface CurriculumTopic {
@@ -444,6 +463,52 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, githubUrl, studentNotes: studentNotes || undefined }),
     }).then((r) => handle<ModuleSubmissionInfo>(r)),
+
+  // Direct <audio src> target — no fetch needed. The endpoint independently
+  // re-checks registration + module-unlock status for this email before
+  // streaming anything; this URL is meaningless to anyone who isn't.
+  aiTeacherAudioUrl: (classId: string, blockId: string, email: string) =>
+    `${BASE_URL}/classes/${classId}/blocks/${blockId}/audio?email=${encodeURIComponent(email)}`,
+
+  // Admin only: generates (or regenerates) neural voice audio for one
+  // ai_teacher block and persists it — reused by every student afterward,
+  // never re-generated on playback.
+  generateAiTeacherAudio: (
+    classId: string,
+    blockId: string,
+    data: { script: string; label?: string; language: 'en' | 'fr' | 'ht'; voice?: string; rate?: number },
+  ) =>
+    fetch(`${BASE_URL}/admin/classes/${classId}/blocks/${blockId}/generate-audio`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(data),
+    }).then((r) =>
+      handle<{
+        audioStatus?: AiTeacherAudioStatus;
+        audioProvider?: string;
+        audioVoice?: string;
+        audioGeneratedAt?: string;
+        audioScriptHash?: string;
+        audioError?: string;
+        content?: string;
+        label?: string;
+        language?: string;
+        voice?: string;
+        rate?: number;
+      }>(r),
+    ),
+
+  // Admin preview player — fetched as a blob (rather than a bare <audio
+  // src>) since this route needs the admin's JWT, which only a fetch()
+  // call can attach as a header.
+  previewAiTeacherAudio: async (classId: string, blockId: string): Promise<string> => {
+    const res = await fetch(`${BASE_URL}/admin/classes/${classId}/blocks/${blockId}/audio`, {
+      headers: authHeader(),
+    });
+    if (!res.ok) throw new Error('No generated audio available yet.');
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  },
 
   // Starts a Stripe Checkout session for a paid class; returns the URL to
   // redirect the browser to (card and PayPal both handled by Stripe).

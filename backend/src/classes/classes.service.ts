@@ -7,6 +7,11 @@ import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { ExtraVideoDto } from './dto/extra-video.dto';
 import { CurriculumModuleDto } from './dto/curriculum-module.dto';
+import { computeScriptHash } from './ai-teacher/script-hash';
+
+type ContentBlockRecord = NonNullable<
+  NonNullable<TrainingClass['curriculumModules']>[number]['topics'][number]['contentBlocks']
+>[number];
 
 export interface ClassWithCount {
   id: string;
@@ -47,17 +52,7 @@ export interface ClassWithCount {
       id: string;
       title?: string;
       description?: string;
-      contentBlocks?: {
-        id: string;
-        type?: string;
-        content?: string;
-        label?: string;
-        language?: string;
-        voice?: string;
-        rate?: number;
-        avatarStyle?: string;
-        instructions?: string;
-      }[];
+      contentBlocks?: (ContentBlockRecord & { audioStale?: boolean })[];
     }[];
   }[];
 }
@@ -129,7 +124,7 @@ export class ClassesService {
       ...dto,
       ...(dto.extraVideos ? { extraVideos: this.withVideoIds(dto.extraVideos) } : {}),
       ...(dto.curriculumModules
-        ? { curriculumModules: this.withModuleIds(dto.curriculumModules) }
+        ? { curriculumModules: this.withModuleIds(dto.curriculumModules, existing.curriculumModules) }
         : {}),
       ...(dto.allowedEmails ? { allowedEmails: this.normalizeEmails(dto.allowedEmails) } : {}),
       classDate: dto.classDate ? new Date(dto.classDate) : existing.classDate,
@@ -159,7 +154,34 @@ export class ClassesService {
     }));
   }
 
-  private withModuleIds(modules?: CurriculumModuleDto[]): TrainingClass['curriculumModules'] {
+  // `existingModules` (the class's currently-persisted curriculum, when
+  // updating) lets us preserve any generated ai_teacher audio metadata
+  // across an ordinary "Save changes" — otherwise every save would silently
+  // wipe out audio that was already generated, even for blocks the admin
+  // didn't touch. Audio "staleness" (script edited since generation) is
+  // surfaced separately via computeScriptHash, not by discarding the audio.
+  private withModuleIds(
+    modules?: CurriculumModuleDto[],
+    existingModules?: TrainingClass['curriculumModules'],
+  ): TrainingClass['curriculumModules'] {
+    const existingAudioByBlockId = new Map<string, Partial<ContentBlockRecord>>();
+    for (const m of existingModules ?? []) {
+      for (const t of m.topics ?? []) {
+        for (const b of t.contentBlocks ?? []) {
+          if (!b.audioStatus && !b.audioKey) continue;
+          existingAudioByBlockId.set(b.id, {
+            audioStatus: b.audioStatus,
+            audioKey: b.audioKey,
+            audioProvider: b.audioProvider,
+            audioVoice: b.audioVoice,
+            audioGeneratedAt: b.audioGeneratedAt,
+            audioScriptHash: b.audioScriptHash,
+            audioError: b.audioError,
+          });
+        }
+      }
+    }
+
     return modules?.map((m) => ({
       id: m.id ?? randomUUID(),
       title: m.title || undefined,
@@ -169,17 +191,22 @@ export class ClassesService {
         id: t.id ?? randomUUID(),
         title: t.title || undefined,
         description: t.description || undefined,
-        contentBlocks: t.contentBlocks?.map((b) => ({
-          id: b.id ?? randomUUID(),
-          type: b.type || 'text',
-          content: b.content || undefined,
-          label: b.label || undefined,
-          language: b.language || undefined,
-          voice: b.voice || undefined,
-          rate: b.rate ?? undefined,
-          avatarStyle: b.avatarStyle || undefined,
-          instructions: b.instructions || undefined,
-        })),
+        contentBlocks: t.contentBlocks?.map((b) => {
+          const preservedAudio = b.id ? existingAudioByBlockId.get(b.id) : undefined;
+          return {
+            id: b.id ?? randomUUID(),
+            type: b.type || 'text',
+            content: b.content || undefined,
+            label: b.label || undefined,
+            language: b.language || undefined,
+            voice: b.voice || undefined,
+            rate: b.rate ?? undefined,
+            avatarStyle: b.avatarStyle || undefined,
+            instructions: b.instructions || undefined,
+            showScript: b.showScript ?? undefined,
+            ...preservedAudio,
+          };
+        }),
       })),
     }));
   }
@@ -223,6 +250,13 @@ export class ClassesService {
     return row;
   }
 
+  // Persists an entity already mutated in place (e.g. AiTeacherService
+  // updating one block's audio metadata within curriculumModules) without
+  // handing out direct repository access.
+  async saveEntity(entity: TrainingClass): Promise<TrainingClass> {
+    return this.classesRepo.save(entity);
+  }
+
   // Strips a module's private lesson content (contentBlocks), keeping only
   // the public marketing-curriculum shape (title/objective/topics'
   // titles+descriptions/project). Used both for anonymous visitors (see
@@ -238,6 +272,50 @@ export class ClassesService {
     };
   }
 
+  // For every ai_teacher block that has generated audio, flags whether the
+  // script/language/voice/rate have changed since that audio was generated
+  // — computed on read rather than eagerly, so an ordinary script edit
+  // never silently discards the existing (still-playable) audio. Safe to
+  // call on already-preview()'d modules too (contentBlocks is just absent).
+  withAudioStaleness(
+    modules?: TrainingClass['curriculumModules'],
+  ): ClassWithCount['curriculumModules'] {
+    return modules?.map((m) => ({
+      ...m,
+      topics: m.topics.map((t) => ({
+        ...t,
+        contentBlocks: t.contentBlocks?.map((b) => {
+          if (b.type !== 'ai_teacher' || !b.audioScriptHash) return b;
+          const currentHash = computeScriptHash(b.content, b.language, b.voice, b.rate);
+          return { ...b, audioStale: b.audioStatus === 'ready' && currentHash !== b.audioScriptHash };
+        }),
+      })),
+    }));
+  }
+
+  // Removes the private S3 object key from every ai_teacher block before a
+  // response reaches any client. `audioKey` has no legitimate client-side
+  // use — audio is always fetched through the access-controlled streaming
+  // endpoints (keyed by classId/blockId, which re-check registration and
+  // module-unlock status server-side), never by this raw key. Exposing it
+  // let it be replayed directly against the generic, unauthenticated
+  // /uploads/file/:folder/:filename route, bypassing course access rules.
+  stripPrivateAudioFields(
+    modules?: ClassWithCount['curriculumModules'],
+  ): ClassWithCount['curriculumModules'] {
+    return modules?.map((m) => ({
+      ...m,
+      topics: m.topics.map((t) => ({
+        ...t,
+        contentBlocks: t.contentBlocks?.map((b) => {
+          if (b.type !== 'ai_teacher' || !('audioKey' in b)) return b;
+          const { audioKey: _audioKey, ...rest } = b as typeof b & { audioKey?: string };
+          return rest;
+        }),
+      })),
+    }));
+  }
+
   private toPublicShape(
     row: TrainingClass & { registrationCount?: number },
     includeNames = false,
@@ -251,9 +329,11 @@ export class ClassesService {
     // module/topic titles + descriptions themselves stay public always —
     // that's the marketing curriculum.
     const revealPrivateContent = row.isPast || revealZoomLink;
-    const curriculumModules = revealPrivateContent
-      ? row.curriculumModules
-      : row.curriculumModules?.map((m) => this.previewModule(m));
+    const curriculumModules = this.stripPrivateAudioFields(
+      revealPrivateContent
+        ? this.withAudioStaleness(row.curriculumModules)
+        : row.curriculumModules?.map((m) => this.previewModule(m)),
+    );
     return {
       id: row.id,
       title: row.title,
