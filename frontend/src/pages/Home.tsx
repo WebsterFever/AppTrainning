@@ -98,9 +98,8 @@ const WinnerCard: React.FC<{ place: number; name: string; points: number; image:
   return (
     <div className={`${baseClasses} ${placeClasses}`}>
       <div
-        className={`absolute right-3 top-3 rounded-full px-3 py-1 font-mono text-[10px] font-semibold ${
-          isFirst ? 'bg-amber text-midnight' : 'border border-line bg-surface text-ink'
-        }`}
+        className={`absolute right-3 top-3 rounded-full px-3 py-1 font-mono text-[10px] font-semibold ${isFirst ? 'bg-amber text-midnight' : 'border border-line bg-surface text-ink'
+          }`}
       >
         {t('placeOrdinal', { place })}
       </div>
@@ -108,9 +107,8 @@ const WinnerCard: React.FC<{ place: number; name: string; points: number; image:
       <div className="text-4xl">{['🥇', '🥈', '🥉'][place - 1]}</div>
 
       <div
-        className={`mx-auto mt-3 overflow-hidden rounded-full border-4 ${
-          isFirst ? 'border-amber/30' : 'border-line'
-        } bg-surface shadow-md ${isFirst ? 'h-24 w-24' : 'h-20 w-20'}`}
+        className={`mx-auto mt-3 overflow-hidden rounded-full border-4 ${isFirst ? 'border-amber/30' : 'border-line'
+          } bg-surface shadow-md ${isFirst ? 'h-24 w-24' : 'h-20 w-20'}`}
       >
         <img src={image} alt={`${name} - ${place} place winner`} className="h-full w-full object-cover" />
       </div>
@@ -218,11 +216,15 @@ const ClassListSection: React.FC<{
         <span className="font-mono text-xs text-ink/40">{t('classCount', { count: classes.length })}</span>
       </div>
 
-     <div className="grid grid-cols-1 gap-8">
-  {classes.map((classItem) => (
-    <ClassCard key={classItem.id} item={classItem} />
-  ))}
-</div>
+      <div className="grid grid-cols-1 gap-8">
+        {classes.map((classItem, index) => (
+          <ClassCard
+            key={classItem.id}
+            item={classItem}
+            reverse={index % 2 === 1}
+          />
+        ))}
+      </div>
     </section>
   );
 };
@@ -292,11 +294,11 @@ export default function Home() {
       <p className="mb-4 font-mono text-xs uppercase tracking-widest text-ink/40">
         {t('loadingClasses')}
       </p>
-    <div className="grid grid-cols-1 gap-8">
-  {Array.from({ length: 3 }).map((_, index) => (
-    <ClassCardSkeleton key={index} />
-  ))}
-</div>
+      <div className="grid grid-cols-1 gap-8">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <ClassCardSkeleton key={index} />
+        ))}
+      </div>
     </div>
   );
 

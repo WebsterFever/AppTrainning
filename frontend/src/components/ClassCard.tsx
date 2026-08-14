@@ -25,7 +25,13 @@ function formatDateParts(iso: string | undefined, locale: string) {
   };
 }
 
-export default function ClassCard({ item }: { item: ClassItem }) {
+export default function ClassCard({
+  item,
+  reverse = false,
+}: {
+  item: ClassItem;
+  reverse?: boolean;
+}) {
   const { language, t } = useLanguage();
   const locale = localeFor(language);
   const dateParts = formatDateParts(item.classDate, locale);
@@ -53,12 +59,21 @@ export default function ClassCard({ item }: { item: ClassItem }) {
         hover:-translate-y-1
         hover:shadow-xl
         md:grid
-        md:grid-cols-[48%_52%]
+        md:grid-cols-2
         lg:min-h-[390px]
       "
     >
       {/* IMAGE */}
-      <div className="relative min-h-[240px] overflow-hidden sm:min-h-[300px] md:min-h-full">
+      <div
+        className={`
+          relative
+          min-h-[240px]
+          overflow-hidden
+          sm:min-h-[300px]
+          md:min-h-full
+          ${reverse ? 'md:order-2' : 'md:order-1'}
+        `}
+      >
         <img
           src={item.imageUrl}
           alt={item.title}
@@ -106,7 +121,19 @@ export default function ClassCard({ item }: { item: ClassItem }) {
       </div>
 
       {/* CONTENT */}
-      <div className="flex min-h-[330px] flex-col p-5 sm:p-7 md:min-h-full lg:p-9 xl:p-10">
+      <div
+        className={`
+          flex
+          min-h-[330px]
+          flex-col
+          p-5
+          sm:p-7
+          md:min-h-full
+          lg:p-9
+          xl:p-10
+          ${reverse ? 'md:order-1' : 'md:order-2'}
+        `}
+      >
         <div>
           <h3 className="font-display text-2xl font-semibold leading-tight text-ink transition-colors group-hover:text-amber sm:text-3xl lg:text-4xl">
             {item.title}
