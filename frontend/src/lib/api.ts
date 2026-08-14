@@ -36,6 +36,24 @@ export type ContentBlockType =
 
 export type AiTeacherAudioStatus = 'none' | 'generating' | 'ready' | 'failed';
 
+// Fixed set for the admin's optional code-language picker — matches the
+// backend's CUE_CODE_LANGUAGES. Display-only (label + monospace styling),
+// never sent to TTS.
+export const CUE_CODE_LANGUAGES = [
+  'html',
+  'css',
+  'javascript',
+  'typescript',
+  'jsx',
+  'python',
+  'java',
+  'csharp',
+  'sql',
+  'bash',
+  'other',
+] as const;
+export type CueCodeLanguage = (typeof CUE_CODE_LANGUAGES)[number];
+
 // One Guided Video Lesson explanation point (video blocks only). Same
 // generated-audio shape as a standalone ai_teacher block, just scoped to a
 // timestamp instead of the whole block. Never carries a raw storage key —
@@ -47,6 +65,10 @@ export interface TeacherCue {
   language?: 'en' | 'fr' | 'ht';
   voice?: string;
   rate?: number;
+  // Optional reference code shown beside the explanation — display-only,
+  // never spoken and never affects generated-audio staleness.
+  code?: string;
+  codeLanguage?: CueCodeLanguage;
   audioStatus?: AiTeacherAudioStatus;
   audioProvider?: string;
   audioVoice?: string;
@@ -63,6 +85,8 @@ export interface NewTeacherCue {
   language?: 'en' | 'fr' | 'ht';
   voice?: string;
   rate?: number;
+  code?: string;
+  codeLanguage?: CueCodeLanguage;
 }
 
 export interface ContentBlock {

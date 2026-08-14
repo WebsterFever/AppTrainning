@@ -342,14 +342,14 @@ export default function RobotTeacher({
       {/* Stage — deliberately a fixed dark panel regardless of site theme,
           same convention as the black video-embed backgrounds elsewhere. */}
       <div className="bg-midnight px-4 py-6 sm:px-6 sm:py-8 flex flex-col items-center text-center">
-        <span className="text-[11px] font-mono uppercase tracking-widest text-chalk/50 mb-3">
+        <span className="text-[11px] font-mono uppercase tracking-widest text-white/70 mb-3">
           🤖 {t('aiTeacherLabel')}
         </span>
         <RobotAvatar status={status} glow={glow} />
         {block.label && (
-          <p className="font-display text-lg text-chalk mt-4">{block.label}</p>
+          <p className="font-display text-lg text-white mt-4">{block.label}</p>
         )}
-        <p className="text-xs font-mono text-chalk/50 mt-1 h-4">
+        <p className="text-xs font-mono text-white/80 mt-1 h-4">
           {status === 'speaking' ? t('robotSpeaking') : status === 'paused' ? t('robotPaused') : ''}
         </p>
 
@@ -369,10 +369,10 @@ export default function RobotTeacher({
             )}
             {status === 'speaking' && (
               <>
-                <button onClick={pause} className="btn-outline text-sm px-4 py-2 border-chalk/30 text-chalk hover:border-chalk/60 hover:text-chalk">
+                <button onClick={pause} className="btn-outline text-sm px-4 py-2 border-chalk/30 text-white hover:border-chalk/60 hover:text-white">
                   ⏸ {t('pauseLesson')}
                 </button>
-                <button onClick={stop} className="btn-outline text-sm px-4 py-2 border-chalk/30 text-chalk hover:border-chalk/60 hover:text-chalk">
+                <button onClick={stop} className="btn-outline text-sm px-4 py-2 border-chalk/30 text-white hover:border-chalk/60 hover:text-white">
                   ⏹ {t('stopLesson')}
                 </button>
               </>
@@ -382,10 +382,10 @@ export default function RobotTeacher({
                 <button onClick={resume} className="btn-primary text-sm px-4 py-2">
                   ▶ {t('resumeLesson')}
                 </button>
-                <button onClick={start} className="btn-outline text-sm px-4 py-2 border-chalk/30 text-chalk hover:border-chalk/60 hover:text-chalk">
+                <button onClick={start} className="btn-outline text-sm px-4 py-2 border-chalk/30 text-white hover:border-chalk/60 hover:text-white">
                   ↻ {t('replayLesson')}
                 </button>
-                <button onClick={stop} className="btn-outline text-sm px-4 py-2 border-chalk/30 text-chalk hover:border-chalk/60 hover:text-chalk">
+                <button onClick={stop} className="btn-outline text-sm px-4 py-2 border-chalk/30 text-white hover:border-chalk/60 hover:text-white">
                   ⏹ {t('stopLesson')}
                 </button>
               </>
@@ -398,7 +398,7 @@ export default function RobotTeacher({
         )}
 
         {mode !== 'text-only' && (
-          <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-chalk/70">
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-white/70">
             <label className="flex items-center gap-1.5 text-xs">
               🔊 {t('volumeLabel')}
               <input

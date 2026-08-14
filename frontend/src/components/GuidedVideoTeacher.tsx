@@ -267,18 +267,18 @@ export default function GuidedVideoTeacher({
               />
             )}
             <div className="bg-midnight rounded-sm px-4 py-5 flex flex-col items-center text-center">
-              <span className="text-[11px] font-mono uppercase tracking-widest text-chalk/50 mb-2">
+              <span className="text-[11px] font-mono uppercase tracking-widest text-white/70 mb-2">
                 🤖 {t('aiTeacherLabel')}
               </span>
               <RobotAvatar status={status} glow={accent} />
-              <p className="text-xs font-mono text-chalk/50 mt-1 h-4">
+              <p className="text-xs font-mono text-white/80 mt-1 h-4">
                 {status === 'speaking' ? t('robotSpeaking') : status === 'paused' ? t('robotPaused') : ''}
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
                 {status === 'speaking' && (
                   <button
                     onClick={pauseTeacher}
-                    className="btn-outline text-xs px-3 py-1.5 border-chalk/30 text-chalk hover:border-chalk/60 hover:text-chalk"
+                    className="btn-outline text-xs px-3 py-1.5 border-chalk/30 text-white hover:border-chalk/60 hover:text-white"
                   >
                     ⏸ {t('pauseLesson')}
                   </button>
@@ -290,7 +290,7 @@ export default function GuidedVideoTeacher({
                 )}
                 <button
                   onClick={skipExplanation}
-                  className="btn-outline text-xs px-3 py-1.5 border-chalk/30 text-chalk hover:border-chalk/60 hover:text-chalk"
+                  className="btn-outline text-xs px-3 py-1.5 border-chalk/30 text-white hover:border-chalk/60 hover:text-white"
                 >
                   ⏭ {t('skipExplanation')}
                 </button>
@@ -298,7 +298,18 @@ export default function GuidedVideoTeacher({
               {audioLoadError && (
                 <p className="text-xs text-coral mt-2 max-w-xs">{t('audioUnavailable')}</p>
               )}
-              <p className="text-sm text-chalk/80 leading-relaxed mt-3 whitespace-pre-line">
+              {activeCue.code && (
+                <div className="w-full mt-3 text-left">
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-white/70 mb-1">
+                    {t('codeBeingExplained')}
+                    {activeCue.codeLanguage ? ` — ${activeCue.codeLanguage}` : ''}
+                  </p>
+                  <pre className="bg-black/40 border border-chalk/10 text-white rounded-sm p-2.5 overflow-x-auto text-xs font-mono whitespace-pre">
+                    {activeCue.code}
+                  </pre>
+                </div>
+              )}
+              <p className="text-sm text-white/80 leading-relaxed mt-3 whitespace-pre-line">
                 {activeCue.script}
               </p>
             </div>

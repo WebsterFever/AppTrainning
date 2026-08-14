@@ -237,6 +237,8 @@ export class ClassesService {
                 language: cue.language || undefined,
                 voice: cue.voice || undefined,
                 rate: cue.rate ?? undefined,
+                code: cue.code || undefined,
+                codeLanguage: cue.codeLanguage || undefined,
                 ...preservedCueAudio,
               };
             }),

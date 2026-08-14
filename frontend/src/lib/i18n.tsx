@@ -233,6 +233,11 @@ const dict = {
   },
   noScriptYet: { en: 'No lesson script yet.', fr: "Aucun script de leçon pour l'instant.", ht: 'Pa gen skript leson toujou.' },
   skipExplanation: { en: 'Skip', fr: 'Passer', ht: 'Sote' },
+  codeBeingExplained: {
+    en: 'Code being explained',
+    fr: 'Code expliqué',
+    ht: 'Kòd k ap eksplike',
+  },
   guidedNarrationUnavailable: {
     en: "This video's guided narration needs a direct video file — playing without automatic pauses.",
     fr: "La narration guidée de cette vidéo nécessite un fichier vidéo direct — lecture sans pauses automatiques.",

@@ -112,6 +112,10 @@ export class TrainingClass {
           language?: 'en' | 'fr' | 'ht';
           voice?: string;
           rate?: number;
+          // Optional reference code shown alongside the explanation —
+          // display-only, never spoken (see TeacherCueDto).
+          code?: string;
+          codeLanguage?: string;
           audioStatus?: 'none' | 'generating' | 'ready' | 'failed';
           audioKey?: string;
           audioProvider?: string;

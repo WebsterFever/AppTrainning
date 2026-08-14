@@ -4,6 +4,7 @@ import {
   api,
   ClassItem,
   ContentBlockType,
+  CueCodeLanguage,
   NewExtraVideo,
   RegistrationDetail,
 } from '../lib/api';
@@ -354,6 +355,8 @@ export default function ClassManager({
                       language: cue.language ?? '',
                       voice: cue.voice ?? '',
                       rate: cue.rate != null ? String(cue.rate) : '1',
+                      code: cue.code ?? '',
+                      codeLanguage: cue.codeLanguage ?? '',
                       audioStatus: cue.audioStatus,
                       audioVoice: cue.audioVoice,
                       audioError: cue.audioError,
@@ -455,6 +458,10 @@ export default function ClassManager({
                             language: (cue.language || undefined) as 'en' | 'fr' | 'ht' | undefined,
                             voice: cue.voice.trim() || undefined,
                             rate: cue.rate.trim() ? parseFloat(cue.rate) : undefined,
+                            code: cue.code.trim() || undefined,
+                            codeLanguage: (cue.code.trim() ? cue.codeLanguage || undefined : undefined) as
+                              | CueCodeLanguage
+                              | undefined,
                           }))
                           .filter((cue) => cue.script),
                       }

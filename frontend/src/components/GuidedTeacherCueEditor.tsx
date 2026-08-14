@@ -1,10 +1,24 @@
 import { useState } from 'react';
-import { api, AiTeacherAudioStatus } from '../lib/api';
+import { api, AiTeacherAudioStatus, CUE_CODE_LANGUAGES } from '../lib/api';
 import { formatClockTimestamp, parseClockTimestamp } from '../lib/guidedVideo';
 
 // Stable OpenAI neural voice names — same list ClassManager uses for
 // standalone ai_teacher blocks.
 const NEURAL_VOICES = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'] as const;
+
+const CODE_LANGUAGE_LABELS: Record<string, string> = {
+  html: 'HTML',
+  css: 'CSS',
+  javascript: 'JavaScript',
+  typescript: 'TypeScript',
+  jsx: 'React/JSX',
+  python: 'Python',
+  java: 'Java',
+  csharp: 'C#',
+  sql: 'SQL',
+  bash: 'Bash',
+  other: 'Other',
+};
 
 export interface TeacherCueForm {
   id?: string;
@@ -15,6 +29,11 @@ export interface TeacherCueForm {
   language: string; // '' = match class language, same convention as ai_teacher blocks
   voice: string;
   rate: string;
+  // Optional: the exact code this explanation is about. Display-only —
+  // never sent to TTS (only `script` is, see generateVoice below) and never
+  // affects staleness (see backend computeScriptHash).
+  code: string;
+  codeLanguage: string;
   // Read-only, mirrors ContentBlockForm's own audio* fields.
   audioStatus?: AiTeacherAudioStatus;
   audioVoice?: string;
@@ -23,7 +42,7 @@ export interface TeacherCueForm {
 }
 
 export function emptyCue(): TeacherCueForm {
-  return { timestamp: '', script: '', language: '', voice: '', rate: '1' };
+  return { timestamp: '', script: '', language: '', voice: '', rate: '1', code: '', codeLanguage: '' };
 }
 
 export default function GuidedTeacherCueEditor({
@@ -158,6 +177,29 @@ export default function GuidedTeacherCueEditor({
                 onChange={(e) => updateCue(ci, { script: e.target.value })}
                 className="input h-16 text-sm"
               />
+              <div>
+                <textarea
+                  placeholder="Code being explained (optional) — shown to the student, never spoken aloud"
+                  value={cue.code}
+                  onChange={(e) => updateCue(ci, { code: e.target.value })}
+                  spellCheck={false}
+                  className="input h-16 text-xs font-mono"
+                />
+                {cue.code.trim() && (
+                  <select
+                    value={cue.codeLanguage}
+                    onChange={(e) => updateCue(ci, { codeLanguage: e.target.value })}
+                    className="input text-xs py-1 mt-1"
+                  >
+                    <option value="">Code language (optional)</option>
+                    {CUE_CODE_LANGUAGES.map((lang) => (
+                      <option key={lang} value={lang}>
+                        {CODE_LANGUAGE_LABELS[lang]}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
               <div className="grid grid-cols-3 gap-1.5">
                 <select
                   value={cue.language}
@@ -239,7 +281,7 @@ export default function GuidedTeacherCueEditor({
       </div>
       <button
         type="button"
-        onClick={() => onChange([...cues, { timestamp: '', script: '', language: '', voice: '', rate: '1' }])}
+        onClick={() => onChange([...cues, emptyCue()])}
         className="text-xs font-semibold text-amber hover:text-coral"
       >
         + Add explanation
