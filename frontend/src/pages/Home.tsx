@@ -218,11 +218,11 @@ const ClassListSection: React.FC<{
         <span className="font-mono text-xs text-ink/40">{t('classCount', { count: classes.length })}</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {classes.map((classItem) => (
-          <ClassCard key={classItem.id} item={classItem} />
-        ))}
-      </div>
+     <div className="grid grid-cols-1 gap-8">
+  {classes.map((classItem) => (
+    <ClassCard key={classItem.id} item={classItem} />
+  ))}
+</div>
     </section>
   );
 };
@@ -292,11 +292,11 @@ export default function Home() {
       <p className="mb-4 font-mono text-xs uppercase tracking-widest text-ink/40">
         {t('loadingClasses')}
       </p>
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <ClassCardSkeleton key={index} />
-        ))}
-      </div>
+    <div className="grid grid-cols-1 gap-8">
+  {Array.from({ length: 3 }).map((_, index) => (
+    <ClassCardSkeleton key={index} />
+  ))}
+</div>
     </div>
   );
 
