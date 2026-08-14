@@ -14,13 +14,23 @@ const BLOCK_TYPES: { value: ContentBlockType; label: string }[] = [
   { value: 'code', label: 'Code' },
   { value: 'resource', label: 'Resource' },
   { value: 'exercise', label: 'Exercise' },
+  { value: 'ai_teacher', label: 'AI Teacher' },
 ];
+
+const AI_TEACHER_AVATAR_STYLES = ['amber', 'sage', 'coral'] as const;
 
 interface ContentBlockForm {
   id?: string;
   type: ContentBlockType;
   content: string;
   label: string;
+  // ai_teacher-only fields — ignored (and stripped on submit) for every
+  // other block type.
+  language: string;
+  voice: string;
+  rate: string;
+  avatarStyle: string;
+  instructions: string;
 }
 
 interface TopicForm {
@@ -66,7 +76,16 @@ function emptyExtraVideo(): ExtraVideoForm {
 }
 
 function emptyBlock(): ContentBlockForm {
-  return { type: 'text', content: '', label: '' };
+  return {
+    type: 'text',
+    content: '',
+    label: '',
+    language: '',
+    voice: '',
+    rate: '1',
+    avatarStyle: 'amber',
+    instructions: '',
+  };
 }
 
 function emptyTopic(): TopicForm {
@@ -224,6 +243,11 @@ export default function ClassManager({
                     type: b.type,
                     content: b.content ?? '',
                     label: b.label ?? '',
+                    language: b.language ?? '',
+                    voice: b.voice ?? '',
+                    rate: b.rate != null ? String(b.rate) : '1',
+                    avatarStyle: b.avatarStyle ?? 'amber',
+                    instructions: b.instructions ?? '',
                   })),
                 }))
               : [emptyTopic()],
@@ -299,6 +323,15 @@ export default function ClassManager({
                   type: b.type,
                   content: b.content.trim() || undefined,
                   label: b.label.trim() || undefined,
+                  ...(b.type === 'ai_teacher'
+                    ? {
+                        language: (b.language || undefined) as 'en' | 'fr' | 'ht' | undefined,
+                        voice: b.voice.trim() || undefined,
+                        rate: b.rate.trim() ? parseFloat(b.rate) : undefined,
+                        avatarStyle: b.avatarStyle || undefined,
+                        instructions: b.instructions.trim() || undefined,
+                      }
+                    : {}),
                 }))
                 // A divider needs no content to be meaningful; every other
                 // block type does.
@@ -1051,6 +1084,128 @@ export default function ClassManager({
                                     className="input text-xs py-1"
                                   />
                                 </>
+                              ) : block.type === 'ai_teacher' ? (
+                                <div className="space-y-1.5">
+                                  <textarea
+                                    placeholder="Lesson script — exactly what the robot will say"
+                                    value={block.content}
+                                    onChange={(e) => {
+                                      const next = [...form.curriculumModules];
+                                      const topics = [...next[mi].topics];
+                                      const blocks = [...topics[ti].contentBlocks];
+                                      blocks[bi] = { ...blocks[bi], content: e.target.value };
+                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                      next[mi] = { ...next[mi], topics };
+                                      setForm({ ...form, curriculumModules: next });
+                                    }}
+                                    className="input h-28 text-sm"
+                                  />
+                                  <input
+                                    placeholder="Lesson title (optional)"
+                                    value={block.label}
+                                    onChange={(e) => {
+                                      const next = [...form.curriculumModules];
+                                      const topics = [...next[mi].topics];
+                                      const blocks = [...topics[ti].contentBlocks];
+                                      blocks[bi] = { ...blocks[bi], label: e.target.value };
+                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                      next[mi] = { ...next[mi], topics };
+                                      setForm({ ...form, curriculumModules: next });
+                                    }}
+                                    className="input text-xs py-1"
+                                  />
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <select
+                                      value={block.language}
+                                      onChange={(e) => {
+                                        const next = [...form.curriculumModules];
+                                        const topics = [...next[mi].topics];
+                                        const blocks = [...topics[ti].contentBlocks];
+                                        blocks[bi] = { ...blocks[bi], language: e.target.value };
+                                        topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                        next[mi] = { ...next[mi], topics };
+                                        setForm({ ...form, curriculumModules: next });
+                                      }}
+                                      className="input text-xs py-1"
+                                    >
+                                      <option value="">Match class language</option>
+                                      <option value="en">English</option>
+                                      <option value="fr">French</option>
+                                      <option value="ht">Creole</option>
+                                    </select>
+                                    <select
+                                      value={block.avatarStyle}
+                                      onChange={(e) => {
+                                        const next = [...form.curriculumModules];
+                                        const topics = [...next[mi].topics];
+                                        const blocks = [...topics[ti].contentBlocks];
+                                        blocks[bi] = { ...blocks[bi], avatarStyle: e.target.value };
+                                        topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                        next[mi] = { ...next[mi], topics };
+                                        setForm({ ...form, curriculumModules: next });
+                                      }}
+                                      className="input text-xs py-1"
+                                    >
+                                      {AI_TEACHER_AVATAR_STYLES.map((style) => (
+                                        <option key={style} value={style}>
+                                          {style[0].toUpperCase() + style.slice(1)} avatar
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <input
+                                      placeholder="Voice name hint (optional)"
+                                      value={block.voice}
+                                      onChange={(e) => {
+                                        const next = [...form.curriculumModules];
+                                        const topics = [...next[mi].topics];
+                                        const blocks = [...topics[ti].contentBlocks];
+                                        blocks[bi] = { ...blocks[bi], voice: e.target.value };
+                                        topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                        next[mi] = { ...next[mi], topics };
+                                        setForm({ ...form, curriculumModules: next });
+                                      }}
+                                      className="input text-xs py-1"
+                                    />
+                                    <input
+                                      type="number"
+                                      min={0.5}
+                                      max={2}
+                                      step={0.1}
+                                      placeholder="Speed (1 = normal)"
+                                      value={block.rate}
+                                      onChange={(e) => {
+                                        const next = [...form.curriculumModules];
+                                        const topics = [...next[mi].topics];
+                                        const blocks = [...topics[ti].contentBlocks];
+                                        blocks[bi] = { ...blocks[bi], rate: e.target.value };
+                                        topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                        next[mi] = { ...next[mi], topics };
+                                        setForm({ ...form, curriculumModules: next });
+                                      }}
+                                      className="input text-xs py-1"
+                                    />
+                                  </div>
+                                  <p className="text-[11px] text-ink/40">
+                                    Voice name is a best-effort hint — students' browsers pick the closest
+                                    available voice for the chosen language if it's not installed.
+                                  </p>
+                                  <textarea
+                                    placeholder="Instructions shown to the student (optional)"
+                                    value={block.instructions}
+                                    onChange={(e) => {
+                                      const next = [...form.curriculumModules];
+                                      const topics = [...next[mi].topics];
+                                      const blocks = [...topics[ti].contentBlocks];
+                                      blocks[bi] = { ...blocks[bi], instructions: e.target.value };
+                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                      next[mi] = { ...next[mi], topics };
+                                      setForm({ ...form, curriculumModules: next });
+                                    }}
+                                    className="input h-12 text-sm"
+                                  />
+                                </div>
                               ) : (
                                 <>
                                   <input

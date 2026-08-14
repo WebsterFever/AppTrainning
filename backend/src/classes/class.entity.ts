@@ -80,6 +80,12 @@ export class TrainingClass {
         type?: string;
         content?: string;
         label?: string;
+        // ai_teacher-only fields (see ContentBlockDto for details).
+        language?: string;
+        voice?: string;
+        rate?: number;
+        avatarStyle?: string;
+        instructions?: string;
       }[];
     }[];
   }[];

@@ -47,7 +47,17 @@ export interface ClassWithCount {
       id: string;
       title?: string;
       description?: string;
-      contentBlocks?: { id: string; type?: string; content?: string; label?: string }[];
+      contentBlocks?: {
+        id: string;
+        type?: string;
+        content?: string;
+        label?: string;
+        language?: string;
+        voice?: string;
+        rate?: number;
+        avatarStyle?: string;
+        instructions?: string;
+      }[];
     }[];
   }[];
 }
@@ -164,6 +174,11 @@ export class ClassesService {
           type: b.type || 'text',
           content: b.content || undefined,
           label: b.label || undefined,
+          language: b.language || undefined,
+          voice: b.voice || undefined,
+          rate: b.rate ?? undefined,
+          avatarStyle: b.avatarStyle || undefined,
+          instructions: b.instructions || undefined,
         })),
       })),
     }));

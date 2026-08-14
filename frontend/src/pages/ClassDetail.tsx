@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import { ClassDetailSkeleton } from '../components/Skeletons';
 import { getVideoEmbed } from '../lib/video';
 import VideoComments from '../components/VideoComments';
+import RobotTeacher from '../components/RobotTeacher';
 import { useLanguage, localeFor } from '../lib/i18n';
 import { seenClasses } from '../lib/seenClasses';
 
@@ -294,10 +295,22 @@ export default function ClassDetail() {
   // (see ClassesService.toPublicShape / RegistrationsService.register) — so
   // this simply renders whatever the API actually sent.
   const renderContentBlock = (
-    block: { id: string; type: string; content?: string; label?: string },
+    block: {
+      id: string;
+      type: string;
+      content?: string;
+      label?: string;
+      language?: 'en' | 'fr' | 'ht';
+      voice?: string;
+      rate?: number;
+      avatarStyle?: string;
+      instructions?: string;
+    },
     key: string,
   ) => {
     switch (block.type) {
+      case 'ai_teacher':
+        return <RobotTeacher key={key} block={block} />;
       case 'heading':
         return (
           <h4 key={key} className="font-display text-base text-ink">

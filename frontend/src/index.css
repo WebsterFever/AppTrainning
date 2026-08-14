@@ -82,3 +82,61 @@ body {
 .animate-pulse-soft {
   animation: pulse-soft 1.6s ease-in-out infinite;
 }
+
+/* AI Robot Teacher avatar — subtle, non-distracting motion. */
+@keyframes robot-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+.animate-robot-blink {
+  animation: robot-blink 4.5s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes robot-idle-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+.animate-robot-idle {
+  animation: robot-idle-bob 3s ease-in-out infinite;
+}
+
+@keyframes robot-talk {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.animate-robot-talk {
+  animation: robot-talk 0.32s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes robot-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.animate-robot-glow {
+  animation: robot-glow 1.1s ease-in-out infinite;
+}

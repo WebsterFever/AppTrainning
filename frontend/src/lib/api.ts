@@ -31,13 +31,20 @@ export type ContentBlockType =
   | 'divider'
   | 'code'
   | 'resource'
-  | 'exercise';
+  | 'exercise'
+  | 'ai_teacher';
 
 export interface ContentBlock {
   id: string;
   type: ContentBlockType;
   content?: string;
   label?: string;
+  // ai_teacher-only fields (see backend ContentBlockDto for details).
+  language?: 'en' | 'fr' | 'ht';
+  voice?: string;
+  rate?: number;
+  avatarStyle?: string;
+  instructions?: string;
 }
 
 export interface NewContentBlock {
@@ -45,6 +52,11 @@ export interface NewContentBlock {
   type: ContentBlockType;
   content?: string;
   label?: string;
+  language?: 'en' | 'fr' | 'ht';
+  voice?: string;
+  rate?: number;
+  avatarStyle?: string;
+  instructions?: string;
 }
 
 export interface CurriculumTopic {
