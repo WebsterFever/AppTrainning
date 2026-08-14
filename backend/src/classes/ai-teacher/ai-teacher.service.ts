@@ -13,11 +13,19 @@ import { computeScriptHash } from './script-hash';
 type ContentBlockRecord = NonNullable<
   NonNullable<TrainingClass['curriculumModules']>[number]['topics'][number]['contentBlocks']
 >[number];
+type TeacherCueRecord = NonNullable<ContentBlockRecord['guidedTeacherCues']>[number];
 
 interface BlockLocation {
   trainingClass: TrainingClass;
   moduleId: string;
   block: ContentBlockRecord;
+}
+
+interface CueLocation {
+  trainingClass: TrainingClass;
+  moduleId: string;
+  block: ContentBlockRecord;
+  cue: TeacherCueRecord;
 }
 
 export interface AudioStatusResponse {
@@ -29,6 +37,19 @@ export interface AudioStatusResponse {
   audioError?: string;
   content?: string;
   label?: string;
+  language?: string;
+  voice?: string;
+  rate?: number;
+}
+
+export interface CueAudioStatusResponse {
+  audioStatus?: string;
+  audioProvider?: string;
+  audioVoice?: string;
+  audioGeneratedAt?: string;
+  audioScriptHash?: string;
+  audioError?: string;
+  script?: string;
   language?: string;
   voice?: string;
   rate?: number;
@@ -60,6 +81,17 @@ export class AiTeacherService {
       }
     }
     throw new NotFoundException('Content block not found');
+  }
+
+  // A cue must belong to the requested block — looking it up inside
+  // `block.guidedTeacherCues` (rather than a flat search) is what makes a
+  // cueId from one block unable to be played back through another block's
+  // route, satisfying "requested teacher cue belongs to that video block".
+  private findCue(trainingClass: TrainingClass, blockId: string, cueId: string): CueLocation {
+    const { moduleId, block } = this.findBlock(trainingClass, blockId);
+    const cue = block.guidedTeacherCues?.find((c) => c.id === cueId);
+    if (!cue) throw new NotFoundException('Teacher cue not found');
+    return { trainingClass, moduleId, block, cue };
   }
 
   private toStatusResponse(block: ContentBlockRecord): AudioStatusResponse {
@@ -161,16 +193,12 @@ export class AiTeacherService {
     return this.fetchAudio(block.audioKey);
   }
 
-  // Student playback — mirrors exactly the same protection the lesson
-  // script itself already gets: the requesting email must be registered
-  // for this class AND the module containing this block must be unlocked
-  // for that email (same check RegistrationsService.register uses to
-  // decide whether to include contentBlocks at all).
-  async streamForStudent(classId: string, blockId: string, email: string) {
-    const trainingClass = await this.classesService.getEntity(classId);
-    const { moduleId, block } = this.findBlock(trainingClass, blockId);
-    if (!block.audioKey) throw new NotFoundException('No audio generated for this block yet');
-
+  // Shared by both standalone AI Teacher blocks and Guided Video cues: the
+  // requesting email must be registered for this class AND the module
+  // containing the block must be unlocked for that email (same check
+  // RegistrationsService.register uses to decide whether to include
+  // contentBlocks at all).
+  private async assertStudentAccess(classId: string, moduleId: string, email: string): Promise<void> {
     const normalizedEmail = email.toLowerCase();
     const isRegistered = await this.registrationsRepo.exist({
       where: { trainingClass: { id: classId }, email: normalizedEmail },
@@ -187,7 +215,120 @@ export class AiTeacherService {
     if (moduleEntry && !moduleEntry.unlocked) {
       throw new ForbiddenException('This module is locked until the previous one is approved.');
     }
+  }
 
+  // Student playback for a standalone ai_teacher block.
+  async streamForStudent(classId: string, blockId: string, email: string) {
+    const trainingClass = await this.classesService.getEntity(classId);
+    const { moduleId, block } = this.findBlock(trainingClass, blockId);
+    if (!block.audioKey) throw new NotFoundException('No audio generated for this block yet');
+    await this.assertStudentAccess(classId, moduleId, email);
     return this.fetchAudio(block.audioKey);
+  }
+
+  private toCueStatusResponse(cue: TeacherCueRecord): CueAudioStatusResponse {
+    return {
+      audioStatus: cue.audioStatus,
+      audioProvider: cue.audioProvider,
+      audioVoice: cue.audioVoice,
+      audioGeneratedAt: cue.audioGeneratedAt,
+      audioScriptHash: cue.audioScriptHash,
+      audioError: cue.audioError,
+      script: cue.script,
+      language: cue.language,
+      voice: cue.voice,
+      rate: cue.rate,
+    };
+  }
+
+  // Admin only (enforced by JwtAuthGuard at the controller). Each Guided
+  // Video cue is generated and cached independently — one short audio file
+  // per explanation, never one giant track for the whole video, so editing
+  // or regenerating one cue never touches another's audio.
+  async generateCueAudio(
+    classId: string,
+    blockId: string,
+    cueId: string,
+    dto: GenerateAudioDto,
+  ): Promise<CueAudioStatusResponse> {
+    const lockKey = `cue:${blockId}:${cueId}`;
+    if (this.generating.has(lockKey)) {
+      throw new ConflictException('Audio is already being generated for this cue — please wait.');
+    }
+
+    const trainingClass = await this.classesService.getEntity(classId);
+    const { block, cue } = this.findCue(trainingClass, blockId, cueId);
+    if (block.type !== 'video') {
+      throw new NotFoundException('That block is not a video block');
+    }
+
+    this.generating.add(lockKey);
+    try {
+      cue.audioStatus = 'generating';
+      cue.audioError = undefined;
+      await this.classesService.saveEntity(trainingClass);
+
+      if (!this.ttsProvider.supportsLanguage(dto.language)) {
+        cue.audioStatus = 'failed';
+        cue.audioError =
+          'Neural voice is not available for this language yet — the browser voice will be used instead.';
+        cue.script = dto.script;
+        cue.language = dto.language;
+        cue.voice = dto.voice;
+        cue.rate = dto.rate;
+        await this.classesService.saveEntity(trainingClass);
+        return this.toCueStatusResponse(cue);
+      }
+
+      const speech = await this.ttsProvider.generateSpeech({
+        text: dto.script,
+        language: dto.language,
+        voice: dto.voice,
+        speed: dto.rate,
+      });
+      const key = await this.uploadsService.upload(speech.buffer, speech.mimeType, AUDIO_KEY_PREFIX);
+
+      cue.script = dto.script;
+      cue.language = dto.language;
+      cue.voice = dto.voice;
+      cue.rate = dto.rate;
+      cue.audioStatus = 'ready';
+      cue.audioKey = key;
+      cue.audioProvider = this.ttsProvider.name;
+      cue.audioVoice = speech.voiceUsed;
+      cue.audioGeneratedAt = new Date().toISOString();
+      cue.audioScriptHash = computeScriptHash(dto.script, dto.language, dto.voice, dto.rate);
+      cue.audioError = undefined;
+
+      await this.classesService.saveEntity(trainingClass);
+      return this.toCueStatusResponse(cue);
+    } catch (err) {
+      cue.audioStatus = 'failed';
+      cue.audioError = err instanceof Error ? err.message : 'Voice generation failed.';
+      await this.classesService.saveEntity(trainingClass);
+      return this.toCueStatusResponse(cue);
+    } finally {
+      this.generating.delete(lockKey);
+    }
+  }
+
+  // Admin preview — no student-side access check, just needs the JWT guard
+  // already applied at the controller.
+  async streamCueForAdmin(classId: string, blockId: string, cueId: string) {
+    const trainingClass = await this.classesService.getEntity(classId);
+    const { cue } = this.findCue(trainingClass, blockId, cueId);
+    if (!cue.audioKey) throw new NotFoundException('No audio generated for this cue yet');
+    return this.fetchAudio(cue.audioKey);
+  }
+
+  // Student playback for a Guided Video cue — same registration +
+  // module-unlock protection as a standalone ai_teacher block, plus the
+  // cue-belongs-to-this-block check baked into findCue above.
+  async streamCueForStudent(classId: string, blockId: string, cueId: string, email: string) {
+    const trainingClass = await this.classesService.getEntity(classId);
+    const { moduleId, cue } = this.findCue(trainingClass, blockId, cueId);
+    if (!cue.audioKey) throw new NotFoundException('No audio generated for this cue yet');
+    await this.assertStudentAccess(classId, moduleId, email);
+    return this.fetchAudio(cue.audioKey);
   }
 }

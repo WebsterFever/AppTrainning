@@ -100,6 +100,26 @@ export class TrainingClass {
         audioGeneratedAt?: string;
         audioScriptHash?: string;
         audioError?: string;
+        // Guided Video Lesson (video blocks only) — timestamped AI Teacher
+        // explanations that pause/resume the video. Same audio-metadata
+        // shape and private-key handling as the fields above, just one per
+        // cue instead of one per block (see AiTeacherService).
+        guidedTeacherEnabled?: boolean;
+        guidedTeacherCues?: {
+          id: string;
+          timestampSeconds: number;
+          script: string;
+          language?: 'en' | 'fr' | 'ht';
+          voice?: string;
+          rate?: number;
+          audioStatus?: 'none' | 'generating' | 'ready' | 'failed';
+          audioKey?: string;
+          audioProvider?: string;
+          audioVoice?: string;
+          audioGeneratedAt?: string;
+          audioScriptHash?: string;
+          audioError?: string;
+        }[];
       }[];
     }[];
   }[];

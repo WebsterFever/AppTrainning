@@ -7,6 +7,8 @@ import { ClassDetailSkeleton } from '../components/Skeletons';
 import { getVideoEmbed } from '../lib/video';
 import VideoComments from '../components/VideoComments';
 import RobotTeacher from '../components/RobotTeacher';
+import GuidedVideoTeacher from '../components/GuidedVideoTeacher';
+import { TeacherCue } from '../lib/api';
 import { useLanguage, localeFor } from '../lib/i18n';
 import { seenClasses } from '../lib/seenClasses';
 
@@ -308,6 +310,8 @@ export default function ClassDetail() {
       showScript?: boolean;
       audioStatus?: 'none' | 'generating' | 'ready' | 'failed';
       audioStale?: boolean;
+      guidedTeacherEnabled?: boolean;
+      guidedTeacherCues?: TeacherCue[];
     },
     key: string,
   ) => {
@@ -335,9 +339,28 @@ export default function ClassDetail() {
         );
       case 'video': {
         const embed = block.content ? getVideoEmbed(block.content) : null;
+        const guidedCues = block.guidedTeacherEnabled ? (block.guidedTeacherCues ?? []) : [];
+        if (embed?.kind === 'file' && guidedCues.length > 0) {
+          return (
+            <GuidedVideoTeacher
+              key={key}
+              videoSrc={embed.src}
+              label={block.label}
+              cues={guidedCues}
+              classId={item.id}
+              blockId={block.id}
+              studentEmail={email}
+            />
+          );
+        }
         return (
           <div key={key}>
             {block.label && <p className="text-sm font-medium text-ink mb-1.5">{block.label}</p>}
+            {block.guidedTeacherEnabled && guidedCues.length > 0 && embed && embed.kind !== 'file' && (
+              <p className="text-xs text-ink/50 bg-chalk border border-line rounded-sm p-2 mb-1.5">
+                {t('guidedNarrationUnavailable')}
+              </p>
+            )}
             {embed ? (
               embed.kind === 'file' ? (
                 <video

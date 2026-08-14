@@ -36,6 +36,35 @@ export type ContentBlockType =
 
 export type AiTeacherAudioStatus = 'none' | 'generating' | 'ready' | 'failed';
 
+// One Guided Video Lesson explanation point (video blocks only). Same
+// generated-audio shape as a standalone ai_teacher block, just scoped to a
+// timestamp instead of the whole block. Never carries a raw storage key —
+// playback goes through api.guidedCueAudioUrl, a protected endpoint.
+export interface TeacherCue {
+  id: string;
+  timestampSeconds: number;
+  script: string;
+  language?: 'en' | 'fr' | 'ht';
+  voice?: string;
+  rate?: number;
+  audioStatus?: AiTeacherAudioStatus;
+  audioProvider?: string;
+  audioVoice?: string;
+  audioGeneratedAt?: string;
+  audioScriptHash?: string;
+  audioError?: string;
+  audioStale?: boolean;
+}
+
+export interface NewTeacherCue {
+  id?: string;
+  timestampSeconds: number;
+  script: string;
+  language?: 'en' | 'fr' | 'ht';
+  voice?: string;
+  rate?: number;
+}
+
 export interface ContentBlock {
   id: string;
   type: ContentBlockType;
@@ -63,6 +92,9 @@ export interface ContentBlock {
   // Computed server-side: true when the script/language/voice/rate have
   // changed since this audio was generated.
   audioStale?: boolean;
+  // video-only: Guided Video Lesson (see TeacherCue above).
+  guidedTeacherEnabled?: boolean;
+  guidedTeacherCues?: TeacherCue[];
 }
 
 export interface NewContentBlock {
@@ -76,6 +108,8 @@ export interface NewContentBlock {
   avatarStyle?: string;
   instructions?: string;
   showScript?: boolean;
+  guidedTeacherEnabled?: boolean;
+  guidedTeacherCues?: NewTeacherCue[];
 }
 
 export interface CurriculumTopic {
@@ -503,6 +537,46 @@ export const api = {
   // call can attach as a header.
   previewAiTeacherAudio: async (classId: string, blockId: string): Promise<string> => {
     const res = await fetch(`${BASE_URL}/admin/classes/${classId}/blocks/${blockId}/audio`, {
+      headers: authHeader(),
+    });
+    if (!res.ok) throw new Error('No generated audio available yet.');
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  },
+
+  // Guided Video Lesson cue audio — same shape/protection as the
+  // aiTeacherAudioUrl/generateAiTeacherAudio/previewAiTeacherAudio trio
+  // above, just scoped to one cue within a video block.
+  guidedCueAudioUrl: (classId: string, blockId: string, cueId: string, email: string) =>
+    `${BASE_URL}/classes/${classId}/blocks/${blockId}/cues/${cueId}/audio?email=${encodeURIComponent(email)}`,
+
+  generateGuidedCueAudio: (
+    classId: string,
+    blockId: string,
+    cueId: string,
+    data: { script: string; language: 'en' | 'fr' | 'ht'; voice?: string; rate?: number },
+  ) =>
+    fetch(`${BASE_URL}/admin/classes/${classId}/blocks/${blockId}/cues/${cueId}/generate-audio`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(data),
+    }).then((r) =>
+      handle<{
+        audioStatus?: AiTeacherAudioStatus;
+        audioProvider?: string;
+        audioVoice?: string;
+        audioGeneratedAt?: string;
+        audioScriptHash?: string;
+        audioError?: string;
+        script?: string;
+        language?: string;
+        voice?: string;
+        rate?: number;
+      }>(r),
+    ),
+
+  previewGuidedCueAudio: async (classId: string, blockId: string, cueId: string): Promise<string> => {
+    const res = await fetch(`${BASE_URL}/admin/classes/${classId}/blocks/${blockId}/cues/${cueId}/audio`, {
       headers: authHeader(),
     });
     if (!res.ok) throw new Error('No generated audio available yet.');

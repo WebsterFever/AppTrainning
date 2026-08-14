@@ -232,6 +232,12 @@ const dict = {
     ht: 'Navigatè sa a pa sipòte vwa pale. Men tèks leson an:',
   },
   noScriptYet: { en: 'No lesson script yet.', fr: "Aucun script de leçon pour l'instant.", ht: 'Pa gen skript leson toujou.' },
+  skipExplanation: { en: 'Skip', fr: 'Passer', ht: 'Sote' },
+  guidedNarrationUnavailable: {
+    en: "This video's guided narration needs a direct video file — playing without automatic pauses.",
+    fr: "La narration guidée de cette vidéo nécessite un fichier vidéo direct — lecture sans pauses automatiques.",
+    ht: 'Naratif gide videyo sa a bezwen yon fichye videyo dirèk — l ap jwe san poz otomatik.',
+  },
   instructionsLabel: { en: 'Instructions', fr: 'Instructions', ht: 'Enstriksyon' },
   audioUnavailable: {
     en: "This lesson's voice audio is unavailable right now.",

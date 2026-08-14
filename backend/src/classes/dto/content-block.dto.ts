@@ -1,4 +1,6 @@
-import { IsBoolean, IsIn, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { TeacherCueDto } from './teacher-cue.dto';
 
 export const CONTENT_BLOCK_TYPES = [
   'text',
@@ -80,4 +82,21 @@ export class ContentBlockDto {
   @IsOptional()
   @IsBoolean()
   showScript?: boolean;
+
+  // --- video-only fields below (Guided Video Lesson — ignored by every
+  // other block type) ---
+
+  // Explicit toggle, independent of whether cues exist, so an admin can
+  // disable guided narration without losing their drafted cues.
+  @IsOptional()
+  @IsBoolean()
+  guidedTeacherEnabled?: boolean;
+
+  // Ordered by timestamp is NOT assumed — the frontend sorts for playback,
+  // this is just the admin's editing order.
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TeacherCueDto)
+  guidedTeacherCues?: TeacherCueDto[];
 }

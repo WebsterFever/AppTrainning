@@ -23,4 +23,22 @@ export class AiTeacherController {
     res.setHeader('Cache-Control', 'private, max-age=86400');
     (body as NodeJS.ReadableStream).pipe(res);
   }
+
+  // Guided Video Lesson cue audio — same protection as the block route
+  // above, plus streamCueForStudent independently verifies the cue belongs
+  // to this exact block.
+  @Get('cues/:cueId/audio')
+  async getCueAudio(
+    @Param('classId') classId: string,
+    @Param('blockId') blockId: string,
+    @Param('cueId') cueId: string,
+    @Query('email') email: string | undefined,
+    @Res() res: Response,
+  ) {
+    if (!email) throw new BadRequestException('email is required');
+    const { body, contentType } = await this.aiTeacherService.streamCueForStudent(classId, blockId, cueId, email);
+    res.setHeader('Content-Type', contentType ?? 'audio/mpeg');
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    (body as NodeJS.ReadableStream).pipe(res);
+  }
 }

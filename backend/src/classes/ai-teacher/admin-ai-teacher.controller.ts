@@ -30,4 +30,26 @@ export class AdminAiTeacherController {
     res.setHeader('Content-Type', contentType ?? 'audio/mpeg');
     (body as NodeJS.ReadableStream).pipe(res);
   }
+
+  @Post('cues/:cueId/generate-audio')
+  generateCueAudio(
+    @Param('classId') classId: string,
+    @Param('blockId') blockId: string,
+    @Param('cueId') cueId: string,
+    @Body() dto: GenerateAudioDto,
+  ) {
+    return this.aiTeacherService.generateCueAudio(classId, blockId, cueId, dto);
+  }
+
+  @Get('cues/:cueId/audio')
+  async getCueAudio(
+    @Param('classId') classId: string,
+    @Param('blockId') blockId: string,
+    @Param('cueId') cueId: string,
+    @Res() res: Response,
+  ) {
+    const { body, contentType } = await this.aiTeacherService.streamCueForAdmin(classId, blockId, cueId);
+    res.setHeader('Content-Type', contentType ?? 'audio/mpeg');
+    (body as NodeJS.ReadableStream).pipe(res);
+  }
 }

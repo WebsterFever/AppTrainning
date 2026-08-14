@@ -12,6 +12,7 @@ import { computeScriptHash } from './ai-teacher/script-hash';
 type ContentBlockRecord = NonNullable<
   NonNullable<TrainingClass['curriculumModules']>[number]['topics'][number]['contentBlocks']
 >[number];
+type TeacherCueRecord = NonNullable<ContentBlockRecord['guidedTeacherCues']>[number];
 
 export interface ClassWithCount {
   id: string;
@@ -52,7 +53,10 @@ export interface ClassWithCount {
       id: string;
       title?: string;
       description?: string;
-      contentBlocks?: (ContentBlockRecord & { audioStale?: boolean })[];
+      contentBlocks?: (Omit<ContentBlockRecord, 'guidedTeacherCues'> & {
+        audioStale?: boolean;
+        guidedTeacherCues?: (TeacherCueRecord & { audioStale?: boolean })[];
+      })[];
     }[];
   }[];
 }
@@ -165,19 +169,35 @@ export class ClassesService {
     existingModules?: TrainingClass['curriculumModules'],
   ): TrainingClass['curriculumModules'] {
     const existingAudioByBlockId = new Map<string, Partial<ContentBlockRecord>>();
+    // Cue audio keyed by "blockId:cueId" — a cue's audio metadata is scoped
+    // to its parent block the same way a block's is scoped to the class.
+    const existingCueAudioByKey = new Map<string, Partial<TeacherCueRecord>>();
     for (const m of existingModules ?? []) {
       for (const t of m.topics ?? []) {
         for (const b of t.contentBlocks ?? []) {
-          if (!b.audioStatus && !b.audioKey) continue;
-          existingAudioByBlockId.set(b.id, {
-            audioStatus: b.audioStatus,
-            audioKey: b.audioKey,
-            audioProvider: b.audioProvider,
-            audioVoice: b.audioVoice,
-            audioGeneratedAt: b.audioGeneratedAt,
-            audioScriptHash: b.audioScriptHash,
-            audioError: b.audioError,
-          });
+          if (b.audioStatus || b.audioKey) {
+            existingAudioByBlockId.set(b.id, {
+              audioStatus: b.audioStatus,
+              audioKey: b.audioKey,
+              audioProvider: b.audioProvider,
+              audioVoice: b.audioVoice,
+              audioGeneratedAt: b.audioGeneratedAt,
+              audioScriptHash: b.audioScriptHash,
+              audioError: b.audioError,
+            });
+          }
+          for (const cue of b.guidedTeacherCues ?? []) {
+            if (!cue.audioStatus && !cue.audioKey) continue;
+            existingCueAudioByKey.set(`${b.id}:${cue.id}`, {
+              audioStatus: cue.audioStatus,
+              audioKey: cue.audioKey,
+              audioProvider: cue.audioProvider,
+              audioVoice: cue.audioVoice,
+              audioGeneratedAt: cue.audioGeneratedAt,
+              audioScriptHash: cue.audioScriptHash,
+              audioError: cue.audioError,
+            });
+          }
         }
       }
     }
@@ -193,8 +213,9 @@ export class ClassesService {
         description: t.description || undefined,
         contentBlocks: t.contentBlocks?.map((b) => {
           const preservedAudio = b.id ? existingAudioByBlockId.get(b.id) : undefined;
+          const blockId = b.id ?? randomUUID();
           return {
-            id: b.id ?? randomUUID(),
+            id: blockId,
             type: b.type || 'text',
             content: b.content || undefined,
             label: b.label || undefined,
@@ -205,6 +226,20 @@ export class ClassesService {
             instructions: b.instructions || undefined,
             showScript: b.showScript ?? undefined,
             ...preservedAudio,
+            guidedTeacherEnabled: b.guidedTeacherEnabled ?? undefined,
+            guidedTeacherCues: b.guidedTeacherCues?.map((cue) => {
+              const cueId = cue.id ?? randomUUID();
+              const preservedCueAudio = existingCueAudioByKey.get(`${blockId}:${cueId}`);
+              return {
+                id: cueId,
+                timestampSeconds: cue.timestampSeconds,
+                script: cue.script,
+                language: cue.language || undefined,
+                voice: cue.voice || undefined,
+                rate: cue.rate ?? undefined,
+                ...preservedCueAudio,
+              };
+            }),
           };
         }),
       })),
@@ -285,9 +320,15 @@ export class ClassesService {
       topics: m.topics.map((t) => ({
         ...t,
         contentBlocks: t.contentBlocks?.map((b) => {
-          if (b.type !== 'ai_teacher' || !b.audioScriptHash) return b;
+          const cues = b.guidedTeacherCues?.map((cue) => {
+            if (!cue.audioScriptHash) return cue;
+            const cueHash = computeScriptHash(cue.script, cue.language, cue.voice, cue.rate);
+            return { ...cue, audioStale: cue.audioStatus === 'ready' && cueHash !== cue.audioScriptHash };
+          });
+          const withCues = cues ? { ...b, guidedTeacherCues: cues } : b;
+          if (b.type !== 'ai_teacher' || !b.audioScriptHash) return withCues;
           const currentHash = computeScriptHash(b.content, b.language, b.voice, b.rate);
-          return { ...b, audioStale: b.audioStatus === 'ready' && currentHash !== b.audioScriptHash };
+          return { ...withCues, audioStale: b.audioStatus === 'ready' && currentHash !== b.audioScriptHash };
         }),
       })),
     }));
@@ -308,8 +349,14 @@ export class ClassesService {
       topics: m.topics.map((t) => ({
         ...t,
         contentBlocks: t.contentBlocks?.map((b) => {
-          if (b.type !== 'ai_teacher' || !('audioKey' in b)) return b;
-          const { audioKey: _audioKey, ...rest } = b as typeof b & { audioKey?: string };
+          const cues = b.guidedTeacherCues?.map((cue) => {
+            if (!('audioKey' in cue)) return cue;
+            const { audioKey: _cueAudioKey, ...rest } = cue as typeof cue & { audioKey?: string };
+            return rest;
+          });
+          const withCues = cues ? { ...b, guidedTeacherCues: cues } : b;
+          if (b.type !== 'ai_teacher' || !('audioKey' in withCues)) return withCues;
+          const { audioKey: _audioKey, ...rest } = withCues as typeof withCues & { audioKey?: string };
           return rest;
         }),
       })),

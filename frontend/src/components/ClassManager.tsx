@@ -10,7 +10,9 @@ import {
 import { formatCountdown } from '../lib/countdown';
 import { useLanguage } from '../lib/i18n';
 import { getVideoEmbed } from '../lib/video';
+import { formatClockTimestamp, parseClockTimestamp } from '../lib/guidedVideo';
 import ConfirmDialog from './ConfirmDialog';
+import GuidedTeacherCueEditor, { TeacherCueForm } from './GuidedTeacherCueEditor';
 
 const BLOCK_TYPES: { value: ContentBlockType; label: string }[] = [
   { value: 'text', label: 'Text' },
@@ -56,6 +58,10 @@ interface ContentBlockForm {
   audioGeneratedAt?: string;
   audioError?: string;
   audioStale?: boolean;
+  // video-only: Guided Video Lesson — ignored (and stripped on submit) for
+  // every other block type.
+  guidedTeacherEnabled: boolean;
+  guidedTeacherCues: TeacherCueForm[];
 }
 
 interface TopicForm {
@@ -111,6 +117,8 @@ function emptyBlock(): ContentBlockForm {
     avatarStyle: 'amber',
     instructions: '',
     showScript: true,
+    guidedTeacherEnabled: false,
+    guidedTeacherCues: [],
   };
 }
 
@@ -338,6 +346,19 @@ export default function ClassManager({
                     audioGeneratedAt: b.audioGeneratedAt,
                     audioError: b.audioError,
                     audioStale: b.audioStale,
+                    guidedTeacherEnabled: b.guidedTeacherEnabled ?? false,
+                    guidedTeacherCues: (b.guidedTeacherCues ?? []).map((cue) => ({
+                      id: cue.id,
+                      timestamp: formatClockTimestamp(cue.timestampSeconds),
+                      script: cue.script,
+                      language: cue.language ?? '',
+                      voice: cue.voice ?? '',
+                      rate: cue.rate != null ? String(cue.rate) : '1',
+                      audioStatus: cue.audioStatus,
+                      audioVoice: cue.audioVoice,
+                      audioError: cue.audioError,
+                      audioStale: cue.audioStale,
+                    })),
                   })),
                 }))
               : [emptyTopic()],
@@ -421,6 +442,21 @@ export default function ClassManager({
                         avatarStyle: b.avatarStyle || undefined,
                         instructions: b.instructions.trim() || undefined,
                         showScript: b.showScript,
+                      }
+                    : {}),
+                  ...(b.type === 'video'
+                    ? {
+                        guidedTeacherEnabled: b.guidedTeacherEnabled,
+                        guidedTeacherCues: b.guidedTeacherCues
+                          .map((cue) => ({
+                            id: cue.id,
+                            timestampSeconds: parseClockTimestamp(cue.timestamp) ?? 0,
+                            script: cue.script.trim(),
+                            language: (cue.language || undefined) as 'en' | 'fr' | 'ht' | undefined,
+                            voice: cue.voice.trim() || undefined,
+                            rate: cue.rate.trim() ? parseFloat(cue.rate) : undefined,
+                          }))
+                          .filter((cue) => cue.script),
                       }
                     : {}),
                 }))
@@ -1454,6 +1490,53 @@ export default function ClassManager({
                                     }}
                                     className="input text-xs py-1"
                                   />
+                                  {block.type === 'video' && (
+                                    <div className="space-y-1.5">
+                                      <label className="flex items-center gap-1.5 text-[11px] text-ink/60">
+                                        <input
+                                          type="checkbox"
+                                          checked={block.guidedTeacherEnabled}
+                                          onChange={(e) => {
+                                            const next = [...form.curriculumModules];
+                                            const topics = [...next[mi].topics];
+                                            const blocks = [...topics[ti].contentBlocks];
+                                            blocks[bi] = { ...blocks[bi], guidedTeacherEnabled: e.target.checked };
+                                            topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                            next[mi] = { ...next[mi], topics };
+                                            setForm({ ...form, curriculumModules: next });
+                                          }}
+                                        />
+                                        Enable AI Robot Teacher (pauses the video at set times to explain
+                                        what's happening)
+                                      </label>
+                                      {block.guidedTeacherEnabled && (
+                                        <>
+                                          {block.content.trim() &&
+                                            getVideoEmbed(block.content.trim())?.kind !== 'file' && (
+                                              <p className="text-[11px] text-coral">
+                                                Guided narration only works with a direct video file
+                                                (.mp4/.webm/etc). YouTube/Vimeo links will play normally
+                                                without automatic pauses.
+                                              </p>
+                                            )}
+                                          <GuidedTeacherCueEditor
+                                            classId={editingId ?? undefined}
+                                            blockId={block.id}
+                                            cues={block.guidedTeacherCues}
+                                            onChange={(cues) => {
+                                              const next = [...form.curriculumModules];
+                                              const topics = [...next[mi].topics];
+                                              const blocks = [...topics[ti].contentBlocks];
+                                              blocks[bi] = { ...blocks[bi], guidedTeacherCues: cues };
+                                              topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                              next[mi] = { ...next[mi], topics };
+                                              setForm({ ...form, curriculumModules: next });
+                                            }}
+                                          />
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
                                 </>
                               )}
                             </div>

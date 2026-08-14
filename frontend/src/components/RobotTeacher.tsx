@@ -26,15 +26,16 @@ const ACCENTS: Record<string, string> = {
   coral: '#E4572E',
 };
 
-function accentColor(style?: string): string {
+export function accentColor(style?: string): string {
   return ACCENTS[style ?? 'amber'] ?? ACCENTS.amber;
 }
 
-// Only one AI Teacher lesson plays at a time anywhere on the page, whether
-// it's using generated audio or the browser voice — starting one broadcasts
-// this event so every other mounted instance stops itself, regardless of
-// which playback mode it's in.
-const PLAYBACK_START_EVENT = 'ai-teacher-playback-start';
+// Only one AI Teacher lesson plays at a time anywhere on the page — whether
+// it's a standalone ai_teacher block, a Guided Video Lesson cue, using
+// generated audio, or the browser voice. Starting one broadcasts this event
+// so every other mounted instance (RobotTeacher or GuidedVideoTeacher)
+// stops itself, regardless of which playback mode it's in.
+export const PLAYBACK_START_EVENT = 'ai-teacher-playback-start';
 
 // Splits into rough sentences with their character offset in the original
 // script, so a `boundary` event's charIndex can be mapped back to "which
@@ -54,7 +55,9 @@ function splitSentences(text: string): { text: string; start: number }[] {
   return results.length ? results : [{ text: text.trim(), start: 0 }];
 }
 
-function RobotAvatar({ status, glow }: { status: PlaybackStatus; glow: string }) {
+export type { PlaybackStatus };
+
+export function RobotAvatar({ status, glow }: { status: PlaybackStatus; glow: string }) {
   return (
     <div className={`relative ${status === 'idle' ? 'animate-robot-idle' : ''}`}>
       <svg viewBox="0 0 160 160" className="w-24 h-24 sm:w-32 sm:h-32" role="img" aria-label="AI robot teacher avatar">
