@@ -411,6 +411,54 @@ export default function ClassDetail() {
       }
      case 'code':
   return (
+    <div key={key} className="group relative">
+      {/* Label with gradient accent */}
+      {block.label && (
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-indigo-400 to-purple-400" />
+          <p className="text-[11px] font-mono font-medium text-ink/50 uppercase tracking-wider">
+            {block.label}
+          </p>
+          <span className="flex-1 h-px bg-gradient-to-r from-indigo-400/20 to-transparent" />
+        </div>
+      )}
+      
+      {/* Code block with refined styling */}
+      <pre className="
+        relative
+        bg-gradient-to-br from-midnight via-midnight/95 to-indigo-950/30
+        text-chalk 
+        rounded-xl 
+        p-4 
+        sm:p-5
+        overflow-x-auto 
+        text-xs 
+        sm:text-sm
+        font-mono 
+        leading-6
+        sm:leading-7
+        border border-white/5
+        shadow-lg shadow-indigo-500/5
+        transition-all duration-300
+        hover:shadow-indigo-500/10 hover:border-white/10
+        hover:translate-y-[-1px]
+      ">
+        {/* Decorative line numbers (optional) */}
+        <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
+          <span className="text-[8px] font-mono text-chalk/20">~/code</span>
+        </div>
+        
+        {/* Code content with syntax highlighting hints */}
+        <code className="block [&_.keyword]:text-indigo-300 [&_.string]:text-emerald-300 [&_.comment]:text-chalk/30 [&_.function]:text-purple-300 [&_.number]:text-amber-300">
+          {block.content}
+        </code>
+      </pre>
+      
+      {/* Subtle bottom glow */}
+      <div className="absolute -bottom-px left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-indigo-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+    </div>
+  );
+  return (
     <div
       key={key}
       className="
