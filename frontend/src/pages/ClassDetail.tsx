@@ -409,7 +409,50 @@ export default function ClassDetail() {
           </div>
         );
       }
-     case 'code':
+   case 'code':
+  return (
+    <div key={key} className="space-y-1.5">
+      {block.label && (
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-[10px] font-mono font-semibold text-ink/40 uppercase tracking-[0.15em]">
+            {block.label}
+          </span>
+          <span className="flex-1 h-px bg-gradient-to-r from-ink/10 to-transparent" />
+          <span className="text-[10px] text-ink/20">▍</span>
+        </div>
+      )}
+      
+      <div className="relative group">
+        {/* Color accent strip */}
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-400 via-purple-400 to-pink-400 rounded-l-xl opacity-60 group-hover:opacity-100 transition-opacity" />
+        
+        <pre className="
+          bg-gradient-to-br from-midnight to-indigo-950/20
+          text-chalk 
+          rounded-xl 
+          pl-5
+          pr-4
+          py-4
+          sm:py-5
+          overflow-x-auto 
+          text-xs 
+          sm:text-sm
+          font-mono 
+          leading-6
+          sm:leading-7
+          border border-white/5
+          shadow-lg
+          transition-all duration-300
+          group-hover:border-white/10
+          group-hover:shadow-indigo-500/5
+        ">
+          <code className="block [&_.keyword]:text-indigo-300/80 [&_.string]:text-emerald-300/80 [&_.comment]:text-chalk/25 [&_.function]:text-purple-300/80">
+            {block.content}
+          </code>
+        </pre>
+      </div>
+    </div>
+  );
   return (
     <div key={key} className="group relative">
       {/* Label with gradient accent */}
