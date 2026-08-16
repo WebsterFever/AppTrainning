@@ -81,16 +81,22 @@ export class VideoRenderService implements OnModuleInit {
       let recovered = 0;
       for (const trainingClass of classes) {
         let changed = false;
+        const sweepBlocks = (blocks?: ContentBlockRecord[]) => {
+          for (const block of blocks ?? []) {
+            const gen = block.guidedVideoGeneration;
+            if (gen && IN_PROGRESS_STATUSES.includes(gen.status)) {
+              gen.status = 'interrupted';
+              gen.error = 'Video generation was interrupted by a server restart. Please generate the video again.';
+              changed = true;
+              recovered++;
+            }
+          }
+        };
         for (const mod of trainingClass.curriculumModules ?? []) {
           for (const topic of mod.topics ?? []) {
-            for (const block of topic.contentBlocks ?? []) {
-              const gen = block.guidedVideoGeneration;
-              if (gen && IN_PROGRESS_STATUSES.includes(gen.status)) {
-                gen.status = 'interrupted';
-                gen.error = 'Video generation was interrupted by a server restart. Please generate the video again.';
-                changed = true;
-                recovered++;
-              }
+            sweepBlocks(topic.contentBlocks);
+            for (const subtopic of topic.subtopics ?? []) {
+              sweepBlocks(subtopic.contentBlocks);
             }
           }
         }
@@ -110,6 +116,12 @@ export class VideoRenderService implements OnModuleInit {
       for (const topic of mod.topics ?? []) {
         const block = topic.contentBlocks?.find((b) => b.id === blockId);
         if (block) return { trainingClass, moduleId: mod.id, block };
+        // A block may also live one level deeper, inside a subtopic —
+        // see class.entity.ts's TopicLikeRecord for the shape.
+        for (const subtopic of topic.subtopics ?? []) {
+          const subtopicBlock = subtopic.contentBlocks?.find((b) => b.id === blockId);
+          if (subtopicBlock) return { trainingClass, moduleId: mod.id, block: subtopicBlock };
+        }
       }
     }
     throw new NotFoundException('Content block not found');

@@ -587,7 +587,16 @@ export default function ClassDetail() {
                         <p className="text-xs font-semibold text-ink/60">{t('moduleTopicsLabel')}</p>
                         <div className="mt-1 space-y-1.5">
                           {mod.topics.map((topic) => {
-                            const hasContent = (topic.contentBlocks?.length ?? 0) > 0;
+                            // A topic "has content" either directly (the
+                            // original, still fully supported shape) or one
+                            // level deeper via subtopics — either is enough
+                            // to make it collapsible/expandable rather than
+                            // a plain outline bullet.
+                            const hasDirectContent = (topic.contentBlocks?.length ?? 0) > 0;
+                            const hasSubtopicContent = (topic.subtopics ?? []).some(
+                              (st) => (st.contentBlocks?.length ?? 0) > 0,
+                            );
+                            const hasContent = hasDirectContent || hasSubtopicContent;
                             if (!hasContent) {
                               return (
                                 <div key={topic.id} className="text-sm text-ink/80 flex items-start gap-2">
@@ -627,9 +636,63 @@ export default function ClassDetail() {
                                     {topic.description && (
                                       <p className="text-xs text-ink/60">{topic.description}</p>
                                     )}
-                                    {topic.contentBlocks!.map((block, bi) =>
+                                    {/* A topic's own direct content blocks — the original
+                                        shape, unchanged for every existing course that never
+                                        used subtopics. */}
+                                    {topic.contentBlocks?.map((block, bi) =>
                                       renderContentBlock(block, `${topic.id}-${bi}`),
                                     )}
+                                    {/* Subtopics — one nested level deeper, each acting like
+                                        its own mini-topic with its own collapsible content. */}
+                                    {(topic.subtopics ?? []).map((subtopic) => {
+                                      const subtopicHasContent = (subtopic.contentBlocks?.length ?? 0) > 0;
+                                      if (!subtopicHasContent) {
+                                        return (
+                                          <div key={subtopic.id} className="text-sm text-ink/80 flex items-start gap-2">
+                                            <span className="text-amber mt-1 flex-shrink-0" aria-hidden="true">
+                                              •
+                                            </span>
+                                            <div>
+                                              <span>{subtopic.title}</span>
+                                              {subtopic.description && (
+                                                <p className="text-xs text-ink/60 mt-0.5">{subtopic.description}</p>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      }
+                                      const subtopicOpen = openTopics.has(subtopic.id);
+                                      return (
+                                        <div
+                                          key={subtopic.id}
+                                          className="border border-line/60 rounded-sm overflow-hidden bg-surface"
+                                        >
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleTopic(subtopic.id)}
+                                            className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
+                                          >
+                                            <span className="text-sm text-ink">{subtopic.title}</span>
+                                            <span
+                                              className={`text-ink/50 text-xs transition-transform flex-shrink-0 ${subtopicOpen ? 'rotate-180' : ''}`}
+                                              aria-hidden="true"
+                                            >
+                                              ▾
+                                            </span>
+                                          </button>
+                                          {subtopicOpen && (
+                                            <div className="border-t border-line p-3 space-y-3">
+                                              {subtopic.description && (
+                                                <p className="text-xs text-ink/60">{subtopic.description}</p>
+                                              )}
+                                              {subtopic.contentBlocks!.map((block, bi) =>
+                                                renderContentBlock(block, `${subtopic.id}-${bi}`),
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 )}
                               </div>

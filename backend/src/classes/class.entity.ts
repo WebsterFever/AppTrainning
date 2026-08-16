@@ -8,6 +8,94 @@ import {
 } from 'typeorm';
 import { Registration } from '../registrations/registration.entity';
 
+export interface ContentBlockRecord {
+  id: string;
+  type?: string;
+  content?: string;
+  label?: string;
+  // ai_teacher-only fields (see ContentBlockDto for details).
+  language?: string;
+  voice?: string;
+  rate?: number;
+  avatarStyle?: string;
+  instructions?: string;
+  showScript?: boolean;
+  // Generated neural-voice audio for this ai_teacher block (optional
+  // upgrade over the browser-only speechSynthesis fallback — see
+  // AiTeacherService). `audioKey` is the private S3 object key; it's
+  // never resolved to a fetchable URL for any client — playback goes
+  // through a protected streaming endpoint that re-checks course
+  // access by blockId instead.
+  audioStatus?: 'none' | 'generating' | 'ready' | 'failed';
+  audioKey?: string;
+  audioProvider?: string;
+  audioVoice?: string;
+  audioGeneratedAt?: string;
+  audioScriptHash?: string;
+  audioError?: string;
+  // Guided Video Lesson (video blocks only) — timestamped AI Teacher
+  // explanations that pause/resume the video. Same audio-metadata
+  // shape and private-key handling as the fields above, just one per
+  // cue instead of one per block (see AiTeacherService).
+  guidedTeacherEnabled?: boolean;
+  guidedTeacherCues?: {
+    id: string;
+    timestampSeconds: number;
+    script: string;
+    language?: 'en' | 'fr' | 'ht';
+    voice?: string;
+    rate?: number;
+    // Optional reference code shown alongside the explanation —
+    // display-only, never spoken (see TeacherCueDto).
+    code?: string;
+    codeLanguage?: string;
+    audioStatus?: 'none' | 'generating' | 'ready' | 'failed';
+    audioKey?: string;
+    audioProvider?: string;
+    audioVoice?: string;
+    audioGeneratedAt?: string;
+    audioScriptHash?: string;
+    audioError?: string;
+  }[];
+  // Automatic Coding Video Generator (video blocks only) — an
+  // optional, silent, deterministically-rendered MP4 that plugs into
+  // this same block's `content` slot once ready (see
+  // VideoRenderService). Reuses `guidedTeacherCues` above as the
+  // ordered "teaching steps" source (each cue with a non-empty `code`
+  // is one typed-out step) rather than a second schema — this field
+  // only carries the render job's own state/settings/output.
+  // `videoKey` is the private S3 object key, handled exactly like
+  // audioKey above: never resolved to a client-fetchable URL, always
+  // served through a protected streaming endpoint.
+  guidedVideoGeneration?: {
+    status: 'idle' | 'queued' | 'rendering' | 'encoding' | 'uploading' | 'ready' | 'failed' | 'interrupted';
+    error?: string;
+    videoKey?: string;
+    durationSeconds?: number;
+    width?: number;
+    height?: number;
+    fps?: number;
+    typingCharsPerSecond?: number;
+    generatedAt?: string;
+    // Fingerprint of (ordered step code, typingCharsPerSecond, fps,
+    // width, height) at generation time — NOT script/voice/language/
+    // rate, so editing narration never stales the video (see
+    // computeVideoContentHash).
+    contentHash?: string;
+  };
+}
+
+// Shared shape for anything that holds an ordered list of lesson content
+// blocks directly — both a Topic and a Subtopic look like this. A Subtopic
+// never has further nesting of its own (see TrainingClass.curriculumModules
+// below for how `subtopics` attaches to a topic).
+export interface TopicLikeRecord {
+  id: string;
+  title?: string;
+  description?: string;
+  contentBlocks?: ContentBlockRecord[];
+}
+
 @Entity('classes')
 export class TrainingClass {
   @PrimaryGeneratedColumn('uuid')
@@ -65,93 +153,21 @@ export class TrainingClass {
   // registers/unlocks the class (see ClassesService.toPublicShape and
   // RegistrationsService.register). Title/description stay public — that's
   // the marketing curriculum.
+  //
+  // A topic may ALSO hold an optional one-level-deeper grouping via
+  // `subtopics`: Module -> Topic -> Subtopic -> Content Block. A subtopic
+  // is shaped exactly like a topic (own title/description/contentBlocks,
+  // no further nesting). This is additive, not a migration — a topic can
+  // have direct contentBlocks, subtopics, or (rarely) both; every existing
+  // course that only ever used direct contentBlocks keeps working
+  // unchanged, since `subtopics` is simply absent for those rows.
   @Column('simple-json', { name: 'curriculum_modules', nullable: true })
   curriculumModules?: {
     id: string;
     title?: string;
     objective?: string;
     project?: string;
-    topics: {
-      id: string;
-      title?: string;
-      description?: string;
-      contentBlocks?: {
-        id: string;
-        type?: string;
-        content?: string;
-        label?: string;
-        // ai_teacher-only fields (see ContentBlockDto for details).
-        language?: string;
-        voice?: string;
-        rate?: number;
-        avatarStyle?: string;
-        instructions?: string;
-        showScript?: boolean;
-        // Generated neural-voice audio for this ai_teacher block (optional
-        // upgrade over the browser-only speechSynthesis fallback — see
-        // AiTeacherService). `audioKey` is the private S3 object key; it's
-        // never resolved to a fetchable URL for any client — playback goes
-        // through a protected streaming endpoint that re-checks course
-        // access by blockId instead.
-        audioStatus?: 'none' | 'generating' | 'ready' | 'failed';
-        audioKey?: string;
-        audioProvider?: string;
-        audioVoice?: string;
-        audioGeneratedAt?: string;
-        audioScriptHash?: string;
-        audioError?: string;
-        // Guided Video Lesson (video blocks only) — timestamped AI Teacher
-        // explanations that pause/resume the video. Same audio-metadata
-        // shape and private-key handling as the fields above, just one per
-        // cue instead of one per block (see AiTeacherService).
-        guidedTeacherEnabled?: boolean;
-        guidedTeacherCues?: {
-          id: string;
-          timestampSeconds: number;
-          script: string;
-          language?: 'en' | 'fr' | 'ht';
-          voice?: string;
-          rate?: number;
-          // Optional reference code shown alongside the explanation —
-          // display-only, never spoken (see TeacherCueDto).
-          code?: string;
-          codeLanguage?: string;
-          audioStatus?: 'none' | 'generating' | 'ready' | 'failed';
-          audioKey?: string;
-          audioProvider?: string;
-          audioVoice?: string;
-          audioGeneratedAt?: string;
-          audioScriptHash?: string;
-          audioError?: string;
-        }[];
-        // Automatic Coding Video Generator (video blocks only) — an
-        // optional, silent, deterministically-rendered MP4 that plugs into
-        // this same block's `content` slot once ready (see
-        // VideoRenderService). Reuses `guidedTeacherCues` above as the
-        // ordered "teaching steps" source (each cue with a non-empty `code`
-        // is one typed-out step) rather than a second schema — this field
-        // only carries the render job's own state/settings/output.
-        // `videoKey` is the private S3 object key, handled exactly like
-        // audioKey above: never resolved to a client-fetchable URL, always
-        // served through a protected streaming endpoint.
-        guidedVideoGeneration?: {
-          status: 'idle' | 'queued' | 'rendering' | 'encoding' | 'uploading' | 'ready' | 'failed' | 'interrupted';
-          error?: string;
-          videoKey?: string;
-          durationSeconds?: number;
-          width?: number;
-          height?: number;
-          fps?: number;
-          typingCharsPerSecond?: number;
-          generatedAt?: string;
-          // Fingerprint of (ordered step code, typingCharsPerSecond, fps,
-          // width, height) at generation time — NOT script/voice/language/
-          // rate, so editing narration never stales the video (see
-          // computeVideoContentHash).
-          contentHash?: string;
-        };
-      }[];
-    }[];
+    topics: (TopicLikeRecord & { subtopics?: TopicLikeRecord[] })[];
   }[];
 
   // Optional: paid classes may not have a fixed live session (e.g. self-paced content).

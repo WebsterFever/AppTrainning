@@ -177,13 +177,26 @@ export interface NewContentBlock {
   guidedTeacherCues?: NewTeacherCue[];
 }
 
+export interface Subtopic {
+  id: string;
+  title?: string;
+  description?: string;
+  // Same gating as CurriculumTopic.contentBlocks below.
+  contentBlocks?: ContentBlock[];
+}
+
 export interface CurriculumTopic {
   id: string;
   title?: string;
   description?: string;
   // Absent/undefined pre-registration on paid & unregistered-free classes —
   // the backend strips it until access is proven (see api.register below).
+  // A topic can hold content directly here AND/OR organize it into
+  // `subtopics` — both are optional and can coexist (see Subtopic above).
+  // Existing courses that only ever used direct contentBlocks are
+  // unaffected: subtopics is simply absent for them.
   contentBlocks?: ContentBlock[];
+  subtopics?: Subtopic[];
 }
 
 export interface CurriculumModule {
@@ -194,11 +207,19 @@ export interface CurriculumModule {
   topics: CurriculumTopic[];
 }
 
+export interface NewSubtopic {
+  id?: string;
+  title?: string;
+  description?: string;
+  contentBlocks?: NewContentBlock[];
+}
+
 export interface NewCurriculumTopic {
   id?: string;
   title?: string;
   description?: string;
   contentBlocks?: NewContentBlock[];
+  subtopics?: NewSubtopic[];
 }
 
 export interface NewCurriculumModule {

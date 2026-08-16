@@ -7,6 +7,9 @@ import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { ExtraVideoDto } from './dto/extra-video.dto';
 import { CurriculumModuleDto } from './dto/curriculum-module.dto';
+import { CurriculumTopicDto } from './dto/curriculum-topic.dto';
+import { SubtopicDto } from './dto/subtopic.dto';
+import { ContentBlockDto } from './dto/content-block.dto';
 import { computeScriptHash } from './ai-teacher/script-hash';
 import { computeVideoContentHash } from './video-render/video-content-hash';
 
@@ -15,6 +18,9 @@ type ContentBlockRecord = NonNullable<
 >[number];
 type TeacherCueRecord = NonNullable<ContentBlockRecord['guidedTeacherCues']>[number];
 type VideoGenerationRecord = NonNullable<ContentBlockRecord['guidedVideoGeneration']>;
+type PublicContentBlock = NonNullable<
+  NonNullable<ClassWithCount['curriculumModules']>[number]['topics'][number]['contentBlocks']
+>[number];
 
 export interface ClassWithCount {
   id: string;
@@ -60,6 +66,20 @@ export interface ClassWithCount {
         videoStale?: boolean;
         guidedTeacherCues?: (TeacherCueRecord & { audioStale?: boolean })[];
       })[];
+      // Optional one-level-deeper grouping — see TrainingClass.curriculumModules
+      // for the full rationale. Each subtopic is shaped exactly like a topic
+      // above (own contentBlocks with the same staleness/audio shape), just
+      // without any further nesting of its own.
+      subtopics?: {
+        id: string;
+        title?: string;
+        description?: string;
+        contentBlocks?: (Omit<ContentBlockRecord, 'guidedTeacherCues'> & {
+          audioStale?: boolean;
+          videoStale?: boolean;
+          guidedTeacherCues?: (TeacherCueRecord & { audioStale?: boolean })[];
+        })[];
+      }[];
     }[];
   }[];
 }
@@ -188,82 +208,106 @@ export class ClassesService {
     // editing an unrelated field (or even editing a *different* cue's
     // narration) never silently discards a generated video.
     const existingVideoGenerationByBlockId = new Map<string, VideoGenerationRecord>();
+    // Walks every content block reachable from a topic — its own direct
+    // contentBlocks AND every subtopic's — since a block's id is globally
+    // unique regardless of which level it's nested at, one flat pass over
+    // both is enough to preserve audio/video metadata correctly either way.
+    const collectFromBlocks = (blocks?: ContentBlockRecord[]) => {
+      for (const b of blocks ?? []) {
+        if (b.audioStatus || b.audioKey) {
+          existingAudioByBlockId.set(b.id, {
+            audioStatus: b.audioStatus,
+            audioKey: b.audioKey,
+            audioProvider: b.audioProvider,
+            audioVoice: b.audioVoice,
+            audioGeneratedAt: b.audioGeneratedAt,
+            audioScriptHash: b.audioScriptHash,
+            audioError: b.audioError,
+          });
+        }
+        if (b.guidedVideoGeneration) {
+          existingVideoGenerationByBlockId.set(b.id, b.guidedVideoGeneration);
+        }
+        for (const cue of b.guidedTeacherCues ?? []) {
+          if (!cue.audioStatus && !cue.audioKey) continue;
+          existingCueAudioByKey.set(`${b.id}:${cue.id}`, {
+            audioStatus: cue.audioStatus,
+            audioKey: cue.audioKey,
+            audioProvider: cue.audioProvider,
+            audioVoice: cue.audioVoice,
+            audioGeneratedAt: cue.audioGeneratedAt,
+            audioScriptHash: cue.audioScriptHash,
+            audioError: cue.audioError,
+          });
+        }
+      }
+    };
     for (const m of existingModules ?? []) {
       for (const t of m.topics ?? []) {
-        for (const b of t.contentBlocks ?? []) {
-          if (b.audioStatus || b.audioKey) {
-            existingAudioByBlockId.set(b.id, {
-              audioStatus: b.audioStatus,
-              audioKey: b.audioKey,
-              audioProvider: b.audioProvider,
-              audioVoice: b.audioVoice,
-              audioGeneratedAt: b.audioGeneratedAt,
-              audioScriptHash: b.audioScriptHash,
-              audioError: b.audioError,
-            });
-          }
-          if (b.guidedVideoGeneration) {
-            existingVideoGenerationByBlockId.set(b.id, b.guidedVideoGeneration);
-          }
-          for (const cue of b.guidedTeacherCues ?? []) {
-            if (!cue.audioStatus && !cue.audioKey) continue;
-            existingCueAudioByKey.set(`${b.id}:${cue.id}`, {
-              audioStatus: cue.audioStatus,
-              audioKey: cue.audioKey,
-              audioProvider: cue.audioProvider,
-              audioVoice: cue.audioVoice,
-              audioGeneratedAt: cue.audioGeneratedAt,
-              audioScriptHash: cue.audioScriptHash,
-              audioError: cue.audioError,
-            });
-          }
+        collectFromBlocks(t.contentBlocks);
+        for (const st of t.subtopics ?? []) {
+          collectFromBlocks(st.contentBlocks);
         }
       }
     }
+
+    // Converts one topic's or subtopic's `contentBlocks` DTO array into
+    // persisted records, applying the preserved audio/video maps above.
+    // Shared by both nesting levels so a subtopic's blocks get exactly the
+    // same treatment (ids, preserved audio, preserved video generation) as
+    // a topic's own direct blocks.
+    const processBlocks = (blocks?: ContentBlockDto[]): ContentBlockRecord[] | undefined =>
+      blocks?.map((b) => {
+        const preservedAudio = b.id ? existingAudioByBlockId.get(b.id) : undefined;
+        const blockId = b.id ?? randomUUID();
+        return {
+          id: blockId,
+          type: b.type || 'text',
+          content: b.content || undefined,
+          label: b.label || undefined,
+          language: b.language || undefined,
+          voice: b.voice || undefined,
+          rate: b.rate ?? undefined,
+          avatarStyle: b.avatarStyle || undefined,
+          instructions: b.instructions || undefined,
+          showScript: b.showScript ?? undefined,
+          ...preservedAudio,
+          guidedTeacherEnabled: b.guidedTeacherEnabled ?? undefined,
+          guidedVideoGeneration: existingVideoGenerationByBlockId.get(blockId),
+          guidedTeacherCues: b.guidedTeacherCues?.map((cue) => {
+            const cueId = cue.id ?? randomUUID();
+            const preservedCueAudio = existingCueAudioByKey.get(`${blockId}:${cueId}`);
+            return {
+              id: cueId,
+              timestampSeconds: cue.timestampSeconds,
+              script: cue.script,
+              language: cue.language || undefined,
+              voice: cue.voice || undefined,
+              rate: cue.rate ?? undefined,
+              code: cue.code || undefined,
+              codeLanguage: cue.codeLanguage || undefined,
+              ...preservedCueAudio,
+            };
+          }),
+        };
+      });
 
     return modules?.map((m) => ({
       id: m.id ?? randomUUID(),
       title: m.title || undefined,
       objective: m.objective || undefined,
       project: m.project || undefined,
-      topics: (m.topics ?? []).map((t) => ({
+      topics: (m.topics ?? []).map((t: CurriculumTopicDto) => ({
         id: t.id ?? randomUUID(),
         title: t.title || undefined,
         description: t.description || undefined,
-        contentBlocks: t.contentBlocks?.map((b) => {
-          const preservedAudio = b.id ? existingAudioByBlockId.get(b.id) : undefined;
-          const blockId = b.id ?? randomUUID();
-          return {
-            id: blockId,
-            type: b.type || 'text',
-            content: b.content || undefined,
-            label: b.label || undefined,
-            language: b.language || undefined,
-            voice: b.voice || undefined,
-            rate: b.rate ?? undefined,
-            avatarStyle: b.avatarStyle || undefined,
-            instructions: b.instructions || undefined,
-            showScript: b.showScript ?? undefined,
-            ...preservedAudio,
-            guidedTeacherEnabled: b.guidedTeacherEnabled ?? undefined,
-            guidedVideoGeneration: existingVideoGenerationByBlockId.get(blockId),
-            guidedTeacherCues: b.guidedTeacherCues?.map((cue) => {
-              const cueId = cue.id ?? randomUUID();
-              const preservedCueAudio = existingCueAudioByKey.get(`${blockId}:${cueId}`);
-              return {
-                id: cueId,
-                timestampSeconds: cue.timestampSeconds,
-                script: cue.script,
-                language: cue.language || undefined,
-                voice: cue.voice || undefined,
-                rate: cue.rate ?? undefined,
-                code: cue.code || undefined,
-                codeLanguage: cue.codeLanguage || undefined,
-                ...preservedCueAudio,
-              };
-            }),
-          };
-        }),
+        contentBlocks: processBlocks(t.contentBlocks),
+        subtopics: t.subtopics?.map((st: SubtopicDto) => ({
+          id: st.id ?? randomUUID(),
+          title: st.title || undefined,
+          description: st.description || undefined,
+          contentBlocks: processBlocks(st.contentBlocks),
+        })),
       })),
     }));
   }
@@ -323,7 +367,8 @@ export class ClassesService {
 
   // Strips a module's private lesson content (contentBlocks), keeping only
   // the public marketing-curriculum shape (title/objective/topics'
-  // titles+descriptions/project). Used both for anonymous visitors (see
+  // titles+descriptions/project — and, one level deeper, each subtopic's
+  // title+description too). Used both for anonymous visitors (see
   // toPublicShape) and for a registered student who hasn't yet unlocked a
   // given module (see RegistrationsService.register — a locked module still
   // shows its outline, just not the actual lesson).
@@ -332,7 +377,12 @@ export class ClassesService {
   ): NonNullable<TrainingClass['curriculumModules']>[number] {
     return {
       ...m,
-      topics: m.topics.map((t) => ({ id: t.id, title: t.title, description: t.description })),
+      topics: m.topics.map((t) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        subtopics: t.subtopics?.map((st) => ({ id: st.id, title: st.title, description: st.description })),
+      })),
     };
   }
 
@@ -348,42 +398,49 @@ export class ClassesService {
   withStaleness(
     modules?: TrainingClass['curriculumModules'],
   ): ClassWithCount['curriculumModules'] {
+    const processBlocks = (blocks?: ContentBlockRecord[]): PublicContentBlock[] | undefined =>
+      blocks?.map((b) => {
+        const cues = b.guidedTeacherCues?.map((cue) => {
+          if (!cue.audioScriptHash) return cue;
+          const cueHash = computeScriptHash(cue.script, cue.language, cue.voice, cue.rate);
+          return { ...cue, audioStale: cue.audioStatus === 'ready' && cueHash !== cue.audioScriptHash };
+        });
+        let result: typeof b & { audioStale?: boolean; videoStale?: boolean } = cues
+          ? { ...b, guidedTeacherCues: cues }
+          : b;
+
+        if (b.type === 'ai_teacher' && b.audioScriptHash) {
+          const currentHash = computeScriptHash(b.content, b.language, b.voice, b.rate);
+          result = { ...result, audioStale: b.audioStatus === 'ready' && currentHash !== b.audioScriptHash };
+        }
+
+        const gen = b.guidedVideoGeneration;
+        if (b.type === 'video' && gen?.contentHash) {
+          const stepsCode = (cues ?? b.guidedTeacherCues ?? [])
+            .filter((c) => c.code?.trim())
+            .map((c) => c.code as string);
+          const currentHash = computeVideoContentHash(
+            stepsCode,
+            gen.typingCharsPerSecond ?? 0,
+            gen.fps ?? 0,
+            gen.width ?? 0,
+            gen.height ?? 0,
+          );
+          result = { ...result, videoStale: gen.status === 'ready' && currentHash !== gen.contentHash };
+        }
+
+        return result;
+      });
+
     return modules?.map((m) => ({
       ...m,
       topics: m.topics.map((t) => ({
         ...t,
-        contentBlocks: t.contentBlocks?.map((b) => {
-          const cues = b.guidedTeacherCues?.map((cue) => {
-            if (!cue.audioScriptHash) return cue;
-            const cueHash = computeScriptHash(cue.script, cue.language, cue.voice, cue.rate);
-            return { ...cue, audioStale: cue.audioStatus === 'ready' && cueHash !== cue.audioScriptHash };
-          });
-          let result: typeof b & { audioStale?: boolean; videoStale?: boolean } = cues
-            ? { ...b, guidedTeacherCues: cues }
-            : b;
-
-          if (b.type === 'ai_teacher' && b.audioScriptHash) {
-            const currentHash = computeScriptHash(b.content, b.language, b.voice, b.rate);
-            result = { ...result, audioStale: b.audioStatus === 'ready' && currentHash !== b.audioScriptHash };
-          }
-
-          const gen = b.guidedVideoGeneration;
-          if (b.type === 'video' && gen?.contentHash) {
-            const stepsCode = (cues ?? b.guidedTeacherCues ?? [])
-              .filter((c) => c.code?.trim())
-              .map((c) => c.code as string);
-            const currentHash = computeVideoContentHash(
-              stepsCode,
-              gen.typingCharsPerSecond ?? 0,
-              gen.fps ?? 0,
-              gen.width ?? 0,
-              gen.height ?? 0,
-            );
-            result = { ...result, videoStale: gen.status === 'ready' && currentHash !== gen.contentHash };
-          }
-
-          return result;
-        }),
+        contentBlocks: processBlocks(t.contentBlocks),
+        subtopics: t.subtopics?.map((st) => ({
+          ...st,
+          contentBlocks: processBlocks(st.contentBlocks),
+        })),
       })),
     }));
   }
@@ -399,32 +456,39 @@ export class ClassesService {
   stripPrivateStorageKeys(
     modules?: ClassWithCount['curriculumModules'],
   ): ClassWithCount['curriculumModules'] {
+    const processBlocks = (blocks?: PublicContentBlock[]): PublicContentBlock[] | undefined =>
+      blocks?.map((b) => {
+        const cues = b.guidedTeacherCues?.map((cue) => {
+          if (!('audioKey' in cue)) return cue;
+          const { audioKey: _cueAudioKey, ...rest } = cue as typeof cue & { audioKey?: string };
+          return rest;
+        });
+        let result = cues ? { ...b, guidedTeacherCues: cues } : b;
+
+        if (b.type === 'ai_teacher' && 'audioKey' in result) {
+          const { audioKey: _audioKey, ...rest } = result as typeof result & { audioKey?: string };
+          result = rest;
+        }
+
+        if (b.guidedVideoGeneration && 'videoKey' in b.guidedVideoGeneration) {
+          const { videoKey: _videoKey, ...restGen } = b.guidedVideoGeneration as typeof b.guidedVideoGeneration & {
+            videoKey?: string;
+          };
+          result = { ...result, guidedVideoGeneration: restGen };
+        }
+
+        return result;
+      });
+
     return modules?.map((m) => ({
       ...m,
       topics: m.topics.map((t) => ({
         ...t,
-        contentBlocks: t.contentBlocks?.map((b) => {
-          const cues = b.guidedTeacherCues?.map((cue) => {
-            if (!('audioKey' in cue)) return cue;
-            const { audioKey: _cueAudioKey, ...rest } = cue as typeof cue & { audioKey?: string };
-            return rest;
-          });
-          let result = cues ? { ...b, guidedTeacherCues: cues } : b;
-
-          if (b.type === 'ai_teacher' && 'audioKey' in result) {
-            const { audioKey: _audioKey, ...rest } = result as typeof result & { audioKey?: string };
-            result = rest;
-          }
-
-          if (b.guidedVideoGeneration && 'videoKey' in b.guidedVideoGeneration) {
-            const { videoKey: _videoKey, ...restGen } = b.guidedVideoGeneration as typeof b.guidedVideoGeneration & {
-              videoKey?: string;
-            };
-            result = { ...result, guidedVideoGeneration: restGen };
-          }
-
-          return result;
-        }),
+        contentBlocks: processBlocks(t.contentBlocks),
+        subtopics: t.subtopics?.map((st) => ({
+          ...st,
+          contentBlocks: processBlocks(st.contentBlocks),
+        })),
       })),
     }));
   }

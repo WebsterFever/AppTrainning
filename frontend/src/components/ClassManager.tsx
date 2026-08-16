@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  AiTeacherAudioStatus,
   api,
   ClassItem,
-  ContentBlockType,
   CueCodeLanguage,
   GuidedVideoGeneration,
   NewExtraVideo,
@@ -11,64 +9,15 @@ import {
 } from '../lib/api';
 import { formatCountdown } from '../lib/countdown';
 import { useLanguage } from '../lib/i18n';
-import { getVideoEmbed } from '../lib/video';
 import { parseClockTimestamp } from '../lib/guidedVideo';
 import ConfirmDialog from './ConfirmDialog';
-import GuidedTeacherCueEditor, { cueToForm, TeacherCueForm } from './GuidedTeacherCueEditor';
-import GuidedVideoGenerator from './GuidedVideoGenerator';
+import ContentBlocksEditor, { blockToForm, ContentBlockForm } from './ContentBlocksEditor';
 
-const BLOCK_TYPES: { value: ContentBlockType; label: string }[] = [
-  { value: 'text', label: 'Text' },
-  { value: 'video', label: 'Video' },
-  { value: 'heading', label: 'Heading' },
-  { value: 'image', label: 'Image' },
-  { value: 'divider', label: 'Divider' },
-  { value: 'code', label: 'Code' },
-  { value: 'resource', label: 'Resource' },
-  { value: 'exercise', label: 'Exercise' },
-  { value: 'ai_teacher', label: 'AI Teacher' },
-];
-
-const AI_TEACHER_AVATAR_STYLES = ['amber', 'sage', 'coral'] as const;
-
-// Stable OpenAI tts-1 voice names — also reused as the browser-speech
-// fallback's "voice name hint" (harmless there: the browser just won't
-// find a literal match and falls back to a language-appropriate voice).
-const AI_TEACHER_NEURAL_VOICES = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'] as const;
-
-interface ContentBlockForm {
+interface SubtopicForm {
   id?: string;
-  type: ContentBlockType;
-  content: string;
-  label: string;
-  // ai_teacher-only fields — ignored (and stripped on submit) for every
-  // other block type.
-  language: string;
-  voice: string;
-  rate: string;
-  avatarStyle: string;
-  instructions: string;
-  // Whether students also see the lesson script as readable text, or just
-  // hear the robot (audio-only). Defaults to true (shown) — the original,
-  // only behavior before this became optional.
-  showScript: boolean;
-  // Generated-audio status, read-only from the admin's point of view here
-  // (set by loading an existing block, or after a successful generate call
-  // — see generateVoice below). Never sent back on a normal class save.
-  audioStatus?: AiTeacherAudioStatus;
-  audioProvider?: string;
-  audioVoice?: string;
-  audioGeneratedAt?: string;
-  audioError?: string;
-  audioStale?: boolean;
-  // video-only: Guided Video Lesson — ignored (and stripped on submit) for
-  // every other block type.
-  guidedTeacherEnabled: boolean;
-  guidedTeacherCues: TeacherCueForm[];
-  // video-only: Automatic Coding Video Generator — read-only, server-
-  // managed, never sent back on a normal class save.
-  guidedVideoGeneration?: GuidedVideoGeneration;
-  videoStale?: boolean;
+  title: string;
+  description: string;
+  contentBlocks: ContentBlockForm[];
 }
 
 interface TopicForm {
@@ -76,6 +25,7 @@ interface TopicForm {
   title: string;
   description: string;
   contentBlocks: ContentBlockForm[];
+  subtopics: SubtopicForm[];
 }
 
 interface ModuleForm {
@@ -113,24 +63,12 @@ function emptyExtraVideo(): ExtraVideoForm {
   };
 }
 
-function emptyBlock(): ContentBlockForm {
-  return {
-    type: 'text',
-    content: '',
-    label: '',
-    language: '',
-    voice: '',
-    rate: '1',
-    avatarStyle: 'amber',
-    instructions: '',
-    showScript: true,
-    guidedTeacherEnabled: false,
-    guidedTeacherCues: [],
-  };
+function emptySubtopic(): SubtopicForm {
+  return { title: '', description: '', contentBlocks: [] };
 }
 
 function emptyTopic(): TopicForm {
-  return { title: '', description: '', contentBlocks: [] };
+  return { title: '', description: '', contentBlocks: [], subtopics: [] };
 }
 
 function emptyModule(): ModuleForm {
@@ -212,68 +150,11 @@ export default function ClassManager({
   const [registrantsByClass, setRegistrantsByClass] = useState<Record<string, RegistrationDetail[]>>({});
   const [loadingRegistrants, setLoadingRegistrants] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
-  const [audioUi, setAudioUi] = useState<
-    Record<string, { generating?: boolean; error?: string; previewUrl?: string }>
-  >({});
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(timer);
   }, []);
-
-  // Generates (or regenerates) neural voice audio for one ai_teacher block.
-  // Requires the block to already exist server-side (i.e. the class has
-  // been saved at least once since this block was added) — otherwise
-  // there's nothing to attach the audio metadata to.
-  const generateVoice = async (mi: number, ti: number, bi: number) => {
-    if (!editingId) return;
-    const block = form.curriculumModules[mi].topics[ti].contentBlocks[bi];
-    if (!block.id) return;
-    const blockId = block.id;
-    setAudioUi((s) => ({ ...s, [blockId]: { generating: true } }));
-    try {
-      const result = await api.generateAiTeacherAudio(editingId, blockId, {
-        script: block.content.trim(),
-        label: block.label.trim() || undefined,
-        language: (block.language || 'en') as 'en' | 'fr' | 'ht',
-        voice: block.voice.trim() || undefined,
-        rate: block.rate.trim() ? parseFloat(block.rate) : undefined,
-      });
-      const next = [...form.curriculumModules];
-      const topics = [...next[mi].topics];
-      const blocks = [...topics[ti].contentBlocks];
-      blocks[bi] = {
-        ...blocks[bi],
-        content: result.content ?? blocks[bi].content,
-        label: result.label ?? blocks[bi].label,
-        audioStatus: result.audioStatus,
-        audioProvider: result.audioProvider,
-        audioVoice: result.audioVoice,
-        audioGeneratedAt: result.audioGeneratedAt,
-        audioError: result.audioError,
-        audioStale: false,
-      };
-      topics[ti] = { ...topics[ti], contentBlocks: blocks };
-      next[mi] = { ...next[mi], topics };
-      setForm({ ...form, curriculumModules: next });
-      setAudioUi((s) => ({ ...s, [blockId]: { generating: false } }));
-    } catch (err) {
-      setAudioUi((s) => ({
-        ...s,
-        [blockId]: { generating: false, error: err instanceof Error ? err.message : 'Generation failed' },
-      }));
-    }
-  };
-
-  const previewVoice = async (blockId: string) => {
-    if (!editingId) return;
-    try {
-      const url = await api.previewAiTeacherAudio(editingId, blockId);
-      setAudioUi((s) => ({ ...s, [blockId]: { ...s[blockId], previewUrl: url, error: undefined } }));
-    } catch {
-      setAudioUi((s) => ({ ...s, [blockId]: { ...s[blockId], error: 'No generated audio available yet.' } }));
-    }
-  };
 
   const toggleRegistrants = async (classId: string) => {
     if (expandedClassId === classId) {
@@ -336,27 +217,12 @@ export default function ClassManager({
                   id: t.id,
                   title: t.title ?? '',
                   description: t.description ?? '',
-                  contentBlocks: (t.contentBlocks ?? []).map((b) => ({
-                    id: b.id,
-                    type: b.type,
-                    content: b.content ?? '',
-                    label: b.label ?? '',
-                    language: b.language ?? '',
-                    voice: b.voice ?? '',
-                    rate: b.rate != null ? String(b.rate) : '1',
-                    avatarStyle: b.avatarStyle ?? 'amber',
-                    instructions: b.instructions ?? '',
-                    showScript: b.showScript ?? true,
-                    audioStatus: b.audioStatus,
-                    audioProvider: b.audioProvider,
-                    audioVoice: b.audioVoice,
-                    audioGeneratedAt: b.audioGeneratedAt,
-                    audioError: b.audioError,
-                    audioStale: b.audioStale,
-                    guidedTeacherEnabled: b.guidedTeacherEnabled ?? false,
-                    guidedTeacherCues: (b.guidedTeacherCues ?? []).map(cueToForm),
-                    guidedVideoGeneration: b.guidedVideoGeneration,
-                    videoStale: b.videoStale,
+                  contentBlocks: (t.contentBlocks ?? []).map(blockToForm),
+                  subtopics: (t.subtopics ?? []).map((st) => ({
+                    id: st.id,
+                    title: st.title ?? '',
+                    description: st.description ?? '',
+                    contentBlocks: (st.contentBlocks ?? []).map(blockToForm),
                   })),
                 }))
               : [emptyTopic()],
@@ -415,6 +281,53 @@ export default function ClassManager({
           imageName: v.imageName,
         }));
 
+      // Shared by a topic's own contentBlocks and each of its subtopics' —
+      // converts one ContentBlockForm into the trimmed payload shape the
+      // backend DTO expects.
+      const blocksToPayload = (blocks: ContentBlockForm[]) =>
+        blocks
+          .map((b) => ({
+            id: b.id,
+            type: b.type,
+            content: b.content.trim() || undefined,
+            label: b.label.trim() || undefined,
+            ...(b.type === 'ai_teacher'
+              ? {
+                  language: (b.language || undefined) as 'en' | 'fr' | 'ht' | undefined,
+                  voice: b.voice.trim() || undefined,
+                  rate: b.rate.trim() ? parseFloat(b.rate) : undefined,
+                  avatarStyle: b.avatarStyle || undefined,
+                  instructions: b.instructions.trim() || undefined,
+                  showScript: b.showScript,
+                }
+              : {}),
+            ...(b.type === 'video'
+              ? {
+                  guidedTeacherEnabled: b.guidedTeacherEnabled,
+                  guidedTeacherCues: b.guidedTeacherCues
+                    .map((cue) => ({
+                      id: cue.id,
+                      timestampSeconds: parseClockTimestamp(cue.timestamp) ?? 0,
+                      script: cue.script.trim(),
+                      language: (cue.language || undefined) as 'en' | 'fr' | 'ht' | undefined,
+                      voice: cue.voice.trim() || undefined,
+                      rate: cue.rate.trim() ? parseFloat(cue.rate) : undefined,
+                      code: cue.code.trim() || undefined,
+                      codeLanguage: (cue.code.trim() ? cue.codeLanguage || undefined : undefined) as
+                        | CueCodeLanguage
+                        | undefined,
+                    }))
+                    .filter((cue) => cue.script),
+                }
+              : {}),
+          }))
+          // A divider needs no content to be meaningful, and neither does a
+          // video block once the Automatic Coding Video Generator exists —
+          // its MP4 comes from guidedVideoGeneration, not a manually-entered
+          // URL, so an auto-generated video block legitimately has an empty
+          // Video URL and must not be silently dropped here.
+          .filter((b) => b.type === 'divider' || b.type === 'video' || b.content);
+
       const curriculumModules = form.curriculumModules
         .map((m) => ({
           id: m.id,
@@ -426,51 +339,17 @@ export default function ClassManager({
               id: t.id,
               title: t.title.trim() || undefined,
               description: t.description.trim() || undefined,
-              contentBlocks: t.contentBlocks
-                .map((b) => ({
-                  id: b.id,
-                  type: b.type,
-                  content: b.content.trim() || undefined,
-                  label: b.label.trim() || undefined,
-                  ...(b.type === 'ai_teacher'
-                    ? {
-                        language: (b.language || undefined) as 'en' | 'fr' | 'ht' | undefined,
-                        voice: b.voice.trim() || undefined,
-                        rate: b.rate.trim() ? parseFloat(b.rate) : undefined,
-                        avatarStyle: b.avatarStyle || undefined,
-                        instructions: b.instructions.trim() || undefined,
-                        showScript: b.showScript,
-                      }
-                    : {}),
-                  ...(b.type === 'video'
-                    ? {
-                        guidedTeacherEnabled: b.guidedTeacherEnabled,
-                        guidedTeacherCues: b.guidedTeacherCues
-                          .map((cue) => ({
-                            id: cue.id,
-                            timestampSeconds: parseClockTimestamp(cue.timestamp) ?? 0,
-                            script: cue.script.trim(),
-                            language: (cue.language || undefined) as 'en' | 'fr' | 'ht' | undefined,
-                            voice: cue.voice.trim() || undefined,
-                            rate: cue.rate.trim() ? parseFloat(cue.rate) : undefined,
-                            code: cue.code.trim() || undefined,
-                            codeLanguage: (cue.code.trim() ? cue.codeLanguage || undefined : undefined) as
-                              | CueCodeLanguage
-                              | undefined,
-                          }))
-                          .filter((cue) => cue.script),
-                      }
-                    : {}),
+              contentBlocks: blocksToPayload(t.contentBlocks),
+              subtopics: t.subtopics
+                .map((st) => ({
+                  id: st.id,
+                  title: st.title.trim() || undefined,
+                  description: st.description.trim() || undefined,
+                  contentBlocks: blocksToPayload(st.contentBlocks),
                 }))
-                // A divider needs no content to be meaningful, and neither
-                // does a video block once the Automatic Coding Video
-                // Generator exists — its MP4 comes from
-                // guidedVideoGeneration, not a manually-entered URL, so an
-                // auto-generated video block legitimately has an empty
-                // Video URL and must not be silently dropped here.
-                .filter((b) => b.type === 'divider' || b.type === 'video' || b.content),
+                .filter((st) => st.title || st.description || st.contentBlocks.length),
             }))
-            .filter((t) => t.title || t.description || t.contentBlocks.length),
+            .filter((t) => t.title || t.description || t.contentBlocks.length || t.subtopics.length),
         }))
         .filter((m) => m.title || m.objective || m.project || m.topics.length);
 
@@ -1071,530 +950,130 @@ export default function ClassManager({
                           className="input h-12 text-sm"
                         />
 
-                        <div className="space-y-1.5">
+                        <ContentBlocksEditor
+                          classId={editingId ?? undefined}
+                          blocks={topic.contentBlocks}
+                          onChange={(update) => {
+                            setForm((prev) => {
+                              const next = [...prev.curriculumModules];
+                              const topics = [...next[mi].topics];
+                              const currentBlocks = topics[ti].contentBlocks;
+                              const newBlocks = typeof update === 'function' ? update(currentBlocks) : update;
+                              topics[ti] = { ...topics[ti], contentBlocks: newBlocks };
+                              next[mi] = { ...next[mi], topics };
+                              return { ...prev, curriculumModules: next };
+                            });
+                          }}
+                        />
+
+                        <div className="space-y-2 border-t border-line/50 pt-2">
                           <p className="text-[10px] font-mono uppercase tracking-wide text-ink/40">
-                            Lesson content — appears in this exact order
+                            Subtopics
                           </p>
-                          {topic.contentBlocks.map((block, bi) => (
-                            <div key={bi} className="border border-line rounded-sm p-2 bg-surface space-y-1.5">
-                              <div className="flex items-center gap-1.5">
-                                <select
-                                  value={block.type}
-                                  onChange={(e) => {
-                                    const next = [...form.curriculumModules];
-                                    const topics = [...next[mi].topics];
-                                    const blocks = [...topics[ti].contentBlocks];
-                                    blocks[bi] = { ...blocks[bi], type: e.target.value as ContentBlockType };
-                                    topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                    next[mi] = { ...next[mi], topics };
-                                    setForm({ ...form, curriculumModules: next });
-                                  }}
-                                  className="input text-xs py-1 flex-1"
-                                >
-                                  {BLOCK_TYPES.map((bt) => (
-                                    <option key={bt.value} value={bt.value}>
-                                      {bt.label}
-                                    </option>
-                                  ))}
-                                </select>
-                                <button
-                                  type="button"
-                                  disabled={bi === 0}
-                                  onClick={() => {
-                                    const next = [...form.curriculumModules];
-                                    const topics = [...next[mi].topics];
-                                    const blocks = [...topics[ti].contentBlocks];
-                                    [blocks[bi - 1], blocks[bi]] = [blocks[bi], blocks[bi - 1]];
-                                    topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                    next[mi] = { ...next[mi], topics };
-                                    setForm({ ...form, curriculumModules: next });
-                                  }}
-                                  aria-label="Move content block up"
-                                  className="btn-outline text-xs px-2 py-0.5 disabled:opacity-30 flex-shrink-0"
-                                >
-                                  ↑
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={bi === topic.contentBlocks.length - 1}
-                                  onClick={() => {
-                                    const next = [...form.curriculumModules];
-                                    const topics = [...next[mi].topics];
-                                    const blocks = [...topics[ti].contentBlocks];
-                                    [blocks[bi + 1], blocks[bi]] = [blocks[bi], blocks[bi + 1]];
-                                    topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                    next[mi] = { ...next[mi], topics };
-                                    setForm({ ...form, curriculumModules: next });
-                                  }}
-                                  aria-label="Move content block down"
-                                  className="btn-outline text-xs px-2 py-0.5 disabled:opacity-30 flex-shrink-0"
-                                >
-                                  ↓
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const next = [...form.curriculumModules];
-                                    const topics = [...next[mi].topics];
-                                    topics[ti] = {
-                                      ...topics[ti],
-                                      contentBlocks: topics[ti].contentBlocks.filter((_, j) => j !== bi),
-                                    };
-                                    next[mi] = { ...next[mi], topics };
-                                    setForm({ ...form, curriculumModules: next });
-                                  }}
-                                  aria-label="Remove this content block"
-                                  className="btn-danger-outline text-xs px-2 py-0.5 flex-shrink-0"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-
-                              {block.type === 'divider' ? (
-                                <p className="text-[11px] text-ink/40 italic">— visual divider, no content —</p>
-                              ) : block.type === 'text' || block.type === 'exercise' ? (
-                                <textarea
-                                  placeholder={
-                                    block.type === 'exercise'
-                                      ? 'Exercise instructions'
-                                      : 'Study notes / paragraph text'
-                                  }
-                                  value={block.content}
-                                  onChange={(e) => {
-                                    const next = [...form.curriculumModules];
-                                    const topics = [...next[mi].topics];
-                                    const blocks = [...topics[ti].contentBlocks];
-                                    blocks[bi] = { ...blocks[bi], content: e.target.value };
-                                    topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                    next[mi] = { ...next[mi], topics };
-                                    setForm({ ...form, curriculumModules: next });
-                                  }}
-                                  className="input h-16 text-sm"
-                                />
-                              ) : block.type === 'heading' ? (
-                                <input
-                                  placeholder="Heading text"
-                                  value={block.content}
-                                  onChange={(e) => {
-                                    const next = [...form.curriculumModules];
-                                    const topics = [...next[mi].topics];
-                                    const blocks = [...topics[ti].contentBlocks];
-                                    blocks[bi] = { ...blocks[bi], content: e.target.value };
-                                    topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                    next[mi] = { ...next[mi], topics };
-                                    setForm({ ...form, curriculumModules: next });
-                                  }}
-                                  className="input text-sm"
-                                />
-                              ) : block.type === 'code' ? (
-                                <>
-                                  <textarea
-                                    placeholder="Code"
-                                    value={block.content}
-                                    onChange={(e) => {
+                          {topic.subtopics.map((subtopic, si) => (
+                            <div key={si} className="border border-line/70 rounded-sm p-2 space-y-1.5 bg-surface">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-mono text-ink/40">Subtopic {si + 1}</span>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    disabled={si === 0}
+                                    onClick={() => {
                                       const next = [...form.curriculumModules];
                                       const topics = [...next[mi].topics];
-                                      const blocks = [...topics[ti].contentBlocks];
-                                      blocks[bi] = { ...blocks[bi], content: e.target.value };
-                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                      const subtopics = [...topics[ti].subtopics];
+                                      [subtopics[si - 1], subtopics[si]] = [subtopics[si], subtopics[si - 1]];
+                                      topics[ti] = { ...topics[ti], subtopics };
                                       next[mi] = { ...next[mi], topics };
                                       setForm({ ...form, curriculumModules: next });
                                     }}
-                                    className="input h-16 text-sm font-mono"
-                                  />
-                                  <input
-                                    placeholder="Language (optional, e.g. javascript)"
-                                    value={block.label}
-                                    onChange={(e) => {
+                                    aria-label="Move subtopic up"
+                                    className="btn-outline text-xs px-2 py-0.5 disabled:opacity-30"
+                                  >
+                                    ↑
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={si === topic.subtopics.length - 1}
+                                    onClick={() => {
                                       const next = [...form.curriculumModules];
                                       const topics = [...next[mi].topics];
-                                      const blocks = [...topics[ti].contentBlocks];
-                                      blocks[bi] = { ...blocks[bi], label: e.target.value };
-                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                      const subtopics = [...topics[ti].subtopics];
+                                      [subtopics[si + 1], subtopics[si]] = [subtopics[si], subtopics[si + 1]];
+                                      topics[ti] = { ...topics[ti], subtopics };
                                       next[mi] = { ...next[mi], topics };
                                       setForm({ ...form, curriculumModules: next });
                                     }}
-                                    className="input text-xs py-1"
-                                  />
-                                </>
-                              ) : block.type === 'ai_teacher' ? (
-                                <div className="space-y-1.5">
-                                  <textarea
-                                    placeholder="Lesson script — exactly what the robot will say"
-                                    value={block.content}
-                                    onChange={(e) => {
+                                    aria-label="Move subtopic down"
+                                    className="btn-outline text-xs px-2 py-0.5 disabled:opacity-30"
+                                  >
+                                    ↓
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
                                       const next = [...form.curriculumModules];
                                       const topics = [...next[mi].topics];
-                                      const blocks = [...topics[ti].contentBlocks];
-                                      blocks[bi] = { ...blocks[bi], content: e.target.value };
-                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                      topics[ti] = {
+                                        ...topics[ti],
+                                        subtopics: topics[ti].subtopics.filter((_, j) => j !== si),
+                                      };
                                       next[mi] = { ...next[mi], topics };
                                       setForm({ ...form, curriculumModules: next });
                                     }}
-                                    className="input h-28 text-sm"
-                                  />
-                                  <input
-                                    placeholder="Lesson title (optional)"
-                                    value={block.label}
-                                    onChange={(e) => {
-                                      const next = [...form.curriculumModules];
-                                      const topics = [...next[mi].topics];
-                                      const blocks = [...topics[ti].contentBlocks];
-                                      blocks[bi] = { ...blocks[bi], label: e.target.value };
-                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                      next[mi] = { ...next[mi], topics };
-                                      setForm({ ...form, curriculumModules: next });
-                                    }}
-                                    className="input text-xs py-1"
-                                  />
-                                  <div className="grid grid-cols-2 gap-1.5">
-                                    <select
-                                      value={block.language}
-                                      onChange={(e) => {
-                                        const next = [...form.curriculumModules];
-                                        const topics = [...next[mi].topics];
-                                        const blocks = [...topics[ti].contentBlocks];
-                                        blocks[bi] = { ...blocks[bi], language: e.target.value };
-                                        topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                        next[mi] = { ...next[mi], topics };
-                                        setForm({ ...form, curriculumModules: next });
-                                      }}
-                                      className="input text-xs py-1"
-                                    >
-                                      <option value="">Match class language</option>
-                                      <option value="en">English</option>
-                                      <option value="fr">French</option>
-                                      <option value="ht">Creole</option>
-                                    </select>
-                                    <select
-                                      value={block.avatarStyle}
-                                      onChange={(e) => {
-                                        const next = [...form.curriculumModules];
-                                        const topics = [...next[mi].topics];
-                                        const blocks = [...topics[ti].contentBlocks];
-                                        blocks[bi] = { ...blocks[bi], avatarStyle: e.target.value };
-                                        topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                        next[mi] = { ...next[mi], topics };
-                                        setForm({ ...form, curriculumModules: next });
-                                      }}
-                                      className="input text-xs py-1"
-                                    >
-                                      {AI_TEACHER_AVATAR_STYLES.map((style) => (
-                                        <option key={style} value={style}>
-                                          {style[0].toUpperCase() + style.slice(1)} avatar
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-1.5">
-                                    <select
-                                      value={block.voice}
-                                      onChange={(e) => {
-                                        const next = [...form.curriculumModules];
-                                        const topics = [...next[mi].topics];
-                                        const blocks = [...topics[ti].contentBlocks];
-                                        blocks[bi] = { ...blocks[bi], voice: e.target.value };
-                                        topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                        next[mi] = { ...next[mi], topics };
-                                        setForm({ ...form, curriculumModules: next });
-                                      }}
-                                      className="input text-xs py-1"
-                                    >
-                                      <option value="">Auto voice</option>
-                                      {AI_TEACHER_NEURAL_VOICES.map((v) => (
-                                        <option key={v} value={v}>
-                                          {v[0].toUpperCase() + v.slice(1)}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <input
-                                      type="number"
-                                      min={0.5}
-                                      max={2}
-                                      step={0.1}
-                                      placeholder="Speed (1 = normal)"
-                                      value={block.rate}
-                                      onChange={(e) => {
-                                        const next = [...form.curriculumModules];
-                                        const topics = [...next[mi].topics];
-                                        const blocks = [...topics[ti].contentBlocks];
-                                        blocks[bi] = { ...blocks[bi], rate: e.target.value };
-                                        topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                        next[mi] = { ...next[mi], topics };
-                                        setForm({ ...form, curriculumModules: next });
-                                      }}
-                                      className="input text-xs py-1"
-                                    />
-                                  </div>
-                                  <p className="text-[11px] text-ink/40">
-                                    Speed and voice also drive the generated neural audio below. If a
-                                    student's browser plays the fallback voice instead, it picks its own
-                                    closest match for the chosen language.
-                                  </p>
-                                  <textarea
-                                    placeholder="Instructions shown to the student (optional)"
-                                    value={block.instructions}
-                                    onChange={(e) => {
-                                      const next = [...form.curriculumModules];
-                                      const topics = [...next[mi].topics];
-                                      const blocks = [...topics[ti].contentBlocks];
-                                      blocks[bi] = { ...blocks[bi], instructions: e.target.value };
-                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                      next[mi] = { ...next[mi], topics };
-                                      setForm({ ...form, curriculumModules: next });
-                                    }}
-                                    className="input h-12 text-sm"
-                                  />
-
-                                  <label className="flex items-center gap-1.5 text-[11px] text-ink/60">
-                                    <input
-                                      type="checkbox"
-                                      checked={block.showScript}
-                                      onChange={(e) => {
-                                        const next = [...form.curriculumModules];
-                                        const topics = [...next[mi].topics];
-                                        const blocks = [...topics[ti].contentBlocks];
-                                        blocks[bi] = { ...blocks[bi], showScript: e.target.checked };
-                                        topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                        next[mi] = { ...next[mi], topics };
-                                        setForm({ ...form, curriculumModules: next });
-                                      }}
-                                    />
-                                    Also show the lesson script as readable text (optional — leave
-                                    unchecked for audio-only)
-                                  </label>
-
-                                  <div className="border border-line/70 rounded-sm p-2 bg-chalk space-y-1.5">
-                                    <p className="text-[11px] font-mono uppercase tracking-wide text-ink/50">
-                                      Teacher Voice (neural, generated once)
-                                    </p>
-                                    {!block.id ? (
-                                      <p className="text-[11px] text-ink/40">
-                                        Save the class first, then generate the voice.
-                                      </p>
-                                    ) : (
-                                      <>
-                                        {(() => {
-                                          const ui = audioUi[block.id] ?? {};
-                                          const status = block.audioStatus ?? 'none';
-                                          return (
-                                            <>
-                                              <p className="text-[11px]">
-                                                {ui.generating || status === 'generating' ? (
-                                                  <span className="text-amber">Generating…</span>
-                                                ) : status === 'ready' && block.audioStale ? (
-                                                  <span className="text-coral">
-                                                    ⚠ Script changed — regenerate voice
-                                                  </span>
-                                                ) : status === 'ready' ? (
-                                                  <span className="text-sage">
-                                                    ✓ Ready{block.audioVoice ? ` (${block.audioVoice})` : ''}
-                                                  </span>
-                                                ) : status === 'failed' ? (
-                                                  <span className="text-coral">
-                                                    ✗ Generation failed{block.audioError ? `: ${block.audioError}` : ''}
-                                                  </span>
-                                                ) : (
-                                                  <span className="text-ink/40">Not generated</span>
-                                                )}
-                                              </p>
-                                              {ui.error && <p className="text-[11px] text-coral">{ui.error}</p>}
-                                              <div className="flex flex-wrap items-center gap-1.5">
-                                                <button
-                                                  type="button"
-                                                  disabled={ui.generating || status === 'generating' || !block.content.trim()}
-                                                  onClick={() => generateVoice(mi, ti, bi)}
-                                                  className="btn-outline text-[11px] px-2 py-1"
-                                                >
-                                                  {status === 'ready' || status === 'failed'
-                                                    ? 'Regenerate Voice'
-                                                    : 'Generate Voice'}
-                                                </button>
-                                                {status === 'ready' && !block.audioStale && (
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => previewVoice(block.id!)}
-                                                    className="btn-outline text-[11px] px-2 py-1"
-                                                  >
-                                                    Load preview
-                                                  </button>
-                                                )}
-                                              </div>
-                                              {ui.previewUrl && (
-                                                <audio controls src={ui.previewUrl} className="w-full h-8 mt-1" />
-                                              )}
-                                            </>
-                                          );
-                                        })()}
-                                      </>
-                                    )}
-                                  </div>
+                                    aria-label="Remove this subtopic"
+                                    className="btn-danger-outline text-xs px-2 py-0.5"
+                                  >
+                                    ✕
+                                  </button>
                                 </div>
-                              ) : (
-                                <>
-                                  <input
-                                    placeholder={
-                                      block.type === 'video'
-                                        ? 'YouTube, Vimeo, or direct .mp4 link'
-                                        : block.type === 'image'
-                                          ? 'Image URL'
-                                          : 'Resource/download URL'
-                                    }
-                                    value={block.content}
-                                    onChange={(e) => {
-                                      const next = [...form.curriculumModules];
-                                      const topics = [...next[mi].topics];
-                                      const blocks = [...topics[ti].contentBlocks];
-                                      blocks[bi] = { ...blocks[bi], content: e.target.value };
-                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                      next[mi] = { ...next[mi], topics };
-                                      setForm({ ...form, curriculumModules: next });
-                                    }}
-                                    className="input text-sm"
-                                  />
-                                  {block.type === 'video' &&
-                                    block.content.trim() &&
-                                    (() => {
-                                      const preview = getVideoEmbed(block.content.trim());
-                                      return preview ? (
-                                        <div className="space-y-1.5">
-                                          <p className="text-[11px] text-sage">✓ Valid video link</p>
-                                          {preview.kind !== 'file' && (
-                                            <div className="w-full aspect-video rounded-sm overflow-hidden bg-black">
-                                              <iframe
-                                                src={preview.src}
-                                                title="Video preview"
-                                                className="w-full h-full"
-                                                allowFullScreen
-                                              />
-                                            </div>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <p className="text-[11px] text-coral">
-                                          Please enter a valid YouTube, Vimeo, or direct video URL.
-                                        </p>
-                                      );
-                                    })()}
-                                  <input
-                                    placeholder={
-                                      block.type === 'video'
-                                        ? 'Video title/caption (optional)'
-                                        : block.type === 'image'
-                                          ? 'Caption/alt text (optional)'
-                                          : 'Label (optional, e.g. Exercise starter files)'
-                                    }
-                                    value={block.label}
-                                    onChange={(e) => {
-                                      const next = [...form.curriculumModules];
-                                      const topics = [...next[mi].topics];
-                                      const blocks = [...topics[ti].contentBlocks];
-                                      blocks[bi] = { ...blocks[bi], label: e.target.value };
-                                      topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                      next[mi] = { ...next[mi], topics };
-                                      setForm({ ...form, curriculumModules: next });
-                                    }}
-                                    className="input text-xs py-1"
-                                  />
-                                  {block.type === 'video' && (
-                                    <div className="space-y-1.5">
-                                      <label className="flex items-center gap-1.5 text-[11px] text-ink/60">
-                                        <input
-                                          type="checkbox"
-                                          checked={block.guidedTeacherEnabled}
-                                          onChange={(e) => {
-                                            const next = [...form.curriculumModules];
-                                            const topics = [...next[mi].topics];
-                                            const blocks = [...topics[ti].contentBlocks];
-                                            blocks[bi] = { ...blocks[bi], guidedTeacherEnabled: e.target.checked };
-                                            topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                            next[mi] = { ...next[mi], topics };
-                                            setForm({ ...form, curriculumModules: next });
-                                          }}
-                                        />
-                                        Enable AI Robot Teacher (pauses the video at set times to explain
-                                        what's happening)
-                                      </label>
-                                      {block.guidedTeacherEnabled && (
-                                        <>
-                                          {block.content.trim() &&
-                                            getVideoEmbed(block.content.trim())?.kind !== 'file' && (
-                                              <p className="text-[11px] text-coral">
-                                                Guided narration only works with a direct video file
-                                                (.mp4/.webm/etc). YouTube/Vimeo links will play normally
-                                                without automatic pauses.
-                                              </p>
-                                            )}
-                                          <GuidedTeacherCueEditor
-                                            classId={editingId ?? undefined}
-                                            blockId={block.id}
-                                            cues={block.guidedTeacherCues}
-                                            onChange={(cues) => {
-                                              // Functional update — this callback's closure is captured
-                                              // once by GuidedVideoGenerator's polling effect and reused
-                                              // across ticks, so it must never read `form` from its own
-                                              // stale closure (see onStatusChange below for why).
-                                              setForm((prev) => {
-                                                const next = [...prev.curriculumModules];
-                                                const topics = [...next[mi].topics];
-                                                const blocks = [...topics[ti].contentBlocks];
-                                                blocks[bi] = { ...blocks[bi], guidedTeacherCues: cues };
-                                                topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                                next[mi] = { ...next[mi], topics };
-                                                return { ...prev, curriculumModules: next };
-                                              });
-                                            }}
-                                          />
-                                          <GuidedVideoGenerator
-                                            classId={editingId ?? undefined}
-                                            blockId={block.id}
-                                            cues={block.guidedTeacherCues}
-                                            generation={block.guidedVideoGeneration}
-                                            stale={block.videoStale}
-                                            onStatusChange={(generation) => {
-                                              // Must use the functional setState form: GuidedVideoGenerator's
-                                              // setInterval polling effect only re-runs (and re-captures a
-                                              // fresh closure) when `status` itself changes, so while the
-                                              // status stays e.g. "uploading" across several 2s ticks, every
-                                              // tick calls this SAME closure. Reading `form` directly here
-                                              // would read a snapshot from whenever the interval was last
-                                              // (re)created — stale by the time the tick that finally sees
-                                              // "ready" fires — and overwrite later state with that stale
-                                              // snapshot, which is what left the admin panel stuck showing
-                                              // "Uploading video..." after the backend had already finished.
-                                              setForm((prev) => {
-                                                const next = [...prev.curriculumModules];
-                                                const topics = [...next[mi].topics];
-                                                const blocks = [...topics[ti].contentBlocks];
-                                                blocks[bi] = {
-                                                  ...blocks[bi],
-                                                  guidedVideoGeneration: generation,
-                                                  videoStale: generation.status === 'ready' ? false : blocks[bi].videoStale,
-                                                };
-                                                topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                                next[mi] = { ...next[mi], topics };
-                                                return { ...prev, curriculumModules: next };
-                                              });
-                                            }}
-                                            onCuesRefresh={(cues) => {
-                                              // Same stale-closure hazard as onStatusChange above.
-                                              setForm((prev) => {
-                                                const next = [...prev.curriculumModules];
-                                                const topics = [...next[mi].topics];
-                                                const blocks = [...topics[ti].contentBlocks];
-                                                blocks[bi] = { ...blocks[bi], guidedTeacherCues: cues };
-                                                topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                                next[mi] = { ...next[mi], topics };
-                                                return { ...prev, curriculumModules: next };
-                                              });
-                                            }}
-                                          />
-                                        </>
-                                      )}
-                                    </div>
-                                  )}
-                                </>
-                              )}
+                              </div>
+                              <input
+                                placeholder="Subtopic title (e.g. Flex Container)"
+                                value={subtopic.title}
+                                onChange={(e) => {
+                                  const next = [...form.curriculumModules];
+                                  const topics = [...next[mi].topics];
+                                  const subtopics = [...topics[ti].subtopics];
+                                  subtopics[si] = { ...subtopics[si], title: e.target.value };
+                                  topics[ti] = { ...topics[ti], subtopics };
+                                  next[mi] = { ...next[mi], topics };
+                                  setForm({ ...form, curriculumModules: next });
+                                }}
+                                className="input text-sm"
+                              />
+                              <textarea
+                                placeholder="Subtopic description (optional)"
+                                value={subtopic.description}
+                                onChange={(e) => {
+                                  const next = [...form.curriculumModules];
+                                  const topics = [...next[mi].topics];
+                                  const subtopics = [...topics[ti].subtopics];
+                                  subtopics[si] = { ...subtopics[si], description: e.target.value };
+                                  topics[ti] = { ...topics[ti], subtopics };
+                                  next[mi] = { ...next[mi], topics };
+                                  setForm({ ...form, curriculumModules: next });
+                                }}
+                                className="input h-10 text-sm"
+                              />
+                              <ContentBlocksEditor
+                                classId={editingId ?? undefined}
+                                blocks={subtopic.contentBlocks}
+                                onChange={(update) => {
+                                  setForm((prev) => {
+                                    const next = [...prev.curriculumModules];
+                                    const topics = [...next[mi].topics];
+                                    const subtopics = [...topics[ti].subtopics];
+                                    const currentBlocks = subtopics[si].contentBlocks;
+                                    const newBlocks =
+                                      typeof update === 'function' ? update(currentBlocks) : update;
+                                    subtopics[si] = { ...subtopics[si], contentBlocks: newBlocks };
+                                    topics[ti] = { ...topics[ti], subtopics };
+                                    next[mi] = { ...next[mi], topics };
+                                    return { ...prev, curriculumModules: next };
+                                  });
+                                }}
+                              />
                             </div>
                           ))}
                           <button
@@ -1604,14 +1083,14 @@ export default function ClassManager({
                               const topics = [...next[mi].topics];
                               topics[ti] = {
                                 ...topics[ti],
-                                contentBlocks: [...topics[ti].contentBlocks, emptyBlock()],
+                                subtopics: [...topics[ti].subtopics, emptySubtopic()],
                               };
                               next[mi] = { ...next[mi], topics };
                               setForm({ ...form, curriculumModules: next });
                             }}
                             className="text-xs font-semibold text-amber hover:text-coral"
                           >
-                            + Add content
+                            + Add subtopic
                           </button>
                         </div>
                       </div>

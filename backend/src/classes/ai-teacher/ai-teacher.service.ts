@@ -73,6 +73,12 @@ export class AiTeacherService {
       for (const topic of mod.topics ?? []) {
         const block = topic.contentBlocks?.find((b) => b.id === blockId);
         if (block) return { trainingClass, moduleId: mod.id, block };
+        // A block may also live one level deeper, inside a subtopic —
+        // see class.entity.ts's TopicLikeRecord for the shape.
+        for (const subtopic of topic.subtopics ?? []) {
+          const subtopicBlock = subtopic.contentBlocks?.find((b) => b.id === blockId);
+          if (subtopicBlock) return { trainingClass, moduleId: mod.id, block: subtopicBlock };
+        }
       }
     }
     throw new NotFoundException('Content block not found');
