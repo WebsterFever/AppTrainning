@@ -10,6 +10,11 @@ export default function GuidedVideoTeacher({
   classId,
   blockId,
   studentEmail,
+  // True for an auto-generated coding video (always exactly 1280x720,
+  // i.e. 16:9) — uses a responsive aspect-ratio box instead of the fixed
+  // short banner height + object-cover crop that's meant for arbitrary
+  // manually-uploaded lesson video aspect ratios.
+  fixedAspectRatio,
 }: {
   videoSrc: string;
   label?: string;
@@ -17,6 +22,7 @@ export default function GuidedVideoTeacher({
   classId: string;
   blockId: string;
   studentEmail?: string;
+  fixedAspectRatio?: boolean;
 }) {
   const { t, language: siteLanguage } = useLanguage();
   const sortedCues = useMemo(() => [...cues].sort((a, b) => a.timestampSeconds - b.timestampSeconds), [cues]);
@@ -248,7 +254,11 @@ export default function GuidedVideoTeacher({
             onTimeUpdate={onTimeUpdate}
             onSeeking={onSeeking}
             onSeeked={onSeeked}
-            className="w-full h-56 sm:h-64 md:h-72 object-cover rounded-sm bg-black"
+            className={
+              fixedAspectRatio
+                ? 'w-full aspect-video max-w-full object-contain rounded-sm bg-black mx-auto'
+                : 'w-full h-56 sm:h-64 md:h-72 object-cover rounded-sm bg-black'
+            }
           />
         </div>
 

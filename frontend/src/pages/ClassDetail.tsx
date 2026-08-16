@@ -358,6 +358,7 @@ export default function ClassDetail() {
               classId={item.id}
               blockId={block.id}
               studentEmail={email}
+              fixedAspectRatio={fileSrc === generatedSrc}
             />
           );
         }
@@ -373,7 +374,11 @@ export default function ClassDetail() {
               <video
                 src={fileSrc}
                 controls
-                className="w-full h-56 sm:h-64 object-cover rounded-sm bg-black"
+                className={
+                  fileSrc === generatedSrc
+                    ? 'w-full aspect-video max-w-full object-contain rounded-sm bg-black mx-auto'
+                    : 'w-full h-56 sm:h-64 object-cover rounded-sm bg-black'
+                }
               />
             ) : embed ? (
               // embed.kind === 'file' is already handled by fileSrc above.

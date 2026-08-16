@@ -1530,13 +1530,19 @@ export default function ClassManager({
                                             blockId={block.id}
                                             cues={block.guidedTeacherCues}
                                             onChange={(cues) => {
-                                              const next = [...form.curriculumModules];
-                                              const topics = [...next[mi].topics];
-                                              const blocks = [...topics[ti].contentBlocks];
-                                              blocks[bi] = { ...blocks[bi], guidedTeacherCues: cues };
-                                              topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                              next[mi] = { ...next[mi], topics };
-                                              setForm({ ...form, curriculumModules: next });
+                                              // Functional update — this callback's closure is captured
+                                              // once by GuidedVideoGenerator's polling effect and reused
+                                              // across ticks, so it must never read `form` from its own
+                                              // stale closure (see onStatusChange below for why).
+                                              setForm((prev) => {
+                                                const next = [...prev.curriculumModules];
+                                                const topics = [...next[mi].topics];
+                                                const blocks = [...topics[ti].contentBlocks];
+                                                blocks[bi] = { ...blocks[bi], guidedTeacherCues: cues };
+                                                topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                                next[mi] = { ...next[mi], topics };
+                                                return { ...prev, curriculumModules: next };
+                                              });
                                             }}
                                           />
                                           <GuidedVideoGenerator
@@ -1546,26 +1552,41 @@ export default function ClassManager({
                                             generation={block.guidedVideoGeneration}
                                             stale={block.videoStale}
                                             onStatusChange={(generation) => {
-                                              const next = [...form.curriculumModules];
-                                              const topics = [...next[mi].topics];
-                                              const blocks = [...topics[ti].contentBlocks];
-                                              blocks[bi] = {
-                                                ...blocks[bi],
-                                                guidedVideoGeneration: generation,
-                                                videoStale: generation.status === 'ready' ? false : blocks[bi].videoStale,
-                                              };
-                                              topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                              next[mi] = { ...next[mi], topics };
-                                              setForm({ ...form, curriculumModules: next });
+                                              // Must use the functional setState form: GuidedVideoGenerator's
+                                              // setInterval polling effect only re-runs (and re-captures a
+                                              // fresh closure) when `status` itself changes, so while the
+                                              // status stays e.g. "uploading" across several 2s ticks, every
+                                              // tick calls this SAME closure. Reading `form` directly here
+                                              // would read a snapshot from whenever the interval was last
+                                              // (re)created — stale by the time the tick that finally sees
+                                              // "ready" fires — and overwrite later state with that stale
+                                              // snapshot, which is what left the admin panel stuck showing
+                                              // "Uploading video..." after the backend had already finished.
+                                              setForm((prev) => {
+                                                const next = [...prev.curriculumModules];
+                                                const topics = [...next[mi].topics];
+                                                const blocks = [...topics[ti].contentBlocks];
+                                                blocks[bi] = {
+                                                  ...blocks[bi],
+                                                  guidedVideoGeneration: generation,
+                                                  videoStale: generation.status === 'ready' ? false : blocks[bi].videoStale,
+                                                };
+                                                topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                                next[mi] = { ...next[mi], topics };
+                                                return { ...prev, curriculumModules: next };
+                                              });
                                             }}
                                             onCuesRefresh={(cues) => {
-                                              const next = [...form.curriculumModules];
-                                              const topics = [...next[mi].topics];
-                                              const blocks = [...topics[ti].contentBlocks];
-                                              blocks[bi] = { ...blocks[bi], guidedTeacherCues: cues };
-                                              topics[ti] = { ...topics[ti], contentBlocks: blocks };
-                                              next[mi] = { ...next[mi], topics };
-                                              setForm({ ...form, curriculumModules: next });
+                                              // Same stale-closure hazard as onStatusChange above.
+                                              setForm((prev) => {
+                                                const next = [...prev.curriculumModules];
+                                                const topics = [...next[mi].topics];
+                                                const blocks = [...topics[ti].contentBlocks];
+                                                blocks[bi] = { ...blocks[bi], guidedTeacherCues: cues };
+                                                topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                                next[mi] = { ...next[mi], topics };
+                                                return { ...prev, curriculumModules: next };
+                                              });
                                             }}
                                           />
                                         </>
