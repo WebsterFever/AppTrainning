@@ -409,48 +409,71 @@ export default function ClassDetail() {
           </div>
         );
       }
-      case 'code':
+     case 'code':
   return (
     <div
       key={key}
       className="
         overflow-hidden
-        rounded-lg
-        border border-slate-700/60
-        bg-slate-950
-        shadow-md
+        rounded-2xl
+        border border-cyan-400/20
+        bg-gradient-to-br from-slate-900 via-purple-950/30 to-cyan-950/20
+        shadow-2xl shadow-cyan-500/10
+        transition-all duration-500
+        hover:shadow-cyan-500/30 hover:border-cyan-400/40
+        hover:scale-[1.01]
+        group
       "
     >
-      {/* Code header */}
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-          <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
-          <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
+      {/* Code header - Neon lights */}
+      <div className="flex items-center justify-between gap-3 border-b border-white/5 bg-white/5 px-5 py-3 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <span className="relative h-3 w-3 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 shadow-lg shadow-rose-500/50">
+            <span className="absolute inset-0 rounded-full bg-rose-400 blur-sm" />
+          </span>
+          <span className="relative h-3 w-3 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/50">
+            <span className="absolute inset-0 rounded-full bg-amber-400 blur-sm" />
+          </span>
+          <span className="relative h-3 w-3 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 shadow-lg shadow-emerald-500/50">
+            <span className="absolute inset-0 rounded-full bg-emerald-400 blur-sm" />
+          </span>
         </div>
 
-        <span className="font-mono text-[11px] uppercase tracking-wider text-white/60">
-          {block.label || 'Code'}
+        <span className="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 animate-pulse">
+          {block.label || '✦ Code ✦'}
         </span>
+
+        <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+          <button className="rounded-md bg-white/5 px-3 py-1 text-[10px] font-semibold text-white/60 transition-all hover:bg-white/10 hover:text-white">
+            Copy
+          </button>
+        </div>
       </div>
 
       {/* Code */}
       <pre
         className="
           overflow-x-auto
-          p-4
-          sm:p-5
-          text-xs
+          p-5
+          sm:p-7
+          text-[13px]
           sm:text-sm
-          leading-6
-          sm:leading-7
+          leading-7
+          sm:leading-8
           font-mono
-          text-slate-100
+          text-slate-200
           whitespace-pre
+          [&>code]:text-shadow-glow
+          bg-gradient-to-br from-slate-900/50 via-transparent to-purple-900/10
         "
       >
-        <code>{block.content}</code>
+        <code className="block [&_.keyword]:text-cyan-300 [&_.string]:text-emerald-300 [&_.comment]:text-slate-500 [&_.function]:text-purple-300">
+          {block.content}
+        </code>
       </pre>
+
+      {/* Glowing bottom border */}
+      <div className="h-0.5 w-0 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 transition-all duration-1000 group-hover:w-full" />
     </div>
   );
         return (
