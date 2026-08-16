@@ -11,6 +11,8 @@ import GuidedVideoTeacher from '../components/GuidedVideoTeacher';
 import { TeacherCue } from '../lib/api';
 import { useLanguage, localeFor } from '../lib/i18n';
 import { seenClasses } from '../lib/seenClasses';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 function formatPrice(cents: number, locale: string): string {
   return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(cents / 100);
@@ -409,84 +411,72 @@ export default function ClassDetail() {
           </div>
         );
       }
-     case 'code':
+   case 'code':
   return (
     <div
       key={key}
       className="
         overflow-hidden
         rounded-2xl
-        border border-cyan-400/20
-        bg-gradient-to-br from-slate-900 via-purple-950/30 to-cyan-950/20
-        shadow-2xl shadow-cyan-500/10
-        transition-all duration-500
-        hover:shadow-cyan-500/30 hover:border-cyan-400/40
-        hover:scale-[1.01]
-        group
+        border border-white/10
+        bg-[#1e1e1e]
+        shadow-xl
       "
     >
-      {/* Code header - Neon lights */}
-      <div className="flex items-center justify-between gap-3 border-b border-white/5 bg-white/5 px-5 py-3 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <span className="relative h-3 w-3 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 shadow-lg shadow-rose-500/50">
-            <span className="absolute inset-0 rounded-full bg-rose-400 blur-sm" />
-          </span>
-          <span className="relative h-3 w-3 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/50">
-            <span className="absolute inset-0 rounded-full bg-amber-400 blur-sm" />
-          </span>
-          <span className="relative h-3 w-3 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 shadow-lg shadow-emerald-500/50">
-            <span className="absolute inset-0 rounded-full bg-emerald-400 blur-sm" />
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-white/70">⌑</span>
+
+          <span className="text-sm font-semibold text-white">
+            {block.label || block.language || 'Code'}
           </span>
         </div>
 
-        <span className="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 animate-pulse">
-          {block.label || '✦ Code ✦'}
-        </span>
-
-        <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-          <button className="rounded-md bg-white/5 px-3 py-1 text-[10px] font-semibold text-white/60 transition-all hover:bg-white/10 hover:text-white">
-            Copy
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => navigator.clipboard.writeText(block.content || '')}
+          className="
+            rounded-lg
+            px-3 py-2
+            text-sm
+            text-white/70
+            transition
+            hover:bg-white/10
+            hover:text-white
+          "
+          title="Copy code"
+        >
+          Copy
+        </button>
       </div>
 
-      {/* Code */}
-      <pre
-        className="
-          overflow-x-auto
-          p-5
-          sm:p-7
-          text-[13px]
-          sm:text-sm
-          leading-7
-          sm:leading-8
-          font-mono
-          text-slate-200
-          whitespace-pre
-          [&>code]:text-shadow-glow
-          bg-gradient-to-br from-slate-900/50 via-transparent to-purple-900/10
-        "
-      >
-        <code className="block [&_.keyword]:text-cyan-300 [&_.string]:text-emerald-300 [&_.comment]:text-slate-500 [&_.function]:text-purple-300">
-          {block.content}
-        </code>
-      </pre>
-
-      {/* Glowing bottom border */}
-      <div className="h-0.5 w-0 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 transition-all duration-1000 group-hover:w-full" />
+      {/* Syntax highlighted code */}
+      <div className="overflow-x-auto">
+        <SyntaxHighlighter
+          language={(block.language || 'html').toLowerCase()}
+          style={vscDarkPlus}
+          customStyle={{
+            margin: 0,
+            padding: '8px 20px 24px',
+            background: '#1e1e1e',
+            fontSize: '14px',
+            lineHeight: '1.7',
+          }}
+          codeTagProps={{
+            style: {
+              fontFamily:
+                'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            },
+          }}
+          wrapLongLines={false}
+        >
+          {block.content || ''}
+        </SyntaxHighlighter>
+      </div>
     </div>
   );
-        return (
-          <div key={key}>
-            {block.label && (
-              <p className="text-[11px] font-mono text-ink/40 uppercase mb-1">{block.label}</p>
-            )}
-            <pre className="bg-midnight text-chalk rounded-sm p-3 overflow-x-auto text-xs font-mono whitespace-pre">
-              {block.content}
-            </pre>
-          </div>
-        );
-      case 'resource':
+        case 'resource':
         return (
           <a
             key={key}
