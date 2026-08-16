@@ -410,6 +410,49 @@ export default function ClassDetail() {
         );
       }
       case 'code':
+  return (
+    <div
+      key={key}
+      className="
+        overflow-hidden
+        rounded-lg
+        border border-slate-700/60
+        bg-slate-950
+        shadow-md
+      "
+    >
+      {/* Code header */}
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
+        </div>
+
+        <span className="font-mono text-[11px] uppercase tracking-wider text-white/60">
+          {block.label || 'Code'}
+        </span>
+      </div>
+
+      {/* Code */}
+      <pre
+        className="
+          overflow-x-auto
+          p-4
+          sm:p-5
+          text-xs
+          sm:text-sm
+          leading-6
+          sm:leading-7
+          font-mono
+          text-slate-100
+          whitespace-pre
+        "
+      >
+        <code>{block.content}</code>
+      </pre>
+    </div>
+  );
         return (
           <div key={key}>
             {block.label && (
