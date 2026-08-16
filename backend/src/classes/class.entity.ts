@@ -124,6 +124,32 @@ export class TrainingClass {
           audioScriptHash?: string;
           audioError?: string;
         }[];
+        // Automatic Coding Video Generator (video blocks only) — an
+        // optional, silent, deterministically-rendered MP4 that plugs into
+        // this same block's `content` slot once ready (see
+        // VideoRenderService). Reuses `guidedTeacherCues` above as the
+        // ordered "teaching steps" source (each cue with a non-empty `code`
+        // is one typed-out step) rather than a second schema — this field
+        // only carries the render job's own state/settings/output.
+        // `videoKey` is the private S3 object key, handled exactly like
+        // audioKey above: never resolved to a client-fetchable URL, always
+        // served through a protected streaming endpoint.
+        guidedVideoGeneration?: {
+          status: 'idle' | 'queued' | 'rendering' | 'encoding' | 'uploading' | 'ready' | 'failed' | 'interrupted';
+          error?: string;
+          videoKey?: string;
+          durationSeconds?: number;
+          width?: number;
+          height?: number;
+          fps?: number;
+          typingCharsPerSecond?: number;
+          generatedAt?: string;
+          // Fingerprint of (ordered step code, typingCharsPerSecond, fps,
+          // width, height) at generation time — NOT script/voice/language/
+          // rate, so editing narration never stales the video (see
+          // computeVideoContentHash).
+          contentHash?: string;
+        };
       }[];
     }[];
   }[];

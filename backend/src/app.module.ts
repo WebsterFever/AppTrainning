@@ -13,6 +13,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { PaymentsModule } from './payments/payments.module';
 import { SubmissionsModule } from './submissions/submissions.module';
 import { AiTeacherModule } from './classes/ai-teacher/ai-teacher.module';
+import { VideoRenderModule } from './classes/video-render/video-render.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { AiTeacherModule } from './classes/ai-teacher/ai-teacher.module';
     PaymentsModule,
     SubmissionsModule,
     AiTeacherModule,
+    VideoRenderModule,
   ],
 })
 export class AppModule {}

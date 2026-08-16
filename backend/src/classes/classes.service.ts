@@ -8,11 +8,13 @@ import { UpdateClassDto } from './dto/update-class.dto';
 import { ExtraVideoDto } from './dto/extra-video.dto';
 import { CurriculumModuleDto } from './dto/curriculum-module.dto';
 import { computeScriptHash } from './ai-teacher/script-hash';
+import { computeVideoContentHash } from './video-render/video-content-hash';
 
 type ContentBlockRecord = NonNullable<
   NonNullable<TrainingClass['curriculumModules']>[number]['topics'][number]['contentBlocks']
 >[number];
 type TeacherCueRecord = NonNullable<ContentBlockRecord['guidedTeacherCues']>[number];
+type VideoGenerationRecord = NonNullable<ContentBlockRecord['guidedVideoGeneration']>;
 
 export interface ClassWithCount {
   id: string;
@@ -55,6 +57,7 @@ export interface ClassWithCount {
       description?: string;
       contentBlocks?: (Omit<ContentBlockRecord, 'guidedTeacherCues'> & {
         audioStale?: boolean;
+        videoStale?: boolean;
         guidedTeacherCues?: (TeacherCueRecord & { audioStale?: boolean })[];
       })[];
     }[];
@@ -109,7 +112,7 @@ export class ClassesService {
     return this.toPublicShape(row, true);
   }
 
-  async create(dto: CreateClassDto): Promise<TrainingClass> {
+  async create(dto: CreateClassDto): Promise<ClassWithCount> {
     const entity = this.classesRepo.create({
       ...dto,
       extraVideos: this.withVideoIds(dto.extraVideos),
@@ -117,10 +120,14 @@ export class ClassesService {
       classDate: dto.classDate ? new Date(dto.classDate) : undefined,
       ...(dto.allowedEmails ? { allowedEmails: this.normalizeEmails(dto.allowedEmails) } : {}),
     });
-    return this.classesRepo.save(entity);
+    const saved = await this.classesRepo.save(entity);
+    // Same admin-facing shaping as every other admin read path — never
+    // return a raw entity, which would leak private S3 keys (audioKey,
+    // guidedVideoGeneration.videoKey) directly in this response.
+    return this.toPublicShape(saved, false, true);
   }
 
-  async update(id: string, dto: UpdateClassDto): Promise<TrainingClass> {
+  async update(id: string, dto: UpdateClassDto): Promise<ClassWithCount> {
     const existing = await this.classesRepo.findOne({ where: { id } });
     if (!existing) throw new NotFoundException('Class not found');
 
@@ -133,7 +140,11 @@ export class ClassesService {
       ...(dto.allowedEmails ? { allowedEmails: this.normalizeEmails(dto.allowedEmails) } : {}),
       classDate: dto.classDate ? new Date(dto.classDate) : existing.classDate,
     });
-    return this.classesRepo.save(existing);
+    const saved = await this.classesRepo.save(existing);
+    // See create() above — never return a raw entity here either; the admin
+    // UI's "Save changes" response must go through the same stripping +
+    // staleness computation as every other admin read path.
+    return this.toPublicShape(saved, false, true);
   }
 
   private normalizeEmails(emails: string[]): string[] {
@@ -172,6 +183,11 @@ export class ClassesService {
     // Cue audio keyed by "blockId:cueId" — a cue's audio metadata is scoped
     // to its parent block the same way a block's is scoped to the class.
     const existingCueAudioByKey = new Map<string, Partial<TeacherCueRecord>>();
+    // The Automatic Coding Video Generator's render state/output — same
+    // preserve-across-ordinary-saves treatment as the audio maps above, so
+    // editing an unrelated field (or even editing a *different* cue's
+    // narration) never silently discards a generated video.
+    const existingVideoGenerationByBlockId = new Map<string, VideoGenerationRecord>();
     for (const m of existingModules ?? []) {
       for (const t of m.topics ?? []) {
         for (const b of t.contentBlocks ?? []) {
@@ -185,6 +201,9 @@ export class ClassesService {
               audioScriptHash: b.audioScriptHash,
               audioError: b.audioError,
             });
+          }
+          if (b.guidedVideoGeneration) {
+            existingVideoGenerationByBlockId.set(b.id, b.guidedVideoGeneration);
           }
           for (const cue of b.guidedTeacherCues ?? []) {
             if (!cue.audioStatus && !cue.audioKey) continue;
@@ -227,6 +246,7 @@ export class ClassesService {
             showScript: b.showScript ?? undefined,
             ...preservedAudio,
             guidedTeacherEnabled: b.guidedTeacherEnabled ?? undefined,
+            guidedVideoGeneration: existingVideoGenerationByBlockId.get(blockId),
             guidedTeacherCues: b.guidedTeacherCues?.map((cue) => {
               const cueId = cue.id ?? randomUUID();
               const preservedCueAudio = existingCueAudioByKey.get(`${blockId}:${cueId}`);
@@ -262,7 +282,7 @@ export class ClassesService {
     return !!moduleId && !!row.curriculumModules?.some((m) => m.id === moduleId);
   }
 
-  async markPast(id: string, isPast: boolean): Promise<TrainingClass> {
+  async markPast(id: string, isPast: boolean): Promise<ClassWithCount> {
     return this.update(id, { isPast } as UpdateClassDto);
   }
 
@@ -294,6 +314,13 @@ export class ClassesService {
     return this.classesRepo.save(entity);
   }
 
+  // Raw entities, no shape transformation — used for whole-table scans that
+  // need to mutate and re-save (e.g. VideoRenderService's boot-time sweep
+  // for jobs orphaned by a server restart), not for any client response.
+  async getAllEntitiesRaw(): Promise<TrainingClass[]> {
+    return this.classesRepo.find();
+  }
+
   // Strips a module's private lesson content (contentBlocks), keeping only
   // the public marketing-curriculum shape (title/objective/topics'
   // titles+descriptions/project). Used both for anonymous visitors (see
@@ -309,12 +336,16 @@ export class ClassesService {
     };
   }
 
-  // For every ai_teacher block that has generated audio, flags whether the
-  // script/language/voice/rate have changed since that audio was generated
-  // — computed on read rather than eagerly, so an ordinary script edit
-  // never silently discards the existing (still-playable) audio. Safe to
-  // call on already-preview()'d modules too (contentBlocks is just absent).
-  withAudioStaleness(
+  // For every ai_teacher block/cue that has generated audio, flags whether
+  // the script/language/voice/rate have changed since that audio was
+  // generated; for every video block with a generated coding video, flags
+  // whether its code steps/typing speed/resolution have changed since it
+  // was rendered. Both computed on read rather than eagerly, so an
+  // ordinary edit never silently discards existing (still-playable) audio
+  // or a still-valid video — it only gets flagged stale for the admin to
+  // regenerate. Safe to call on already-preview()'d modules too
+  // (contentBlocks is just absent).
+  withStaleness(
     modules?: TrainingClass['curriculumModules'],
   ): ClassWithCount['curriculumModules'] {
     return modules?.map((m) => ({
@@ -327,23 +358,45 @@ export class ClassesService {
             const cueHash = computeScriptHash(cue.script, cue.language, cue.voice, cue.rate);
             return { ...cue, audioStale: cue.audioStatus === 'ready' && cueHash !== cue.audioScriptHash };
           });
-          const withCues = cues ? { ...b, guidedTeacherCues: cues } : b;
-          if (b.type !== 'ai_teacher' || !b.audioScriptHash) return withCues;
-          const currentHash = computeScriptHash(b.content, b.language, b.voice, b.rate);
-          return { ...withCues, audioStale: b.audioStatus === 'ready' && currentHash !== b.audioScriptHash };
+          let result: typeof b & { audioStale?: boolean; videoStale?: boolean } = cues
+            ? { ...b, guidedTeacherCues: cues }
+            : b;
+
+          if (b.type === 'ai_teacher' && b.audioScriptHash) {
+            const currentHash = computeScriptHash(b.content, b.language, b.voice, b.rate);
+            result = { ...result, audioStale: b.audioStatus === 'ready' && currentHash !== b.audioScriptHash };
+          }
+
+          const gen = b.guidedVideoGeneration;
+          if (b.type === 'video' && gen?.contentHash) {
+            const stepsCode = (cues ?? b.guidedTeacherCues ?? [])
+              .filter((c) => c.code?.trim())
+              .map((c) => c.code as string);
+            const currentHash = computeVideoContentHash(
+              stepsCode,
+              gen.typingCharsPerSecond ?? 0,
+              gen.fps ?? 0,
+              gen.width ?? 0,
+              gen.height ?? 0,
+            );
+            result = { ...result, videoStale: gen.status === 'ready' && currentHash !== gen.contentHash };
+          }
+
+          return result;
         }),
       })),
     }));
   }
 
-  // Removes the private S3 object key from every ai_teacher block before a
-  // response reaches any client. `audioKey` has no legitimate client-side
-  // use — audio is always fetched through the access-controlled streaming
+  // Removes every private S3 object key (ai_teacher/cue audioKey, and the
+  // coding video's videoKey) from a class before a response reaches any
+  // client. None of these have a legitimate client-side use — audio and
+  // video are always fetched through their access-controlled streaming
   // endpoints (keyed by classId/blockId, which re-check registration and
-  // module-unlock status server-side), never by this raw key. Exposing it
-  // let it be replayed directly against the generic, unauthenticated
+  // module-unlock status server-side), never by a raw key. Exposing one
+  // would let it be replayed directly against the generic, unauthenticated
   // /uploads/file/:folder/:filename route, bypassing course access rules.
-  stripPrivateAudioFields(
+  stripPrivateStorageKeys(
     modules?: ClassWithCount['curriculumModules'],
   ): ClassWithCount['curriculumModules'] {
     return modules?.map((m) => ({
@@ -356,10 +409,21 @@ export class ClassesService {
             const { audioKey: _cueAudioKey, ...rest } = cue as typeof cue & { audioKey?: string };
             return rest;
           });
-          const withCues = cues ? { ...b, guidedTeacherCues: cues } : b;
-          if (b.type !== 'ai_teacher' || !('audioKey' in withCues)) return withCues;
-          const { audioKey: _audioKey, ...rest } = withCues as typeof withCues & { audioKey?: string };
-          return rest;
+          let result = cues ? { ...b, guidedTeacherCues: cues } : b;
+
+          if (b.type === 'ai_teacher' && 'audioKey' in result) {
+            const { audioKey: _audioKey, ...rest } = result as typeof result & { audioKey?: string };
+            result = rest;
+          }
+
+          if (b.guidedVideoGeneration && 'videoKey' in b.guidedVideoGeneration) {
+            const { videoKey: _videoKey, ...restGen } = b.guidedVideoGeneration as typeof b.guidedVideoGeneration & {
+              videoKey?: string;
+            };
+            result = { ...result, guidedVideoGeneration: restGen };
+          }
+
+          return result;
         }),
       })),
     }));
@@ -378,9 +442,9 @@ export class ClassesService {
     // module/topic titles + descriptions themselves stay public always —
     // that's the marketing curriculum.
     const revealPrivateContent = row.isPast || revealZoomLink;
-    const curriculumModules = this.stripPrivateAudioFields(
+    const curriculumModules = this.stripPrivateStorageKeys(
       revealPrivateContent
-        ? this.withAudioStaleness(row.curriculumModules)
+        ? this.withStaleness(row.curriculumModules)
         : row.curriculumModules?.map((m) => this.previewModule(m)),
     );
     return {

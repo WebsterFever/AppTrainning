@@ -27,7 +27,7 @@ const ALLOWED_RESOURCE_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'];
 // own access-controlled streaming endpoint (e.g. AI Teacher audio, gated by
 // registration + module-unlock) — this route only exists for assets that are
 // genuinely public once uploaded (contest photos, class resources).
-const PRIVATE_KEY_PREFIXES = ['ai-teacher-audio'];
+const PRIVATE_KEY_PREFIXES = ['ai-teacher-audio', 'guided-video-render'];
 
 @Controller('uploads')
 export class UploadsController {

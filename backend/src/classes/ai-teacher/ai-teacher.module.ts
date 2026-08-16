@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Registration } from '../../registrations/registration.entity';
 import { ClassesModule } from '../classes.module';
-import { SubmissionsModule } from '../../submissions/submissions.module';
+import { CourseAccessModule } from '../course-access/course-access.module';
 import { UploadsModule } from '../../uploads/uploads.module';
 import { AiTeacherService } from './ai-teacher.service';
 import { AiTeacherController } from './ai-teacher.controller';
@@ -10,7 +8,7 @@ import { AdminAiTeacherController } from './admin-ai-teacher.controller';
 import { OpenAiTtsProvider } from './openai-tts.provider';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Registration]), ClassesModule, SubmissionsModule, UploadsModule],
+  imports: [ClassesModule, CourseAccessModule, UploadsModule],
   controllers: [AiTeacherController, AdminAiTeacherController],
   providers: [AiTeacherService, OpenAiTtsProvider],
 })

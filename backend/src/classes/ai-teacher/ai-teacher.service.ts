@@ -1,11 +1,8 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ClassesService } from '../classes.service';
 import { TrainingClass } from '../class.entity';
-import { Registration } from '../../registrations/registration.entity';
-import { SubmissionsService } from '../../submissions/submissions.service';
 import { UploadsService } from '../../uploads/uploads.service';
+import { CourseAccessService } from '../course-access/course-access.service';
 import { GenerateAudioDto } from './dto/generate-audio.dto';
 import { OpenAiTtsProvider } from './openai-tts.provider';
 import { computeScriptHash } from './script-hash';
@@ -65,12 +62,10 @@ export class AiTeacherService {
   private readonly generating = new Set<string>();
 
   constructor(
-    @InjectRepository(Registration)
-    private readonly registrationsRepo: Repository<Registration>,
     private readonly classesService: ClassesService,
-    private readonly submissionsService: SubmissionsService,
     private readonly uploadsService: UploadsService,
     private readonly ttsProvider: OpenAiTtsProvider,
+    private readonly courseAccessService: CourseAccessService,
   ) {}
 
   private findBlock(trainingClass: TrainingClass, blockId: string): BlockLocation {
@@ -193,36 +188,12 @@ export class AiTeacherService {
     return this.fetchAudio(block.audioKey);
   }
 
-  // Shared by both standalone AI Teacher blocks and Guided Video cues: the
-  // requesting email must be registered for this class AND the module
-  // containing the block must be unlocked for that email (same check
-  // RegistrationsService.register uses to decide whether to include
-  // contentBlocks at all).
-  private async assertStudentAccess(classId: string, moduleId: string, email: string): Promise<void> {
-    const normalizedEmail = email.toLowerCase();
-    const isRegistered = await this.registrationsRepo.exist({
-      where: { trainingClass: { id: classId }, email: normalizedEmail },
-    });
-    if (!isRegistered) {
-      throw new ForbiddenException('You must register for this class before accessing this lesson.');
-    }
-
-    const access = await this.submissionsService.getModuleAccess(classId, normalizedEmail);
-    const moduleEntry = access.find((a) => a.moduleId === moduleId);
-    // No entry means this class doesn't use module-gated progression at all
-    // (e.g. no submission requirement configured) — default to allowed,
-    // matching how the frontend treats a missing moduleAccess entry.
-    if (moduleEntry && !moduleEntry.unlocked) {
-      throw new ForbiddenException('This module is locked until the previous one is approved.');
-    }
-  }
-
   // Student playback for a standalone ai_teacher block.
   async streamForStudent(classId: string, blockId: string, email: string) {
     const trainingClass = await this.classesService.getEntity(classId);
     const { moduleId, block } = this.findBlock(trainingClass, blockId);
     if (!block.audioKey) throw new NotFoundException('No audio generated for this block yet');
-    await this.assertStudentAccess(classId, moduleId, email);
+    await this.courseAccessService.assertStudentAccess(classId, moduleId, email);
     return this.fetchAudio(block.audioKey);
   }
 
@@ -328,7 +299,7 @@ export class AiTeacherService {
     const trainingClass = await this.classesService.getEntity(classId);
     const { moduleId, cue } = this.findCue(trainingClass, blockId, cueId);
     if (!cue.audioKey) throw new NotFoundException('No audio generated for this cue yet');
-    await this.assertStudentAccess(classId, moduleId, email);
+    await this.courseAccessService.assertStudentAccess(classId, moduleId, email);
     return this.fetchAudio(cue.audioKey);
   }
 }
