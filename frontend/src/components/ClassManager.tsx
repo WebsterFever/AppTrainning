@@ -5,15 +5,17 @@ import {
   ClassItem,
   ContentBlockType,
   CueCodeLanguage,
+  GuidedVideoGeneration,
   NewExtraVideo,
   RegistrationDetail,
 } from '../lib/api';
 import { formatCountdown } from '../lib/countdown';
 import { useLanguage } from '../lib/i18n';
 import { getVideoEmbed } from '../lib/video';
-import { formatClockTimestamp, parseClockTimestamp } from '../lib/guidedVideo';
+import { parseClockTimestamp } from '../lib/guidedVideo';
 import ConfirmDialog from './ConfirmDialog';
-import GuidedTeacherCueEditor, { TeacherCueForm } from './GuidedTeacherCueEditor';
+import GuidedTeacherCueEditor, { cueToForm, TeacherCueForm } from './GuidedTeacherCueEditor';
+import GuidedVideoGenerator from './GuidedVideoGenerator';
 
 const BLOCK_TYPES: { value: ContentBlockType; label: string }[] = [
   { value: 'text', label: 'Text' },
@@ -63,6 +65,10 @@ interface ContentBlockForm {
   // every other block type.
   guidedTeacherEnabled: boolean;
   guidedTeacherCues: TeacherCueForm[];
+  // video-only: Automatic Coding Video Generator — read-only, server-
+  // managed, never sent back on a normal class save.
+  guidedVideoGeneration?: GuidedVideoGeneration;
+  videoStale?: boolean;
 }
 
 interface TopicForm {
@@ -348,20 +354,9 @@ export default function ClassManager({
                     audioError: b.audioError,
                     audioStale: b.audioStale,
                     guidedTeacherEnabled: b.guidedTeacherEnabled ?? false,
-                    guidedTeacherCues: (b.guidedTeacherCues ?? []).map((cue) => ({
-                      id: cue.id,
-                      timestamp: formatClockTimestamp(cue.timestampSeconds),
-                      script: cue.script,
-                      language: cue.language ?? '',
-                      voice: cue.voice ?? '',
-                      rate: cue.rate != null ? String(cue.rate) : '1',
-                      code: cue.code ?? '',
-                      codeLanguage: cue.codeLanguage ?? '',
-                      audioStatus: cue.audioStatus,
-                      audioVoice: cue.audioVoice,
-                      audioError: cue.audioError,
-                      audioStale: cue.audioStale,
-                    })),
+                    guidedTeacherCues: (b.guidedTeacherCues ?? []).map(cueToForm),
+                    guidedVideoGeneration: b.guidedVideoGeneration,
+                    videoStale: b.videoStale,
                   })),
                 }))
               : [emptyTopic()],
@@ -1531,6 +1526,35 @@ export default function ClassManager({
                                             blockId={block.id}
                                             cues={block.guidedTeacherCues}
                                             onChange={(cues) => {
+                                              const next = [...form.curriculumModules];
+                                              const topics = [...next[mi].topics];
+                                              const blocks = [...topics[ti].contentBlocks];
+                                              blocks[bi] = { ...blocks[bi], guidedTeacherCues: cues };
+                                              topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                              next[mi] = { ...next[mi], topics };
+                                              setForm({ ...form, curriculumModules: next });
+                                            }}
+                                          />
+                                          <GuidedVideoGenerator
+                                            classId={editingId ?? undefined}
+                                            blockId={block.id}
+                                            cues={block.guidedTeacherCues}
+                                            generation={block.guidedVideoGeneration}
+                                            stale={block.videoStale}
+                                            onStatusChange={(generation) => {
+                                              const next = [...form.curriculumModules];
+                                              const topics = [...next[mi].topics];
+                                              const blocks = [...topics[ti].contentBlocks];
+                                              blocks[bi] = {
+                                                ...blocks[bi],
+                                                guidedVideoGeneration: generation,
+                                                videoStale: generation.status === 'ready' ? false : blocks[bi].videoStale,
+                                              };
+                                              topics[ti] = { ...topics[ti], contentBlocks: blocks };
+                                              next[mi] = { ...next[mi], topics };
+                                              setForm({ ...form, curriculumModules: next });
+                                            }}
+                                            onCuesRefresh={(cues) => {
                                               const next = [...form.curriculumModules];
                                               const topics = [...next[mi].topics];
                                               const blocks = [...topics[ti].contentBlocks];

@@ -312,6 +312,7 @@ export default function ClassDetail() {
       audioStale?: boolean;
       guidedTeacherEnabled?: boolean;
       guidedTeacherCues?: TeacherCue[];
+      guidedVideoGeneration?: { status: string };
     },
     key: string,
   ) => {
@@ -338,13 +339,20 @@ export default function ClassDetail() {
           </figure>
         );
       case 'video': {
+        // An auto-generated coding video (see GuidedVideoGenerator) is a
+        // silent MP4 streamed from a protected endpoint, never the block's
+        // own `content` URL — it takes priority over a manually-entered
+        // video link once rendering has succeeded.
+        const generatedReady = block.guidedVideoGeneration?.status === 'ready';
+        const generatedSrc = generatedReady ? api.generatedVideoUrl(item.id, block.id, email) : undefined;
         const embed = block.content ? getVideoEmbed(block.content) : null;
         const guidedCues = block.guidedTeacherEnabled ? (block.guidedTeacherCues ?? []) : [];
-        if (embed?.kind === 'file' && guidedCues.length > 0) {
+        const fileSrc = generatedSrc ?? (embed?.kind === 'file' ? embed.src : undefined);
+        if (fileSrc && guidedCues.length > 0) {
           return (
             <GuidedVideoTeacher
               key={key}
-              videoSrc={embed.src}
+              videoSrc={fileSrc}
               label={block.label}
               cues={guidedCues}
               classId={item.id}
@@ -356,29 +364,28 @@ export default function ClassDetail() {
         return (
           <div key={key}>
             {block.label && <p className="text-sm font-medium text-ink mb-1.5">{block.label}</p>}
-            {block.guidedTeacherEnabled && guidedCues.length > 0 && embed && embed.kind !== 'file' && (
+            {block.guidedTeacherEnabled && guidedCues.length > 0 && !fileSrc && embed && embed.kind !== 'file' && (
               <p className="text-xs text-ink/50 bg-chalk border border-line rounded-sm p-2 mb-1.5">
                 {t('guidedNarrationUnavailable')}
               </p>
             )}
-            {embed ? (
-              embed.kind === 'file' ? (
-                <video
+            {fileSrc ? (
+              <video
+                src={fileSrc}
+                controls
+                className="w-full h-56 sm:h-64 object-cover rounded-sm bg-black"
+              />
+            ) : embed ? (
+              // embed.kind === 'file' is already handled by fileSrc above.
+              <div className="w-full aspect-video rounded-sm overflow-hidden bg-black">
+                <iframe
                   src={embed.src}
-                  controls
-                  className="w-full h-56 sm:h-64 object-cover rounded-sm bg-black"
+                  title={block.label || 'Lesson video'}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
                 />
-              ) : (
-                <div className="w-full aspect-video rounded-sm overflow-hidden bg-black">
-                  <iframe
-                    src={embed.src}
-                    title={block.label || 'Lesson video'}
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              )
+              </div>
             ) : (
               <div className="text-sm text-ink/60 bg-chalk border border-line rounded-sm p-3">
                 <p>{t('videoUnavailable')}</p>

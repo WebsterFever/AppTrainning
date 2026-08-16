@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api, AiTeacherAudioStatus, CUE_CODE_LANGUAGES } from '../lib/api';
+import { api, AiTeacherAudioStatus, CUE_CODE_LANGUAGES, TeacherCue } from '../lib/api';
 import { formatClockTimestamp, parseClockTimestamp } from '../lib/guidedVideo';
 
 // Stable OpenAI neural voice names — same list ClassManager uses for
@@ -43,6 +43,28 @@ export interface TeacherCueForm {
 
 export function emptyCue(): TeacherCueForm {
   return { timestamp: '', script: '', language: '', voice: '', rate: '1', code: '', codeLanguage: '' };
+}
+
+// Shared by ClassManager's startEdit (initial load) and
+// GuidedVideoGenerator's post-generation refresh (once a render completes,
+// the block's cues have brand new server-computed timestamps) — keeps both
+// conversions from server TeacherCue to the form's "MM:SS" representation
+// in exactly one place.
+export function cueToForm(cue: TeacherCue): TeacherCueForm {
+  return {
+    id: cue.id,
+    timestamp: formatClockTimestamp(cue.timestampSeconds),
+    script: cue.script,
+    language: cue.language ?? '',
+    voice: cue.voice ?? '',
+    rate: cue.rate != null ? String(cue.rate) : '1',
+    code: cue.code ?? '',
+    codeLanguage: cue.codeLanguage ?? '',
+    audioStatus: cue.audioStatus,
+    audioVoice: cue.audioVoice,
+    audioError: cue.audioError,
+    audioStale: cue.audioStale,
+  };
 }
 
 export default function GuidedTeacherCueEditor({

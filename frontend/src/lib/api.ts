@@ -89,6 +89,41 @@ export interface NewTeacherCue {
   codeLanguage?: CueCodeLanguage;
 }
 
+export type VideoGenerationStatus =
+  | 'idle'
+  | 'queued'
+  | 'rendering'
+  | 'encoding'
+  | 'uploading'
+  | 'ready'
+  | 'failed'
+  | 'interrupted';
+
+// Automatic Coding Video Generator state for a video block — server-managed
+// only, never sent back on a normal class save. Reuses this same block's
+// guidedTeacherCues as the ordered "teaching steps" source (each cue with a
+// non-empty `code`), so there's no second explanation schema. This is the
+// shape persisted on the block itself (as returned by the normal class
+// endpoints) — `videoStale` is computed alongside it as a sibling field on
+// the block (see ContentBlock below), and `cueCount` only appears in the
+// dedicated generate/status/delete responses (VideoGenerationStatusResponse).
+export interface GuidedVideoGeneration {
+  status: VideoGenerationStatus;
+  error?: string;
+  durationSeconds?: number;
+  width?: number;
+  height?: number;
+  fps?: number;
+  typingCharsPerSecond?: number;
+  generatedAt?: string;
+}
+
+// Response shape from the generate-video / video-status / delete-video
+// admin endpoints specifically (not part of the class's own JSON shape).
+export interface VideoGenerationStatusResponse extends GuidedVideoGeneration {
+  cueCount?: number;
+}
+
 export interface ContentBlock {
   id: string;
   type: ContentBlockType;
@@ -119,6 +154,12 @@ export interface ContentBlock {
   // video-only: Guided Video Lesson (see TeacherCue above).
   guidedTeacherEnabled?: boolean;
   guidedTeacherCues?: TeacherCue[];
+  // video-only: Automatic Coding Video Generator — server-managed, never
+  // sent back on a normal class save (see GuidedVideoGeneration above).
+  guidedVideoGeneration?: GuidedVideoGeneration;
+  // Computed server-side: true when a step's code, typing speed, fps, or
+  // resolution changed since the video was rendered.
+  videoStale?: boolean;
 }
 
 export interface NewContentBlock {
@@ -607,6 +648,46 @@ export const api = {
     const blob = await res.blob();
     return URL.createObjectURL(blob);
   },
+
+  // Automatic Coding Video Generator — reuses this same video block's
+  // guidedTeacherCues as the teaching-step source (see GuidedVideoGeneration
+  // above), so only render-specific settings are sent here.
+  generatedVideoUrl: (classId: string, blockId: string, email: string) =>
+    `${BASE_URL}/classes/${classId}/blocks/${blockId}/video?email=${encodeURIComponent(email)}`,
+
+  // Starts an async background render job and returns immediately — the
+  // admin UI polls getGuidedVideoStatus afterward rather than waiting on
+  // this request.
+  generateGuidedVideo: (
+    classId: string,
+    blockId: string,
+    data: { typingCharsPerSecond: number; fps: number; width: number; height: number },
+  ) =>
+    fetch(`${BASE_URL}/admin/classes/${classId}/blocks/${blockId}/generate-video`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(data),
+    }).then((r) => handle<VideoGenerationStatusResponse>(r)),
+
+  getGuidedVideoStatus: (classId: string, blockId: string) =>
+    fetch(`${BASE_URL}/admin/classes/${classId}/blocks/${blockId}/video-status`, {
+      headers: authHeader(),
+    }).then((r) => handle<VideoGenerationStatusResponse>(r)),
+
+  previewGuidedVideo: async (classId: string, blockId: string): Promise<string> => {
+    const res = await fetch(`${BASE_URL}/admin/classes/${classId}/blocks/${blockId}/video`, {
+      headers: authHeader(),
+    });
+    if (!res.ok) throw new Error('No generated video available yet.');
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  },
+
+  deleteGuidedVideo: (classId: string, blockId: string) =>
+    fetch(`${BASE_URL}/admin/classes/${classId}/blocks/${blockId}/video`, {
+      method: 'DELETE',
+      headers: authHeader(),
+    }).then((r) => handle<VideoGenerationStatusResponse>(r)),
 
   // Starts a Stripe Checkout session for a paid class; returns the URL to
   // redirect the browser to (card and PayPal both handled by Stripe).
