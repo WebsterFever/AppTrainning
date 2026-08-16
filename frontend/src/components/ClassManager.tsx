@@ -462,9 +462,13 @@ export default function ClassManager({
                       }
                     : {}),
                 }))
-                // A divider needs no content to be meaningful; every other
-                // block type does.
-                .filter((b) => b.type === 'divider' || b.content),
+                // A divider needs no content to be meaningful, and neither
+                // does a video block once the Automatic Coding Video
+                // Generator exists — its MP4 comes from
+                // guidedVideoGeneration, not a manually-entered URL, so an
+                // auto-generated video block legitimately has an empty
+                // Video URL and must not be silently dropped here.
+                .filter((b) => b.type === 'divider' || b.type === 'video' || b.content),
             }))
             .filter((t) => t.title || t.description || t.contentBlocks.length),
         }))
