@@ -363,6 +363,52 @@ export default function ClassDetail() {
     );
   };
 
+  // Matches an http(s) URL up to the next whitespace — query strings and
+  // paths (?page=2, /docs, etc.) are just non-whitespace characters so
+  // they're captured naturally, no special-casing needed.
+  const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
+  // Sentence punctuation that's almost never actually part of a URL when it
+  // trails one ("Visit https://openai.com." — the period belongs to the
+  // sentence, not the link). Deliberately excludes closing brackets/parens
+  // since some real URLs legitimately end in those (e.g. Wikipedia's
+  // `_(disambiguation)` links) and guessing wrong there is worse than just
+  // leaving a trailing `.`/`,`/`!` off the clickable part.
+  const TRAILING_PUNCTUATION = /[.,;:!?"']+$/;
+
+  // Splits plain text on URLs and returns an array of strings/<a> nodes —
+  // no dangerouslySetInnerHTML, so this is exactly as safe against
+  // injection as rendering the text alone was. whitespace-pre-line on the
+  // containing element (see the 'text' case below) still does all the
+  // paragraph/line-break preservation; this only ever touches the URL
+  // substrings themselves.
+  const linkifyText = (text: string): React.ReactNode[] => {
+    const segments = text.split(URL_PATTERN);
+    const nodes: React.ReactNode[] = [];
+    segments.forEach((segment, i) => {
+      if (!segment) return;
+      if (!/^https?:\/\//.test(segment)) {
+        nodes.push(segment);
+        return;
+      }
+      const trailingMatch = segment.match(TRAILING_PUNCTUATION);
+      const trailing = trailingMatch ? trailingMatch[0] : '';
+      const url = trailing ? segment.slice(0, -trailing.length) : segment;
+      nodes.push(
+        <a
+          key={`link-${i}`}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-amber underline underline-offset-2 hover:text-coral break-words"
+        >
+          {url}
+        </a>,
+      );
+      if (trailing) nodes.push(trailing);
+    });
+    return nodes;
+  };
+
   // A block's contentBlocks are only ever present once access is proven
   // (see ClassesService.toPublicShape / RegistrationsService.register) — so
   // this simply renders whatever the API actually sent.
@@ -570,7 +616,7 @@ export default function ClassDetail() {
       default:
         return (
           <p key={key} className="text-sm text-ink/80 leading-relaxed whitespace-pre-line">
-            {block.content}
+            {linkifyText(block.content ?? '')}
           </p>
         );
     }
