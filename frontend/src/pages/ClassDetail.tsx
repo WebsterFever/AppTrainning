@@ -579,32 +579,41 @@ export default function ClassDetail() {
       key={key}
       className="
         overflow-hidden
-        rounded-2xl
-        border border-white/10
-        bg-[#1e1e1e]
-        shadow-xl
+        rounded-xl
+        border border-[#30363d]
+        bg-[#0d1117]
+        shadow-lg
       "
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3">
+      {/* Code header */}
+      <div
+        className="
+          flex items-center justify-between
+          px-4 py-2.5
+          bg-[#161b22]
+          border-b border-[#30363d]
+        "
+      >
         <div className="flex items-center gap-2">
-          <span className="text-white/70">⌑</span>
+          <span className="text-[#8b949e] text-xs">⌑</span>
 
-          <span className="text-sm font-semibold text-white">
+          <span className="text-xs font-semibold text-[#c9d1d9]">
             {block.label || block.language || 'Code'}
           </span>
         </div>
 
         <button
           type="button"
-          onClick={() => navigator.clipboard.writeText(block.content || '')}
+          onClick={() =>
+            navigator.clipboard.writeText(block.content || '')
+          }
           className="
-            rounded-lg
-            px-3 py-2
-            text-sm
-            text-white/70
-            transition
-            hover:bg-white/10
+            px-3 py-1.5
+            rounded-md
+            text-xs
+            text-[#8b949e]
+            transition-colors
+            hover:bg-[#30363d]
             hover:text-white
           "
           title="Copy code"
@@ -613,25 +622,37 @@ export default function ClassDetail() {
         </button>
       </div>
 
-      {/* Syntax highlighted code */}
-      <div className="overflow-x-auto">
+      {/* Syntax-highlighted code */}
+      <div className="overflow-x-auto bg-[#0d1117]">
         <SyntaxHighlighter
-          language={normalizeCodeLanguage(block.label, block.language)}
+          language={normalizeCodeLanguage(
+            block.label,
+            block.language
+          )}
           style={vscDarkPlus}
+          showLineNumbers
+          wrapLongLines={false}
           customStyle={{
             margin: 0,
-            padding: '8px 20px 24px',
-            background: '#1e1e1e',
+            padding: '16px 0 20px',
+            background: '#0d1117',
             fontSize: '14px',
             lineHeight: '1.7',
           }}
           codeTagProps={{
             style: {
               fontFamily:
-                'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                '"JetBrains Mono", "Fira Code", Consolas, Monaco, monospace',
             },
           }}
-          wrapLongLines={false}
+          lineNumberStyle={{
+            minWidth: '3.5em',
+            paddingRight: '18px',
+            paddingLeft: '12px',
+            color: '#484f58',
+            textAlign: 'right',
+            userSelect: 'none',
+          }}
         >
           {block.content || ''}
         </SyntaxHighlighter>
