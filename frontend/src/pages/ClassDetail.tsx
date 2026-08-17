@@ -375,13 +375,18 @@ export default function ClassDetail() {
   // leaving a trailing `.`/`,`/`!` off the clickable part.
   const TRAILING_PUNCTUATION = /[.,;:!?"']+$/;
 
-  // Splits plain text on URLs and returns an array of strings/<a> nodes —
-  // no dangerouslySetInnerHTML, so this is exactly as safe against
-  // injection as rendering the text alone was. whitespace-pre-line on the
-  // containing element (see the 'text' case below) still does all the
-  // paragraph/line-break preservation; this only ever touches the URL
-  // substrings themselves.
-  const linkifyText = (text: string): React.ReactNode[] => {
+  // **double asterisks** — the one Markdown emphasis admins are asked to
+  // use for titles/key steps/emphasized phrases. `[^*]+` (no asterisks
+  // inside) keeps this simple and unambiguous rather than implementing a
+  // real Markdown parser for one feature.
+  const BOLD_PATTERN = /(\*\*[^*]+\*\*)/g;
+
+  // Splits a plain-text (non-bold) chunk on URLs and returns an array of
+  // strings/<a> nodes — no dangerouslySetInnerHTML, so this is exactly as
+  // safe against injection as rendering the text alone was. `keyPrefix`
+  // keeps React keys unique when this runs once per bold/non-bold segment
+  // instead of once per whole block.
+  const linkifyUrls = (text: string, keyPrefix: string): React.ReactNode[] => {
     const segments = text.split(URL_PATTERN);
     const nodes: React.ReactNode[] = [];
     segments.forEach((segment, i) => {
@@ -395,7 +400,7 @@ export default function ClassDetail() {
       const url = trailing ? segment.slice(0, -trailing.length) : segment;
       nodes.push(
         <a
-          key={`link-${i}`}
+          key={`${keyPrefix}-link-${i}`}
           href={url}
           target="_blank"
           rel="noopener noreferrer"
@@ -407,6 +412,49 @@ export default function ClassDetail() {
       if (trailing) nodes.push(trailing);
     });
     return nodes;
+  };
+
+  // Renders a Text block's content: **bold** spans become <strong>, and
+  // URLs are linkified both inside and outside them — still no
+  // dangerouslySetInnerHTML, whitespace-pre-line on the containing element
+  // (see the 'text' case below) still does all paragraph/line-break
+  // preservation. This only ever touches the ** markers and URL
+  // substrings, so the admin's saved text is never altered — only how it's
+  // displayed.
+  const renderFormattedText = (text: string): React.ReactNode[] => {
+    const segments = text.split(BOLD_PATTERN);
+    const nodes: React.ReactNode[] = [];
+    segments.forEach((segment, i) => {
+      if (!segment) return;
+      const boldMatch = segment.match(/^\*\*([^*]+)\*\*$/);
+      if (boldMatch) {
+        nodes.push(<strong key={`bold-${i}`}>{linkifyUrls(boldMatch[1], `bold-${i}`)}</strong>);
+      } else {
+        nodes.push(...linkifyUrls(segment, `plain-${i}`));
+      }
+    });
+    return nodes;
+  };
+
+  // react-syntax-highlighter's Prism build (refractor) already recognizes
+  // most language names/aliases case-insensitively (e.g. "Typescript",
+  // "ts", "html" all resolve correctly on their own) — this only maps the
+  // handful of spellings that wouldn't otherwise match, chiefly "C#" (the
+  // literal # isn't a valid Prism alias key).
+  const CODE_LANGUAGE_ALIASES: Record<string, string> = {
+    'c#': 'csharp',
+    csharp: 'csharp',
+    cs: 'csharp',
+    'objective-c': 'objectivec',
+  };
+
+  // Admins type the language into a Code block's `label` (see
+  // ContentBlocksEditor's "Language (optional, e.g. javascript)" field) —
+  // `block.language` is an ai_teacher-only field and is never set for code
+  // blocks, so it's only checked here as a defensive fallback.
+  const normalizeCodeLanguage = (label?: string, language?: string): string => {
+    const raw = (label || language || 'html').trim().toLowerCase();
+    return CODE_LANGUAGE_ALIASES[raw] ?? raw;
   };
 
   // A block's contentBlocks are only ever present once access is proven
@@ -568,7 +616,7 @@ export default function ClassDetail() {
       {/* Syntax highlighted code */}
       <div className="overflow-x-auto">
         <SyntaxHighlighter
-          language={(block.language || 'html').toLowerCase()}
+          language={normalizeCodeLanguage(block.label, block.language)}
           style={vscDarkPlus}
           customStyle={{
             margin: 0,
@@ -616,7 +664,7 @@ export default function ClassDetail() {
       default:
         return (
           <p key={key} className="text-sm text-ink/80 leading-relaxed whitespace-pre-line">
-            {linkifyText(block.content ?? '')}
+            {renderFormattedText(block.content ?? '')}
           </p>
         );
     }
