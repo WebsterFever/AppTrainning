@@ -179,6 +179,12 @@ const dict = {
   moduleApproved: { en: '✓ Approved', fr: '✓ Approuvé', ht: '✓ Apwouve' },
   modulePending: { en: 'Pending review', fr: 'En attente', ht: 'Ap tann revizyon' },
   moduleNeedsChanges: { en: 'Needs changes', fr: 'Modifications requises', ht: 'Bezwen chanjman' },
+  subtopicPrevious: { en: 'Previous', fr: 'Précédent', ht: 'Anvan' },
+  subtopicNext: { en: 'Next', fr: 'Suivant', ht: 'Apre' },
+  subtopicCompleteLesson: { en: 'Complete Lesson', fr: 'Terminer la leçon', ht: 'Fini leson an' },
+  subtopicCompleteModule: { en: 'Complete Module', fr: 'Terminer le module', ht: 'Fini modil la' },
+  subtopicCompleted: { en: 'Completed', fr: 'Terminé', ht: 'Fini' },
+  subtopicSaving: { en: 'Saving…', fr: 'Enregistrement…', ht: "Ap anrejistre…" },
   completeToUnlock: {
     en: 'Complete and get approval on the previous module to unlock this one.',
     fr: 'Terminez et faites approuver le module précédent pour débloquer celui-ci.',

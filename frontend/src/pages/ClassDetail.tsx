@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, ClassItem, ModuleAccess, visitorIdentity } from '../lib/api';
+import { api, ClassItem, ContentBlock, ModuleAccess, visitorIdentity } from '../lib/api';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ClassDetailSkeleton } from '../components/Skeletons';
@@ -13,6 +13,7 @@ import { useLanguage, localeFor } from '../lib/i18n';
 import { seenClasses } from '../lib/seenClasses';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import SubtopicProgressPanel, { ProgressBar, SubtopicSeqEntry } from '../components/SubtopicProgressPanel';
 
 function formatPrice(cents: number, locale: string): string {
   return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(cents / 100);
@@ -49,6 +50,15 @@ export default function ClassDetail() {
   const [projectDrafts, setProjectDrafts] = useState<Record<string, { githubUrl: string; notes: string }>>({});
   const [submittingModuleId, setSubmittingModuleId] = useState<string | null>(null);
   const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({});
+  // Subtopic progress — persisted server-side (see api.completeSubtopic),
+  // never just from opening a Subtopic. `activeSubtopicByModule` is purely
+  // local "which Subtopic is currently being viewed" navigation state (not
+  // persisted); it defaults to the first incomplete Subtopic in that
+  // Module's sequence, which is why progress still "resumes" naturally
+  // after a refresh even though the exact scroll position isn't saved.
+  const [completedSubtopicIds, setCompletedSubtopicIds] = useState<Set<string>>(new Set());
+  const [activeSubtopicByModule, setActiveSubtopicByModule] = useState<Record<string, string>>({});
+  const [savingSubtopicId, setSavingSubtopicId] = useState<string | null>(null);
 
   const toggleVideo = (i: number) => {
     setOpenVideos((current) => {
@@ -75,6 +85,61 @@ export default function ClassDetail() {
       else next.add(id);
       return next;
     });
+  };
+
+  // Flat, ordered list of every Subtopic across every Topic in one Module —
+  // this is the "linear path" Next/Previous walk along, crossing Topic
+  // boundaries transparently once a Topic's Subtopics are exhausted.
+  // Topics without Subtopics (the original flat-content shape) simply
+  // contribute nothing here, so a Module that hasn't adopted Subtopics yet
+  // has an empty sequence and none of this progress UI applies to it.
+  const getModuleSequence = (mod: NonNullable<ClassItem['curriculumModules']>[number]): SubtopicSeqEntry[] =>
+    mod.topics.flatMap((topic) =>
+      (topic.subtopics ?? [])
+        .filter((st) => (st.contentBlocks?.length ?? 0) > 0)
+        .map((st) => ({
+          id: st.id,
+          topicId: topic.id,
+          title: st.title ?? '',
+          description: st.description,
+          contentBlocks: st.contentBlocks as ContentBlock[] | undefined,
+        })),
+    );
+
+  // Resumes at the first incomplete Subtopic (or the last one, once every
+  // Subtopic in the Module is done) unless the student has already
+  // navigated somewhere else in this session.
+  const getActiveSubtopicId = (moduleId: string, sequence: SubtopicSeqEntry[]): string | null => {
+    if (sequence.length === 0) return null;
+    const chosen = activeSubtopicByModule[moduleId];
+    if (chosen && sequence.some((e) => e.id === chosen)) return chosen;
+    const firstIncomplete = sequence.find((e) => !completedSubtopicIds.has(e.id));
+    return (firstIncomplete ?? sequence[sequence.length - 1]).id;
+  };
+
+  const navigateSubtopic = (moduleId: string, subtopicId: string) => {
+    setActiveSubtopicByModule((current) => ({ ...current, [moduleId]: subtopicId }));
+  };
+
+  // Marks the given Subtopic complete server-side, then advances to the
+  // next one in the Module's sequence (or stays put if it was the last —
+  // the button becomes a harmless re-confirm at that point).
+  const completeAndAdvanceSubtopic = async (moduleId: string, sequence: SubtopicSeqEntry[], subtopicId: string) => {
+    if (!id) return;
+    setSavingSubtopicId(subtopicId);
+    try {
+      const result = await api.completeSubtopic(id, subtopicId, email);
+      setCompletedSubtopicIds(new Set(result.completedSubtopicIds));
+      const idx = sequence.findIndex((e) => e.id === subtopicId);
+      const next = idx >= 0 ? sequence[idx + 1] : undefined;
+      if (next) navigateSubtopic(moduleId, next.id);
+    } catch {
+      // Transient network hiccup — the button re-enables and the student
+      // can just click Next again; nothing was silently lost since
+      // completion only ever happens on this explicit call.
+    } finally {
+      setSavingSubtopicId(null);
+    }
   };
 
   useEffect(() => {
@@ -121,6 +186,7 @@ export default function ClassDetail() {
                 : current,
             );
             setModuleAccess(res.moduleAccess ?? []);
+            setCompletedSubtopicIds(new Set(res.completedSubtopicIds ?? []));
             setUnlocked(true);
             setConfirmingPayment(false);
           })
@@ -193,6 +259,7 @@ export default function ClassDetail() {
           : current,
       );
       setModuleAccess(res.moduleAccess ?? []);
+      setCompletedSubtopicIds(new Set(res.completedSubtopicIds ?? []));
       setUnlocked(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : t('somethingWentWrong');
@@ -223,6 +290,7 @@ export default function ClassDetail() {
         current ? { ...current, curriculumModules: res.curriculumModules ?? current.curriculumModules } : current,
       );
       setModuleAccess(res.moduleAccess ?? []);
+      setCompletedSubtopicIds(new Set(res.completedSubtopicIds ?? []));
     } catch (err) {
       setSubmitErrors((current) => ({
         ...current,
@@ -533,6 +601,16 @@ export default function ClassDetail() {
             // exists for this student.
             const isUnlocked = !access || access.unlocked;
             const submission = access?.submission;
+            // Flat cross-Topic Subtopic sequence for this Module — empty
+            // for a Module that hasn't adopted Subtopics yet (including
+            // the pre-registration preview, whose Subtopics are stripped
+            // of contentBlocks), so the progress badge naturally doesn't
+            // appear until there's real, unlocked lesson content to track.
+            const moduleSequence = getModuleSequence(mod);
+            const moduleCompletedCount = moduleSequence.filter((e) => completedSubtopicIds.has(e.id)).length;
+            const moduleProgressPercent =
+              moduleSequence.length > 0 ? Math.round((moduleCompletedCount / moduleSequence.length) * 100) : null;
+            const activeSubtopicId = getActiveSubtopicId(mod.id, moduleSequence);
             return (
               <div key={mod.id} className="border border-line rounded-sm overflow-hidden bg-surface">
                 <button
@@ -542,6 +620,9 @@ export default function ClassDetail() {
                 >
                   <span className="text-sm font-medium text-ink flex items-center gap-2 flex-wrap">
                     M{i + 1}: {mod.title}
+                    {moduleProgressPercent !== null && (
+                      <ProgressBar percent={moduleProgressPercent} completed={moduleProgressPercent === 100} />
+                    )}
                     {allowComments && !isUnlocked && (
                       <span className="badge bg-line text-ink/60 normal-case tracking-normal">
                         {t('moduleLocked')}
@@ -612,7 +693,22 @@ export default function ClassDetail() {
                                 </div>
                               );
                             }
-                            const topicOpen = openTopics.has(topic.id);
+                            const topicSubtopics = (topic.subtopics ?? []).filter(
+                              (st) => (st.contentBlocks?.length ?? 0) > 0,
+                            );
+                            const topicCompletedCount = topicSubtopics.filter((st) =>
+                              completedSubtopicIds.has(st.id),
+                            ).length;
+                            const topicProgressPercent =
+                              topicSubtopics.length > 0
+                                ? Math.round((topicCompletedCount / topicSubtopics.length) * 100)
+                                : null;
+                            // Auto-expand a Topic that contains the Module's
+                            // currently-active Subtopic (e.g. right after Next
+                            // crosses over from the previous Topic), on top of
+                            // the student's own manual toggle.
+                            const containsActive = topicSubtopics.some((st) => st.id === activeSubtopicId);
+                            const topicOpen = openTopics.has(topic.id) || containsActive;
                             return (
                               <div
                                 key={topic.id}
@@ -623,7 +719,12 @@ export default function ClassDetail() {
                                   onClick={() => toggleTopic(topic.id)}
                                   className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
                                 >
-                                  <span className="text-sm text-ink">{topic.title}</span>
+                                  <span className="text-sm text-ink flex items-center gap-2 flex-wrap">
+                                    {topic.title}
+                                    {topicProgressPercent !== null && (
+                                      <ProgressBar percent={topicProgressPercent} completed={topicProgressPercent === 100} />
+                                    )}
+                                  </span>
                                   <span
                                     className={`text-ink/50 text-xs transition-transform flex-shrink-0 ${topicOpen ? 'rotate-180' : ''}`}
                                     aria-hidden="true"
@@ -642,57 +743,23 @@ export default function ClassDetail() {
                                     {topic.contentBlocks?.map((block, bi) =>
                                       renderContentBlock(block, `${topic.id}-${bi}`),
                                     )}
-                                    {/* Subtopics — one nested level deeper, each acting like
-                                        its own mini-topic with its own collapsible content. */}
-                                    {(topic.subtopics ?? []).map((subtopic) => {
-                                      const subtopicHasContent = (subtopic.contentBlocks?.length ?? 0) > 0;
-                                      if (!subtopicHasContent) {
-                                        return (
-                                          <div key={subtopic.id} className="text-sm text-ink/80 flex items-start gap-2">
-                                            <span className="text-amber mt-1 flex-shrink-0" aria-hidden="true">
-                                              •
-                                            </span>
-                                            <div>
-                                              <span>{subtopic.title}</span>
-                                              {subtopic.description && (
-                                                <p className="text-xs text-ink/60 mt-0.5">{subtopic.description}</p>
-                                              )}
-                                            </div>
-                                          </div>
-                                        );
-                                      }
-                                      const subtopicOpen = openTopics.has(subtopic.id);
-                                      return (
-                                        <div
-                                          key={subtopic.id}
-                                          className="border border-line/60 rounded-sm overflow-hidden bg-surface"
-                                        >
-                                          <button
-                                            type="button"
-                                            onClick={() => toggleTopic(subtopic.id)}
-                                            className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
-                                          >
-                                            <span className="text-sm text-ink">{subtopic.title}</span>
-                                            <span
-                                              className={`text-ink/50 text-xs transition-transform flex-shrink-0 ${subtopicOpen ? 'rotate-180' : ''}`}
-                                              aria-hidden="true"
-                                            >
-                                              ▾
-                                            </span>
-                                          </button>
-                                          {subtopicOpen && (
-                                            <div className="border-t border-line p-3 space-y-3">
-                                              {subtopic.description && (
-                                                <p className="text-xs text-ink/60">{subtopic.description}</p>
-                                              )}
-                                              {subtopic.contentBlocks!.map((block, bi) =>
-                                                renderContentBlock(block, `${subtopic.id}-${bi}`),
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
+                                    {/* Subtopics — one nested level deeper, each with its own
+                                        progress bar, rendered via the shared sequential
+                                        viewer (outline + active content + Previous/Next). */}
+                                    {topicSubtopics.length > 0 && (
+                                      <SubtopicProgressPanel
+                                        subtopics={topicSubtopics}
+                                        moduleSequence={moduleSequence}
+                                        activeSubtopicId={activeSubtopicId}
+                                        completedIds={completedSubtopicIds}
+                                        saving={savingSubtopicId !== null}
+                                        onNavigate={(subtopicId) => navigateSubtopic(mod.id, subtopicId)}
+                                        onCompleteAndAdvance={(subtopicId) =>
+                                          completeAndAdvanceSubtopic(mod.id, moduleSequence, subtopicId)
+                                        }
+                                        renderContentBlock={renderContentBlock}
+                                      />
+                                    )}
                                   </div>
                                 )}
                               </div>

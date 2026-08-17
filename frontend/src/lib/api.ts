@@ -566,9 +566,25 @@ export const api = {
         curriculumModules?: CurriculumModule[];
         // Per-module unlock + submission status for this student.
         moduleAccess?: ModuleAccess[];
+        // Every Subtopic id this student has completed, across the whole
+        // class — recomputed fresh on every register() call (same
+        // treatment as moduleAccess) so a refresh always reflects the true
+        // persisted state.
+        completedSubtopicIds?: string[];
         alreadyRegistered: boolean;
       }>(r),
     ),
+
+  // Marks one Subtopic complete for this student — called when they click
+  // Next/Complete at the end of it, never just from opening it. The
+  // server independently re-verifies registration + module-unlock before
+  // writing anything, same as every other progress-affecting endpoint.
+  completeSubtopic: (classId: string, subtopicId: string, email: string) =>
+    fetch(`${BASE_URL}/classes/${classId}/subtopics/${subtopicId}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).then((r) => handle<{ completedSubtopicIds: string[] }>(r)),
 
   submitModuleProject: (
     classId: string,

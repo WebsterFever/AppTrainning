@@ -5,6 +5,7 @@ import { Registration } from './registration.entity';
 import { RegisterDto } from './dto/register.dto';
 import { ClassesService } from '../classes/classes.service';
 import { SubmissionsService } from '../submissions/submissions.service';
+import { ProgressService } from '../progress/progress.service';
 
 @Injectable()
 export class RegistrationsService {
@@ -13,6 +14,7 @@ export class RegistrationsService {
     private readonly registrationsRepo: Repository<Registration>,
     private readonly classesService: ClassesService,
     private readonly submissionsService: SubmissionsService,
+    private readonly progressService: ProgressService,
   ) {}
 
   async register(classId: string, dto: RegisterDto) {
@@ -62,12 +64,19 @@ export class RegistrationsService {
       ),
     );
 
+    // Per-Subtopic completion state — same "recomputed fresh on every
+    // register() call" treatment as moduleAccess above, so a page refresh
+    // always reflects the true persisted state rather than a stale local
+    // snapshot.
+    const completedSubtopicIds = await this.progressService.getCompletedSubtopicIds(classId, email);
+
     return {
       success: true,
       registrationCount: count,
       zoomLink: trainingClass.zoomLink,
       curriculumModules,
       moduleAccess,
+      completedSubtopicIds,
       alreadyRegistered: !!existing,
     };
   }
