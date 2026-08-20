@@ -376,17 +376,27 @@ export default function ClassDetail() {
     );
   };
 
-  // Matches an http(s) URL up to the next whitespace — query strings and
-  // paths (?page=2, /docs, etc.) are just non-whitespace characters so
-  // they're captured naturally, no special-casing needed.
-  const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
+  // Matches either a Markdown link `[label](https://...)` or a bare http(s)
+  // URL, combined into one alternation so a single left-to-right scan
+  // handles both — the bare-URL half never gets a second chance to
+  // re-match the URL already consumed inside a Markdown link's
+  // parentheses, since the Markdown-link alternative starts matching
+  // earlier (at the `[`) and consumes the whole span first.
+  const INLINE_LINK_PATTERN = /(\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s]+)/g;
   // Sentence punctuation that's almost never actually part of a URL when it
   // trails one ("Visit https://openai.com." — the period belongs to the
   // sentence, not the link). Deliberately excludes closing brackets/parens
   // since some real URLs legitimately end in those (e.g. Wikipedia's
   // `_(disambiguation)` links) and guessing wrong there is worse than just
-  // leaving a trailing `.`/`,`/`!` off the clickable part.
+  // leaving a trailing `.`/`,`/`!` off the clickable part. Markdown links
+  // don't need this at all — the closing `)` already delimits the URL
+  // precisely, so there's no trailing-punctuation ambiguity to resolve.
   const TRAILING_PUNCTUATION = /[.,;:!?"']+$/;
+  // Professional, unmistakably-clickable hyperlink style — same blue in
+  // both themes (doesn't ride the ink/lessonText tokens, which invert or
+  // stay fixed for unrelated reasons) with an underline only on hover so
+  // running text doesn't look cluttered.
+  const LINK_CLASS = 'text-blue-600 dark:text-blue-400 hover:underline underline-offset-2 cursor-pointer';
 
   // **double asterisks** for bold, `single backticks` for inline code —
   // the two Markdown spans admins are asked to use. Matched together so
@@ -395,16 +405,38 @@ export default function ClassDetail() {
   // rather than implementing a real Markdown parser for two features.
   const FORMATTING_PATTERN = /(\*\*[^*]+\*\*|`[^`]+`)/g;
 
-  // Splits a plain-text (non-bold) chunk on URLs and returns an array of
-  // strings/<a> nodes — no dangerouslySetInnerHTML, so this is exactly as
-  // safe against injection as rendering the text alone was. `keyPrefix`
-  // keeps React keys unique when this runs once per bold/non-bold segment
-  // instead of once per whole block.
+  // Splits a plain-text (non-bold) chunk on Markdown links and bare URLs,
+  // returning an array of strings/<a> nodes — no dangerouslySetInnerHTML,
+  // so this is exactly as safe against injection as rendering the text
+  // alone was. A Markdown link `[label](url)` renders with ONLY the label
+  // visible (the raw `[...](...)` syntax and the URL itself never appear
+  // in the text — the URL exists solely in the anchor's href); a bare URL
+  // still displays the URL itself, since there's no separate label for it.
+  // `keyPrefix` keeps React keys unique when this runs once per
+  // bold/non-bold segment instead of once per whole block.
   const linkifyUrls = (text: string, keyPrefix: string): React.ReactNode[] => {
-    const segments = text.split(URL_PATTERN);
+    const segments = text.split(INLINE_LINK_PATTERN);
     const nodes: React.ReactNode[] = [];
     segments.forEach((segment, i) => {
       if (!segment) return;
+
+      const mdLinkMatch = segment.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+      if (mdLinkMatch) {
+        const [, label, url] = mdLinkMatch;
+        nodes.push(
+          <a
+            key={`${keyPrefix}-mdlink-${i}`}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={LINK_CLASS}
+          >
+            {label}
+          </a>,
+        );
+        return;
+      }
+
       if (!/^https?:\/\//.test(segment)) {
         nodes.push(segment);
         return;
@@ -418,7 +450,7 @@ export default function ClassDetail() {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-amber underline underline-offset-2 hover:text-coral break-words"
+          className={`${LINK_CLASS} break-words`}
         >
           {url}
         </a>,
