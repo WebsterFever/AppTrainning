@@ -117,7 +117,15 @@ export default function SubtopicProgressPanel({
             type="button"
             disabled={activeIndex <= 0}
             onClick={() => onNavigate(moduleSequence[activeIndex - 1].id)}
-            className="btn-outline text-xs px-3 py-1.5 disabled:opacity-30"
+            // Deliberately NOT `.btn-outline` (border-line/text-ink) — those
+            // ride the global theme tokens that invert to near-white text
+            // in dark mode, which is illegible against this reading pane's
+            // fixed light "paper" surface (lessonSurface never inverts, see
+            // index.css). lessonText/lessonBorder are the same fixed,
+            // non-inverting tokens every other reading-pane element already
+            // uses, so this stays readable in both themes without turning
+            // into a mismatched dark island inside an otherwise light card.
+            className="btn border border-lessonBorder text-lessonText px-3 py-1.5 text-xs hover:border-lessonText/40 hover:bg-black/[0.05] disabled:opacity-60 disabled:cursor-not-allowed"
           >
             ← {t('subtopicPrevious')}
           </button>
