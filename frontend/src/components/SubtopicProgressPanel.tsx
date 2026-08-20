@@ -17,18 +17,32 @@ interface SubtopicLike {
 }
 
 // A small horizontal progress bar + percentage, reused for the Subtopic
-// row, the Topic header, and the Module header — same visual language at
-// every level of the hierarchy.
-export function ProgressBar({ percent, completed }: { percent: number; completed?: boolean }) {
+// row, the Topic header, and the Module header (all on the light "reading
+// paper" surface) as well as LessonNav's always-dark sidebar — since the
+// track/text colors can't invert to fit both fixed backgrounds at once,
+// `variant` picks the palette that reads correctly against whichever one
+// it's rendered on, instead of relying on the (here, deliberately
+// non-inverting) global ink/line theme tokens.
+export function ProgressBar({
+  percent,
+  completed,
+  variant = 'light',
+}: {
+  percent: number;
+  completed?: boolean;
+  variant?: 'light' | 'dark';
+}) {
+  const trackClass = variant === 'dark' ? 'bg-white/15' : 'bg-lessonBorder';
+  const textClass = variant === 'dark' ? 'text-lessonNavTextMuted' : 'text-lessonTextMuted';
   return (
     <span className="inline-flex items-center gap-1.5 flex-shrink-0">
-      <span className="w-14 h-1.5 rounded-full bg-line overflow-hidden" aria-hidden="true">
+      <span className={`w-14 h-1.5 rounded-full ${trackClass} overflow-hidden`} aria-hidden="true">
         <span
           className={`block h-full rounded-full transition-all ${completed ? 'bg-sage' : 'bg-amber'}`}
           style={{ width: `${percent}%` }}
         />
       </span>
-      <span className={`text-[11px] font-mono ${completed ? 'text-sage' : 'text-ink/50'}`}>
+      <span className={`text-[11px] font-mono ${completed ? 'text-sage' : textClass}`}>
         {completed ? '100% ✓' : `${percent}%`}
       </span>
     </span>
@@ -83,34 +97,35 @@ export default function SubtopicProgressPanel({
 
         if (!hasContent) {
           return (
-            <div key={subtopic.id} className="text-sm text-ink/80 flex items-start gap-2">
+            <div key={subtopic.id} className="text-sm text-lessonTextMuted flex items-start gap-2">
               <span className="text-amber mt-1 flex-shrink-0" aria-hidden="true">
                 •
               </span>
               <div>
                 <span>{subtopic.title}</span>
-                {subtopic.description && <p className="text-xs text-ink/60 mt-0.5">{subtopic.description}</p>}
+                {subtopic.description && <p className="text-xs text-lessonTextMuted mt-0.5">{subtopic.description}</p>}
               </div>
             </div>
           );
         }
 
         return (
-          <div key={subtopic.id} className="border border-line/60 rounded-sm overflow-hidden bg-surface">
+          <div key={subtopic.id} className="border border-lessonBorder rounded-sm overflow-hidden bg-lessonSurface">
             <button
               type="button"
               onClick={() => onNavigate(subtopic.id)}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
+              aria-current={isActive ? 'true' : undefined}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left"
             >
-              <span className="text-sm text-ink">{subtopic.title}</span>
+              <span className="text-sm sm:text-base font-medium text-lessonText">{subtopic.title}</span>
               <ProgressBar percent={isCompleted ? 100 : 0} completed={isCompleted} />
             </button>
             {isActive && (
-              <div className="border-t border-line p-3 space-y-3">
-                {subtopic.description && <p className="text-xs text-ink/60">{subtopic.description}</p>}
+              <div className="border-t border-lessonBorder p-4 sm:p-5 space-y-3">
+                {subtopic.description && <p className="text-xs text-lessonTextMuted">{subtopic.description}</p>}
                 {subtopic.contentBlocks!.map((block, bi) => renderContentBlock(block, `${subtopic.id}-${bi}`))}
 
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-line/50">
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-lessonBorder">
                   <button
                     type="button"
                     disabled={activeIndex <= 0}

@@ -14,6 +14,7 @@ import { seenClasses } from '../lib/seenClasses';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import SubtopicProgressPanel, { ProgressBar, SubtopicSeqEntry } from '../components/SubtopicProgressPanel';
+import LessonNav from '../components/LessonNav';
 
 function formatPrice(cents: number, locale: string): string {
   return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(cents / 100);
@@ -375,11 +376,12 @@ export default function ClassDetail() {
   // leaving a trailing `.`/`,`/`!` off the clickable part.
   const TRAILING_PUNCTUATION = /[.,;:!?"']+$/;
 
-  // **double asterisks** — the one Markdown emphasis admins are asked to
-  // use for titles/key steps/emphasized phrases. `[^*]+` (no asterisks
-  // inside) keeps this simple and unambiguous rather than implementing a
-  // real Markdown parser for one feature.
-  const BOLD_PATTERN = /(\*\*[^*]+\*\*)/g;
+  // **double asterisks** for bold, `single backticks` for inline code —
+  // the two Markdown spans admins are asked to use. Matched together so
+  // one never gets misread as plain text inside the other; `[^*]+`/`[^`]+`
+  // (no matching delimiter inside) keeps this simple and unambiguous
+  // rather than implementing a real Markdown parser for two features.
+  const FORMATTING_PATTERN = /(\*\*[^*]+\*\*|`[^`]+`)/g;
 
   // Splits a plain-text (non-bold) chunk on URLs and returns an array of
   // strings/<a> nodes — no dangerouslySetInnerHTML, so this is exactly as
@@ -414,24 +416,37 @@ export default function ClassDetail() {
     return nodes;
   };
 
-  // Renders a Text block's content: **bold** spans become <strong>, and
-  // URLs are linkified both inside and outside them — still no
-  // dangerouslySetInnerHTML, whitespace-pre-line on the containing element
-  // (see the 'text' case below) still does all paragraph/line-break
-  // preservation. This only ever touches the ** markers and URL
-  // substrings, so the admin's saved text is never altered — only how it's
-  // displayed.
+  // Renders a Text block's content: **bold** spans become <strong>,
+  // `code` spans become an inline <code> chip, and URLs are linkified
+  // everywhere except inside code spans (standard Markdown convention —
+  // code stays literal) — still no dangerouslySetInnerHTML,
+  // whitespace-pre-line on the containing element (see the 'text' case
+  // below) still does all paragraph/line-break preservation. This only
+  // ever touches the ** and ` markers and URL substrings, so the admin's
+  // saved text is never altered — only how it's displayed.
   const renderFormattedText = (text: string): React.ReactNode[] => {
-    const segments = text.split(BOLD_PATTERN);
+    const segments = text.split(FORMATTING_PATTERN);
     const nodes: React.ReactNode[] = [];
     segments.forEach((segment, i) => {
       if (!segment) return;
       const boldMatch = segment.match(/^\*\*([^*]+)\*\*$/);
       if (boldMatch) {
         nodes.push(<strong key={`bold-${i}`}>{linkifyUrls(boldMatch[1], `bold-${i}`)}</strong>);
-      } else {
-        nodes.push(...linkifyUrls(segment, `plain-${i}`));
+        return;
       }
+      const codeMatch = segment.match(/^`([^`]+)`$/);
+      if (codeMatch) {
+        nodes.push(
+          <code
+            key={`code-${i}`}
+            className="rounded-md bg-black/[0.06] border border-black/10 px-1.5 py-0.5 font-mono text-[0.85em] text-lessonText"
+          >
+            {codeMatch[1]}
+          </code>,
+        );
+        return;
+      }
+      nodes.push(...linkifyUrls(segment, `plain-${i}`));
     });
     return nodes;
   };
@@ -485,21 +500,21 @@ export default function ClassDetail() {
         return <RobotTeacher key={key} block={block} classId={item.id} studentEmail={email} />;
       case 'heading':
         return (
-          <h4 key={key} className="font-display text-base text-ink">
+          <h4 key={key} className="font-display font-semibold text-base sm:text-lg text-lessonText mt-2 first:mt-0">
             {block.content}
           </h4>
         );
       case 'divider':
-        return <hr key={key} className="border-line" />;
+        return <hr key={key} className="border-lessonBorder" />;
       case 'image':
         return (
           <figure key={key}>
             <img
               src={block.content}
               alt={block.label || ''}
-              className="w-full rounded-sm border border-line"
+              className="w-full rounded-sm border border-lessonBorder"
             />
-            {block.label && <figcaption className="text-xs text-ink/50 mt-1">{block.label}</figcaption>}
+            {block.label && <figcaption className="text-xs text-lessonTextMuted mt-1">{block.label}</figcaption>}
           </figure>
         );
       case 'video': {
@@ -528,9 +543,9 @@ export default function ClassDetail() {
         }
         return (
           <div key={key}>
-            {block.label && <p className="text-sm font-medium text-ink mb-1.5">{block.label}</p>}
+            {block.label && <p className="text-sm font-medium text-lessonText mb-1.5">{block.label}</p>}
             {block.guidedTeacherEnabled && guidedCues.length > 0 && !fileSrc && embed && embed.kind !== 'file' && (
-              <p className="text-xs text-ink/50 bg-chalk border border-line rounded-sm p-2 mb-1.5">
+              <p className="text-xs text-lessonTextMuted bg-black/[0.03] border border-lessonBorder rounded-sm p-2 mb-1.5">
                 {t('guidedNarrationUnavailable')}
               </p>
             )}
@@ -556,7 +571,7 @@ export default function ClassDetail() {
                 />
               </div>
             ) : (
-              <div className="text-sm text-ink/60 bg-chalk border border-line rounded-sm p-3">
+              <div className="text-sm text-lessonTextMuted bg-black/[0.03] border border-lessonBorder rounded-sm p-3">
                 <p>{t('videoUnavailable')}</p>
                 {isHttpUrl(block.content) && (
                   <a
@@ -623,7 +638,7 @@ export default function ClassDetail() {
       </div>
 
       {/* Syntax-highlighted code */}
-      <div className="overflow-x-auto bg-[#0d1117]">
+      <div className="overflow-x-auto bg-[#0d1117] scrollbar-thin-dark">
         <SyntaxHighlighter
           language={normalizeCodeLanguage(
             block.label,
@@ -674,17 +689,19 @@ export default function ClassDetail() {
         );
       case 'exercise':
         return (
-          <div key={key} className="bg-chalk border border-amber/40 rounded-sm p-3">
+          <div key={key} className="bg-black/[0.03] border border-amber/40 rounded-sm p-3">
             <p className="text-[11px] font-mono uppercase tracking-wide text-amber mb-1">
               {t('exerciseLabel')}
             </p>
-            <p className="text-sm text-ink/80 whitespace-pre-line">{block.content}</p>
+            <p className="text-[15px] sm:text-base text-lessonTextMuted leading-[1.7] whitespace-pre-line">
+              {renderFormattedText(block.content ?? '')}
+            </p>
           </div>
         );
       case 'text':
       default:
         return (
-          <p key={key} className="text-sm text-ink/80 leading-relaxed whitespace-pre-line">
+          <p key={key} className="text-[15px] sm:text-base text-lessonTextMuted leading-[1.7] whitespace-pre-line">
             {renderFormattedText(block.content ?? '')}
           </p>
         );
@@ -700,15 +717,13 @@ export default function ClassDetail() {
   // entirely when the admin hasn't added any modules.
   const renderCurriculum = (allowComments: boolean) => {
     if (!item.curriculumModules || item.curriculumModules.length === 0) return null;
-    return (
-      <div className="mt-6">
-        <p className="font-mono text-xs tracking-widest text-ink/40 uppercase">
-          {t('whatYoullLearn')}
-        </p>
-        <p className="text-sm text-ink/60 mt-1">{t('curriculumIntro')}</p>
-        <div className="mt-3 space-y-2">
-          {item.curriculumModules.map((mod, i) => {
-            const isOpen = openModules.has(mod.id);
+    // The module/topic/subtopic accordion tree itself — identical for both
+    // the pre-registration preview (allowComments=false) and the real
+    // unlocked lesson (allowComments=true). Extracted into a variable so
+    // the two call sites below can wrap the exact same markup in
+    // different containers (plain list vs. two-column reading layout)
+    // without duplicating this ~250-line map body.
+    const moduleList = item.curriculumModules.map((mod, i) => {
             const access = allowComments ? moduleAccess.find((a) => a.moduleId === mod.id) : undefined;
             // Absence of an access entry (e.g. course has no submission
             // gating configured yet) defaults to unlocked, matching prior
@@ -726,20 +741,30 @@ export default function ClassDetail() {
             const moduleProgressPercent =
               moduleSequence.length > 0 ? Math.round((moduleCompletedCount / moduleSequence.length) * 100) : null;
             const activeSubtopicId = getActiveSubtopicId(mod.id, moduleSequence);
+            // Auto-expand a Module once the student has explicitly
+            // navigated to one of its Subtopics (e.g. via the lesson nav
+            // sidebar jumping into a different Module) on top of their own
+            // manual toggle — same pattern as the Topic-level auto-expand
+            // further below. Deliberately checks the *raw* selection
+            // (activeSubtopicByModule), not getActiveSubtopicId's resolved
+            // value, since that always defaults to a real Subtopic id even
+            // when the student never chose one — checking it here would
+            // force every Module with Subtopics permanently open.
+            const isOpen = openModules.has(mod.id) || activeSubtopicByModule[mod.id] !== undefined;
             return (
-              <div key={mod.id} className="border border-line rounded-sm overflow-hidden bg-surface">
+              <div key={mod.id} className="border border-lessonBorder rounded-sm overflow-hidden bg-lessonSurface">
                 <button
                   type="button"
                   onClick={() => toggleModule(mod.id)}
                   className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
                 >
-                  <span className="text-sm font-medium text-ink flex items-center gap-2 flex-wrap">
+                  <span className="text-base sm:text-lg font-display font-semibold text-lessonText flex items-center gap-2 flex-wrap">
                     M{i + 1}: {mod.title}
                     {moduleProgressPercent !== null && (
                       <ProgressBar percent={moduleProgressPercent} completed={moduleProgressPercent === 100} />
                     )}
                     {allowComments && !isUnlocked && (
-                      <span className="badge bg-line text-ink/60 normal-case tracking-normal">
+                      <span className="badge bg-line text-lessonTextMuted normal-case tracking-normal">
                         {t('moduleLocked')}
                       </span>
                     )}
@@ -760,27 +785,27 @@ export default function ClassDetail() {
                     )}
                   </span>
                   <span
-                    className={`text-ink/50 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+                    className={`text-lessonTextMuted/80 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
                     aria-hidden="true"
                   >
                     ▾
                   </span>
                 </button>
                 {isOpen && (
-                  <div className="border-t border-line p-4 space-y-3">
+                  <div className="border-t border-lessonBorder p-4 space-y-3">
                     {mod.objective && (
                       <div>
-                        <p className="text-xs font-semibold text-ink/60">
+                        <p className="text-xs font-semibold text-lessonTextMuted">
                           {t('moduleObjectiveLabel')}
                         </p>
-                        <p className="text-sm text-ink/80 mt-0.5 leading-relaxed whitespace-pre-line">
+                        <p className="text-sm text-lessonTextMuted mt-0.5 leading-relaxed whitespace-pre-line">
                           {mod.objective}
                         </p>
                       </div>
                     )}
                     {mod.topics.length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-ink/60">{t('moduleTopicsLabel')}</p>
+                        <p className="text-xs font-semibold text-lessonTextMuted">{t('moduleTopicsLabel')}</p>
                         <div className="mt-1 space-y-1.5">
                           {mod.topics.map((topic) => {
                             // A topic "has content" either directly (the
@@ -795,14 +820,14 @@ export default function ClassDetail() {
                             const hasContent = hasDirectContent || hasSubtopicContent;
                             if (!hasContent) {
                               return (
-                                <div key={topic.id} className="text-sm text-ink/80 flex items-start gap-2">
+                                <div key={topic.id} className="text-sm text-lessonTextMuted flex items-start gap-2">
                                   <span className="text-amber mt-1 flex-shrink-0" aria-hidden="true">
                                     •
                                   </span>
                                   <div>
                                     <span>{topic.title}</span>
                                     {topic.description && (
-                                      <p className="text-xs text-ink/60 mt-0.5">{topic.description}</p>
+                                      <p className="text-xs text-lessonTextMuted mt-0.5">{topic.description}</p>
                                     )}
                                   </div>
                                 </div>
@@ -827,30 +852,30 @@ export default function ClassDetail() {
                             return (
                               <div
                                 key={topic.id}
-                                className="border border-line/70 rounded-sm overflow-hidden bg-chalk"
+                                className="border border-lessonBorder/70 rounded-sm overflow-hidden bg-black/[0.03]"
                               >
                                 <button
                                   type="button"
                                   onClick={() => toggleTopic(topic.id)}
                                   className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
                                 >
-                                  <span className="text-sm text-ink flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm sm:text-base font-medium text-lessonText flex items-center gap-2 flex-wrap">
                                     {topic.title}
                                     {topicProgressPercent !== null && (
                                       <ProgressBar percent={topicProgressPercent} completed={topicProgressPercent === 100} />
                                     )}
                                   </span>
                                   <span
-                                    className={`text-ink/50 text-xs transition-transform flex-shrink-0 ${topicOpen ? 'rotate-180' : ''}`}
+                                    className={`text-lessonTextMuted/80 text-xs transition-transform flex-shrink-0 ${topicOpen ? 'rotate-180' : ''}`}
                                     aria-hidden="true"
                                   >
                                     ▾
                                   </span>
                                 </button>
                                 {topicOpen && (
-                                  <div className="border-t border-line p-3 space-y-3">
+                                  <div className="border-t border-lessonBorder p-3 space-y-3">
                                     {topic.description && (
-                                      <p className="text-xs text-ink/60">{topic.description}</p>
+                                      <p className="text-xs text-lessonTextMuted">{topic.description}</p>
                                     )}
                                     {/* A topic's own direct content blocks — the original
                                         shape, unchanged for every existing course that never
@@ -885,15 +910,15 @@ export default function ClassDetail() {
                     )}
                     {mod.project && (
                       <div>
-                        <p className="text-xs font-semibold text-ink/60">{t('moduleProjectLabel')}</p>
-                        <p className="text-sm text-ink/80 mt-0.5 leading-relaxed whitespace-pre-line">
+                        <p className="text-xs font-semibold text-lessonTextMuted">{t('moduleProjectLabel')}</p>
+                        <p className="text-sm text-lessonTextMuted mt-0.5 leading-relaxed whitespace-pre-line">
                           {mod.project}
                         </p>
                       </div>
                     )}
 
                     {allowComments && !isUnlocked && (
-                      <p className="text-xs text-ink/50 bg-chalk border border-line rounded-sm p-3">
+                      <p className="text-xs text-lessonTextMuted/80 bg-black/[0.03] border border-lessonBorder rounded-sm p-3">
                         🔒 {t('completeToUnlock')}
                       </p>
                     )}
@@ -907,8 +932,8 @@ export default function ClassDetail() {
                             </p>
                           </div>
                         ) : (
-                          <div className="border border-line rounded-sm p-3 bg-chalk">
-                            <p className="text-xs font-mono uppercase tracking-wide text-ink/50 mb-2">
+                          <div className="border border-lessonBorder rounded-sm p-3 bg-black/[0.03]">
+                            <p className="text-xs font-mono uppercase tracking-wide text-lessonTextMuted/80 mb-2">
                               {t('submitModuleProject', { module: `M${i + 1}` })}
                             </p>
                             {submission?.status === 'changes_requested' && submission.adminFeedback && (
@@ -916,12 +941,12 @@ export default function ClassDetail() {
                                 <p className="text-[11px] font-mono uppercase tracking-wide text-coral mb-1">
                                   {t('yourFeedbackFromInstructor')}
                                 </p>
-                                <p className="text-sm text-ink/80 bg-surface border border-line rounded-sm p-2 whitespace-pre-line">
+                                <p className="text-sm text-lessonTextMuted bg-lessonSurface border border-lessonBorder rounded-sm p-2 whitespace-pre-line">
                                   {submission.adminFeedback}
                                 </p>
                               </div>
                             )}
-                            <label className="block text-xs font-medium text-ink/70 mb-1">
+                            <label className="block text-xs font-medium text-lessonTextMuted mb-1">
                               {t('githubUrlLabel')}
                             </label>
                             <input
@@ -936,9 +961,9 @@ export default function ClassDetail() {
                                   },
                                 }))
                               }
-                              className="input text-sm"
+                              className="input text-sm bg-lessonSurface border-lessonBorder text-lessonText placeholder:text-lessonTextMuted/60"
                             />
-                            <label className="block text-xs font-medium text-ink/70 mb-1 mt-2">
+                            <label className="block text-xs font-medium text-lessonTextMuted mb-1 mt-2">
                               {t('optionalNotesToInstructor')}
                             </label>
                             <textarea
@@ -952,7 +977,7 @@ export default function ClassDetail() {
                                   },
                                 }))
                               }
-                              className="input text-sm h-16"
+                              className="input text-sm h-16 bg-lessonSurface border-lessonBorder text-lessonText placeholder:text-lessonTextMuted/60"
                             />
                             {submitErrors[mod.id] && (
                               <p className="text-coral text-xs mt-1">{submitErrors[mod.id]}</p>
@@ -984,8 +1009,47 @@ export default function ClassDetail() {
                 )}
               </div>
             );
-          })}
-        </div>
+          });
+
+    return (
+      <div className="mt-6">
+        <p className="font-mono text-xs tracking-widest text-lessonTextMuted/70 uppercase">
+          {t('whatYoullLearn')}
+        </p>
+        <p className="text-sm text-lessonTextMuted mt-1">{t('curriculumIntro')}</p>
+        {allowComments ? (
+          // Real, unlocked lesson: two-column "reading paper inside a dark
+          // shell" layout at desktop widths. The -mx-48/w-[calc] pair
+          // breaks this section out from the page's max-w-3xl column to a
+          // wider (max-w-6xl-equivalent) centered box WITHOUT depending on
+          // 100vw (which would add a horizontal scrollbar to account for
+          // the browser's own scrollbar width) — the offsets are sized
+          // relative to the known 48rem parent width, so the box stays
+          // perfectly centered under it at any viewport size. Below lg,
+          // this collapses back to the plain single-column list (identical
+          // to the preview branch) and LessonNav hides itself.
+          <div className="mt-4 lg:-mx-48 lg:w-[calc(100%_+_24rem)]">
+            <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-6 lg:items-start space-y-2 lg:space-y-0">
+              <LessonNav
+                modules={item.curriculumModules}
+                moduleAccess={moduleAccess}
+                completedSubtopicIds={completedSubtopicIds}
+                openModules={openModules}
+                onToggleModule={toggleModule}
+                openTopics={openTopics}
+                onToggleTopic={toggleTopic}
+                getModuleSequence={getModuleSequence}
+                getActiveSubtopicId={getActiveSubtopicId}
+                onNavigateSubtopic={navigateSubtopic}
+              />
+              <div className="lg:bg-lessonSurface lg:border lg:border-lessonBorder lg:rounded-2xl lg:px-10 lg:py-10 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scrollbar-thin-light space-y-2">
+                <div className="lg:max-w-[880px] lg:mx-auto space-y-2">{moduleList}</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-2">{moduleList}</div>
+        )}
       </div>
     );
   };

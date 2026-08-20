@@ -8,6 +8,26 @@
   --c-line: 218 213 199; /* #DAD5C7 — borders in light mode */
   --c-surface: 255 255 255; /* #FFFFFF — card surfaces in light mode */
   color-scheme: light;
+
+  /* Lesson reader theme — deliberately its own set of variables (not a
+     second theme *system*, just additional tokens riding the same :root/
+     .dark switch as everything above) because the reading surface is NOT
+     supposed to invert with the rest of the site: it stays a comfortable
+     near-white "paper" in both light and dark mode, only the surrounding
+     shell (page background + nav rail) actually goes dark. See
+     ClassDetail's lesson layout for where these are used. */
+  --lesson-page-bg: 245 245 243; /* #F5F5F3 */
+  --lesson-surface: 255 255 255; /* #FFFFFF */
+  --lesson-text: 23 32 51; /* #172033 */
+  --lesson-text-muted: 55 65 81; /* #374151 */
+  --lesson-border: 229 231 235; /* #E5E7EB */
+  /* Nav rail — fixed dark values, identical in both themes by design. */
+  --lesson-nav-bg: 11 11 11; /* #0B0B0B */
+  --lesson-nav-text: 245 245 245; /* #F5F5F5 */
+  --lesson-nav-text-muted: 184 184 184; /* #B8B8B8 */
+  --lesson-nav-border: 42 42 42; /* #2A2A2A */
+  --lesson-nav-active-bg: 21 21 21; /* #151515 */
+  --lesson-nav-active-border: 51 51 51; /* #333333 */
 }
 
 .dark {
@@ -16,6 +36,18 @@
   --c-line: 45 51 89; /* #2D3359 — subtle borders in dark mode */
   --c-surface: 21 25 53; /* #151935 — elevated card surfaces in dark mode */
   color-scheme: dark;
+
+  --lesson-page-bg: 5 5 5; /* #050505 */
+  --lesson-surface: 250 250 248; /* #FAFAF8 */
+  --lesson-text: 23 32 51; /* #172033 — deliberately unchanged, no inversion */
+  --lesson-text-muted: 55 65 81; /* #374151 — deliberately unchanged */
+  --lesson-border: 229 231 235; /* #E5E7EB — deliberately unchanged */
+  --lesson-nav-bg: 8 8 8; /* #080808 */
+  --lesson-nav-text: 245 245 245;
+  --lesson-nav-text-muted: 184 184 184;
+  --lesson-nav-border: 42 42 42;
+  --lesson-nav-active-bg: 21 21 21;
+  --lesson-nav-active-border: 51 51 51;
 }
 
 body {
@@ -54,6 +86,54 @@ body {
   .badge {
     @apply inline-flex items-center font-mono text-[11px] tracking-wide px-2 py-1 rounded-sm;
   }
+}
+
+/* Thin, subtle, rounded scrollbars for the lesson nav rail and code
+   blocks — replaces the browser-default thick/high-contrast scrollbar
+   without hiding it entirely (still discoverable as "this scrolls").
+   Two variants since the nav rail is always dark and the reading
+   surface/code blocks need a track that reads against a lighter or
+   fixed-dark background respectively. */
+.scrollbar-thin-dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.scrollbar-thin-dark::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin-dark::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.18);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.scrollbar-thin-dark::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.32);
+}
+
+.scrollbar-thin-light {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+.scrollbar-thin-light::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin-light::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin-light::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.18);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.scrollbar-thin-light::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.32);
 }
 
 @keyframes fade-in {

@@ -185,6 +185,8 @@ const dict = {
   subtopicCompleteModule: { en: 'Complete Module', fr: 'Terminer le module', ht: 'Fini modil la' },
   subtopicCompleted: { en: 'Completed', fr: 'Terminé', ht: 'Fini' },
   subtopicSaving: { en: 'Saving…', fr: 'Enregistrement…', ht: "Ap anrejistre…" },
+  lessonNavigation: { en: 'Lesson navigation', fr: 'Navigation de la leçon', ht: 'Navigasyon leson' },
+  courseContentLabel: { en: 'Course content', fr: 'Contenu du cours', ht: 'Kontni kou a' },
   completeToUnlock: {
     en: 'Complete and get approval on the previous module to unlock this one.',
     fr: 'Terminez et faites approuver le module précédent pour débloquer celui-ci.',
