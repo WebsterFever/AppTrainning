@@ -187,6 +187,12 @@ const dict = {
   subtopicSaving: { en: 'Saving…', fr: 'Enregistrement…', ht: "Ap anrejistre…" },
   lessonNavigation: { en: 'Lesson navigation', fr: 'Navigation de la leçon', ht: 'Navigasyon leson' },
   courseContentLabel: { en: 'Course content', fr: 'Contenu du cours', ht: 'Kontni kou a' },
+  closeCourseContent: { en: 'Close course content', fr: 'Fermer le contenu du cours', ht: 'Fèmen kontni kou a' },
+  selectSubtopicHint: {
+    en: 'Select a lesson from Course Content to begin.',
+    fr: 'Sélectionnez une leçon dans le contenu du cours pour commencer.',
+    ht: 'Chwazi yon leson nan Kontni Kou a pou kòmanse.',
+  },
   completeToUnlock: {
     en: 'Complete and get approval on the previous module to unlock this one.',
     fr: 'Terminez et faites approuver le module précédent pour débloquer celui-ci.',

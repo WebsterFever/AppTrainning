@@ -60,6 +60,9 @@ export default function ClassDetail() {
   const [completedSubtopicIds, setCompletedSubtopicIds] = useState<Set<string>>(new Set());
   const [activeSubtopicByModule, setActiveSubtopicByModule] = useState<Record<string, string>>({});
   const [savingSubtopicId, setSavingSubtopicId] = useState<string | null>(null);
+  // Mobile/tablet Course Content drawer — the sidebar is `hidden lg:flex`
+  // below that breakpoint, so this is the only way to reach it there.
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const toggleVideo = (i: number) => {
     setOpenVideos((current) => {
@@ -120,6 +123,15 @@ export default function ClassDetail() {
 
   const navigateSubtopic = (moduleId: string, subtopicId: string) => {
     setActiveSubtopicByModule((current) => ({ ...current, [moduleId]: subtopicId }));
+  };
+
+  // Used by both LessonNav instances (desktop rail + mobile drawer): picking
+  // a Subtopic from Course Content should also close the drawer on
+  // mobile/tablet. Closing an already-closed drawer (the desktop case) is a
+  // harmless no-op, so one handler covers both instead of branching.
+  const navigateSubtopicFromNav = (moduleId: string, subtopicId: string) => {
+    navigateSubtopic(moduleId, subtopicId);
+    setMobileNavOpen(false);
   };
 
   // Marks the given Subtopic complete server-side, then advances to the
@@ -1029,6 +1041,55 @@ export default function ClassDetail() {
           // this collapses back to the plain single-column list (identical
           // to the preview branch) and LessonNav hides itself.
           <div className="mt-4 lg:-mx-48 lg:w-[calc(100%_+_24rem)]">
+            {/* Mobile/tablet: Course Content lives in a drawer below lg, since
+                LessonNav's own root is `hidden lg:flex`. Reuses the exact same
+                component/props as the desktop rail — just a different mount
+                point — so there is no second navigation implementation. */}
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              className="lg:hidden w-full flex items-center justify-between gap-2 px-4 py-3 mb-3 rounded-xl bg-lessonNav border border-lessonNavBorder text-lessonNavText text-sm font-medium"
+            >
+              <span>☰ {t('courseContentLabel')}</span>
+              <span className="text-lessonNavTextMuted text-xs" aria-hidden="true">▸</span>
+            </button>
+            {mobileNavOpen && (
+              <div className="lg:hidden fixed inset-0 z-50 flex">
+                <div
+                  className="absolute inset-0 bg-black/60"
+                  onClick={() => setMobileNavOpen(false)}
+                  aria-hidden="true"
+                />
+                <div className="relative ml-auto w-[85vw] max-w-xs h-full bg-lessonNav shadow-xl flex flex-col">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-lessonNavBorder flex-shrink-0">
+                    <span className="text-[11px] font-mono uppercase tracking-widest text-lessonNavTextMuted">
+                      {t('courseContentLabel')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setMobileNavOpen(false)}
+                      aria-label={t('closeCourseContent')}
+                      className="text-lessonNavText text-xl leading-none px-2 py-1 -mr-2"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <LessonNav
+                    variant="drawer"
+                    modules={item.curriculumModules}
+                    moduleAccess={moduleAccess}
+                    completedSubtopicIds={completedSubtopicIds}
+                    openModules={openModules}
+                    onToggleModule={toggleModule}
+                    openTopics={openTopics}
+                    onToggleTopic={toggleTopic}
+                    getModuleSequence={getModuleSequence}
+                    getActiveSubtopicId={getActiveSubtopicId}
+                    onNavigateSubtopic={navigateSubtopicFromNav}
+                  />
+                </div>
+              </div>
+            )}
             <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-6 lg:items-start space-y-2 lg:space-y-0">
               <LessonNav
                 modules={item.curriculumModules}
@@ -1040,7 +1101,7 @@ export default function ClassDetail() {
                 onToggleTopic={toggleTopic}
                 getModuleSequence={getModuleSequence}
                 getActiveSubtopicId={getActiveSubtopicId}
-                onNavigateSubtopic={navigateSubtopic}
+                onNavigateSubtopic={navigateSubtopicFromNav}
               />
               <div className="lg:bg-lessonSurface lg:border lg:border-lessonBorder lg:rounded-2xl lg:px-10 lg:py-10 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scrollbar-thin-light space-y-2">
                 <div className="lg:max-w-[880px] lg:mx-auto space-y-2">{moduleList}</div>

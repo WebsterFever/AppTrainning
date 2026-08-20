@@ -4,12 +4,20 @@ import { ProgressBar, SubtopicSeqEntry } from './SubtopicProgressPanel';
 
 type Module = NonNullable<ClassItem['curriculumModules']>[number];
 
-// Desktop-only sticky navigation rail for the unlocked lesson-reading
-// experience. Purely additive: every click here calls back into
-// ClassDetail's *existing* toggle/navigate handlers (the exact same ones
-// the inline accordion already uses) — this component owns no state of
-// its own and never talks to the API directly, so it can't diverge from
-// or break the existing progression/unlock/navigation behavior.
+// The Course Content navigation rail for the unlocked lesson-reading
+// experience — the sole place a student picks which Subtopic to view (the
+// main reading pane only ever shows whichever one is currently active).
+// Purely additive: every click here calls back into ClassDetail's
+// *existing* toggle/navigate handlers (the exact same ones the inline
+// accordion already uses) — this component owns no state of its own and
+// never talks to the API directly, so it can't diverge from or break the
+// existing progression/unlock/navigation behavior.
+//
+// Rendered twice by ClassDetail: once as a sticky `desktop` rail (visible
+// lg+) and once inside a `drawer` overlay for mobile/tablet (hidden below
+// lg on the desktop instance; the drawer instance is only mounted while
+// open). Both share this exact same list-rendering logic — no duplicated
+// navigation/progress code between the two.
 export default function LessonNav({
   modules,
   moduleAccess,
@@ -21,6 +29,7 @@ export default function LessonNav({
   getModuleSequence,
   getActiveSubtopicId,
   onNavigateSubtopic,
+  variant = 'desktop',
 }: {
   modules: Module[];
   moduleAccess: ModuleAccess[];
@@ -32,19 +41,26 @@ export default function LessonNav({
   getModuleSequence: (mod: Module) => SubtopicSeqEntry[];
   getActiveSubtopicId: (moduleId: string, sequence: SubtopicSeqEntry[]) => string | null;
   onNavigateSubtopic: (moduleId: string, subtopicId: string) => void;
+  variant?: 'desktop' | 'drawer';
 }) {
   const { t } = useLanguage();
 
   return (
     <nav
       aria-label={t('lessonNavigation')}
-      className="hidden lg:flex lg:flex-col bg-lessonNav border border-lessonNavBorder rounded-2xl overflow-hidden lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)]"
+      className={
+        variant === 'drawer'
+          ? 'flex flex-col h-full'
+          : 'hidden lg:flex lg:flex-col bg-lessonNav border border-lessonNavBorder rounded-2xl overflow-hidden lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)]'
+      }
     >
-      <div className="px-4 py-3 border-b border-lessonNavBorder flex-shrink-0">
-        <p className="text-[11px] font-mono uppercase tracking-widest text-lessonNavTextMuted">
-          {t('courseContentLabel')}
-        </p>
-      </div>
+      {variant === 'desktop' && (
+        <div className="px-4 py-3 border-b border-lessonNavBorder flex-shrink-0">
+          <p className="text-[11px] font-mono uppercase tracking-widest text-lessonNavTextMuted">
+            {t('courseContentLabel')}
+          </p>
+        </div>
+      )}
       <div className="overflow-y-auto scrollbar-thin-dark px-2 py-2 space-y-1">
         {modules.map((mod, mi) => {
           const access = moduleAccess.find((a) => a.moduleId === mod.id);
