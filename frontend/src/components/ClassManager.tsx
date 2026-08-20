@@ -371,7 +371,13 @@ export default function ClassManager({
         videoPdfName,
         videoResourceImageUrl,
         videoResourceImageName,
-        extraVideos: extraVideos.length ? extraVideos : undefined,
+        // Always sent as a real array (even when empty), unlike
+        // curriculumModules below — the backend only overwrites
+        // extraVideos when the field is present at all (falsy/undefined
+        // means "leave alone"), so collapsing an intentionally-emptied
+        // list to `undefined` here would silently leave deleted videos
+        // stuck in the saved class data instead of actually removing them.
+        extraVideos,
         curriculumModules: curriculumModules.length ? curriculumModules : undefined,
         isPaid,
         language: form.language || null,
@@ -613,7 +619,10 @@ export default function ClassManager({
             </label>
             <div className="space-y-3">
               {form.extraVideos.map((video, i) => (
-                <div key={i} className="flex gap-2 items-start">
+                <div key={i} className="border border-line rounded-sm p-3 space-y-1.5">
+                  <p className="text-[11px] font-mono uppercase tracking-wide text-ink/40 mb-0.5">
+                    Additional video {i + 1}
+                  </p>
                   <div className="flex-1 space-y-1.5">
                     <input
                       placeholder={`Title (e.g. "Behind the scenes")`}
@@ -752,21 +761,19 @@ export default function ClassManager({
                       </div>
                     </div>
                   </div>
-                  {form.extraVideos.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          extraVideos: form.extraVideos.filter((_, j) => j !== i),
-                        })
-                      }
-                      aria-label="Remove this video"
-                      className="btn-outline text-xs px-2.5 flex-shrink-0"
-                    >
-                      ✕
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        extraVideos: form.extraVideos.filter((_, j) => j !== i),
+                      })
+                    }
+                    aria-label={`Remove additional video ${i + 1}`}
+                    className="btn-danger-outline text-xs px-3 py-1.5"
+                  >
+                    🗑 Remove video
+                  </button>
                 </div>
               ))}
             </div>
