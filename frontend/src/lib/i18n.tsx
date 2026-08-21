@@ -193,6 +193,11 @@ const dict = {
     fr: 'Sélectionnez une leçon dans le contenu du cours pour commencer.',
     ht: 'Chwazi yon leson nan Kontni Kou a pou kòmanse.',
   },
+  selectModuleHint: {
+    en: 'Select a module from Course Content to begin.',
+    fr: 'Sélectionnez un module dans le contenu du cours pour commencer.',
+    ht: 'Chwazi yon modil nan Kontni Kou a pou kòmanse.',
+  },
   completeToUnlock: {
     en: 'Complete and get approval on the previous module to unlock this one.',
     fr: 'Terminez et faites approuver le module précédent pour débloquer celui-ci.',

@@ -60,6 +60,13 @@ export default function ClassDetail() {
   const [completedSubtopicIds, setCompletedSubtopicIds] = useState<Set<string>>(new Set());
   const [activeSubtopicByModule, setActiveSubtopicByModule] = useState<Record<string, string>>({});
   const [savingSubtopicId, setSavingSubtopicId] = useState<string | null>(null);
+  // Which Module the main reading pane currently shows — the Course
+  // Content sidebar is the only place this changes (clicking a Module
+  // header, or navigating to one of its Subtopics). Seeded to the first
+  // Module alongside `openModules` below so the lesson reader still opens
+  // straight into Module 1 by default, matching existing behavior; only
+  // ever null in the split second before that initial load resolves.
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   // Mobile/tablet Course Content drawer — the sidebar is `hidden lg:flex`
   // below that breakpoint, so this is the only way to reach it there.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -80,6 +87,9 @@ export default function ClassDetail() {
       else next.add(id);
       return next;
     });
+    // Clicking a Module header (open OR close) is also how a student picks
+    // which Module the main reading pane shows — see `selectedModuleId`.
+    setSelectedModuleId(id);
   };
 
   const toggleTopic = (id: string) => {
@@ -123,6 +133,11 @@ export default function ClassDetail() {
 
   const navigateSubtopic = (moduleId: string, subtopicId: string) => {
     setActiveSubtopicByModule((current) => ({ ...current, [moduleId]: subtopicId }));
+    // Navigating to a Subtopic always means that Subtopic's Module is the
+    // one being viewed, even if the student jumped there without first
+    // clicking the Module header itself (e.g. Previous/Next crossing into
+    // a different Module, were that ever to happen).
+    setSelectedModuleId(moduleId);
   };
 
   // Used by both LessonNav instances (desktop rail + mobile drawer): picking
@@ -220,7 +235,10 @@ export default function ClassDetail() {
         setItem(data);
         // First module expanded by default, matching a modern
         // bootcamp/university curriculum accordion.
-        if (data.curriculumModules?.[0]) setOpenModules(new Set([data.curriculumModules[0].id]));
+        if (data.curriculumModules?.[0]) {
+          setOpenModules(new Set([data.curriculumModules[0].id]));
+          setSelectedModuleId(data.curriculumModules[0].id);
+        }
         // Marks the class, and every video currently on it, as seen — if
         // the admin later adds another video, only that one shows up as
         // a new notification.
@@ -768,6 +786,14 @@ export default function ClassDetail() {
     // different containers (plain list vs. two-column reading layout)
     // without duplicating this ~250-line map body.
     const moduleList = item.curriculumModules.map((mod, i) => {
+            // Real unlocked lesson: the Course Content sidebar is the only
+            // place a Module gets picked (clicking its header, or one of its
+            // Subtopics — see toggleModule/navigateSubtopic), so the main
+            // reading pane renders at most one Module card, never the full
+            // M1..M6 list. The pre-registration marketing preview is a
+            // separate, intentional feature (the curriculum outline shown
+            // before paying/registering) and keeps listing every Module.
+            if (allowComments && mod.id !== selectedModuleId) return null;
             const access = allowComments ? moduleAccess.find((a) => a.moduleId === mod.id) : undefined;
             // Absence of an access entry (e.g. course has no submission
             // gating configured yet) defaults to unlocked, matching prior
@@ -819,48 +845,66 @@ export default function ClassDetail() {
             // (activeSubtopicByModule), not getActiveSubtopicId's resolved
             // value, since that always defaults to a real Subtopic id even
             // when the student never chose one — checking it here would
-            // force every Module with Subtopics permanently open.
-            const isOpen = openModules.has(mod.id) || activeSubtopicByModule[mod.id] !== undefined;
+            // force every Module with Subtopics permanently open. Only
+            // meaningful for the marketing preview's own accordion-of-many
+            // Modules; the real lesson reader already filtered down to a
+            // single Module above, which always shows its content.
+            const isOpen = allowComments
+              ? true
+              : openModules.has(mod.id) || activeSubtopicByModule[mod.id] !== undefined;
+            // Title + progress bar + lock/approval badges — shared between
+            // the preview's clickable toggle button and the real lesson
+            // reader's plain (non-interactive) heading below.
+            const moduleHeaderLabel = (
+              <span className="text-base sm:text-lg font-display font-semibold text-lessonText flex items-center gap-2 flex-wrap">
+                M{i + 1}: {mod.title}
+                {moduleProgressPercent !== null && (
+                  <ProgressBar percent={moduleProgressPercent} completed={moduleProgressPercent === 100} />
+                )}
+                {allowComments && !isUnlocked && (
+                  <span className="badge bg-line text-lessonTextMuted normal-case tracking-normal">
+                    {t('moduleLocked')}
+                  </span>
+                )}
+                {allowComments && isUnlocked && submission?.status === 'approved' && (
+                  <span className="badge bg-sage text-chalk normal-case tracking-normal">
+                    {t('moduleApproved')}
+                  </span>
+                )}
+                {allowComments && isUnlocked && submission?.status === 'pending' && (
+                  <span className="badge bg-amber text-midnight normal-case tracking-normal">
+                    {t('modulePending')}
+                  </span>
+                )}
+                {allowComments && isUnlocked && submission?.status === 'changes_requested' && (
+                  <span className="badge bg-coral text-chalk normal-case tracking-normal">
+                    {t('moduleNeedsChanges')}
+                  </span>
+                )}
+              </span>
+            );
             return (
               <div key={mod.id} className="border border-lessonBorder rounded-sm overflow-hidden bg-lessonSurface">
-                <button
-                  type="button"
-                  onClick={() => toggleModule(mod.id)}
-                  className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
-                >
-                  <span className="text-base sm:text-lg font-display font-semibold text-lessonText flex items-center gap-2 flex-wrap">
-                    M{i + 1}: {mod.title}
-                    {moduleProgressPercent !== null && (
-                      <ProgressBar percent={moduleProgressPercent} completed={moduleProgressPercent === 100} />
-                    )}
-                    {allowComments && !isUnlocked && (
-                      <span className="badge bg-line text-lessonTextMuted normal-case tracking-normal">
-                        {t('moduleLocked')}
-                      </span>
-                    )}
-                    {allowComments && isUnlocked && submission?.status === 'approved' && (
-                      <span className="badge bg-sage text-chalk normal-case tracking-normal">
-                        {t('moduleApproved')}
-                      </span>
-                    )}
-                    {allowComments && isUnlocked && submission?.status === 'pending' && (
-                      <span className="badge bg-amber text-midnight normal-case tracking-normal">
-                        {t('modulePending')}
-                      </span>
-                    )}
-                    {allowComments && isUnlocked && submission?.status === 'changes_requested' && (
-                      <span className="badge bg-coral text-chalk normal-case tracking-normal">
-                        {t('moduleNeedsChanges')}
-                      </span>
-                    )}
-                  </span>
-                  <span
-                    className={`text-lessonTextMuted/80 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
-                    aria-hidden="true"
+                {allowComments ? (
+                  // The Course Content sidebar is the only Module selector
+                  // now — no toggle button, no chevron, just a heading for
+                  // context (this is, after all, the one Module on screen).
+                  <div className="w-full flex items-center gap-3 px-4 py-3">{moduleHeaderLabel}</div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => toggleModule(mod.id)}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
                   >
-                    ▾
-                  </span>
-                </button>
+                    {moduleHeaderLabel}
+                    <span
+                      className={`text-lessonTextMuted/80 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+                      aria-hidden="true"
+                    >
+                      ▾
+                    </span>
+                  </button>
+                )}
                 {isOpen && (
                   <div className="border-t border-lessonBorder p-4 space-y-3">
                     {mod.objective && (
@@ -1140,7 +1184,13 @@ export default function ClassDetail() {
                 onNavigateSubtopic={navigateSubtopicFromNav}
               />
               <div className="lg:bg-lessonSurface lg:border lg:border-lessonBorder lg:rounded-2xl lg:px-10 lg:py-10 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scrollbar-thin-light space-y-2">
-                <div className="lg:max-w-[880px] lg:mx-auto space-y-2">{moduleList}</div>
+                <div className="lg:max-w-[880px] lg:mx-auto space-y-2">
+                  {item.curriculumModules?.some((m) => m.id === selectedModuleId) ? (
+                    moduleList
+                  ) : (
+                    <p className="text-sm text-lessonTextMuted italic">{t('selectModuleHint')}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
