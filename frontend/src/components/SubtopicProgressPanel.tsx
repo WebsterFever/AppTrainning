@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { ContentBlock } from '../lib/api';
 import { useLanguage } from '../lib/i18n';
 
@@ -80,6 +81,23 @@ export default function SubtopicProgressPanel({
   renderContentBlock: (block: ContentBlock, key: string) => React.ReactNode;
 }) {
   const { t } = useLanguage();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Reset scroll to the top of the newly-selected Subtopic every time the
+  // selection changes — otherwise switching Subtopics from the sidebar
+  // leaves whatever scroll position the previous one was at (e.g. landing
+  // mid-way through the new content, or on the Project/Comments section
+  // below it). `scrollIntoView` naturally does the right thing on both
+  // layouts without branching on breakpoint: on desktop the reading pane
+  // is its own `overflow-y-auto` container (see ClassDetail.tsx), so the
+  // browser scrolls *that* container and leaves the outer page alone; on
+  // mobile there's no such container, so it falls back to scrolling the
+  // window, which is exactly what's needed there since the content isn't
+  // independently scrollable. The Course Content sidebar is a separate
+  // scroll container entirely and is never touched by this.
+  useEffect(() => {
+    panelRef.current?.scrollIntoView({ block: 'start' });
+  }, [activeSubtopicId]);
 
   const activeSubtopic = subtopics.find(
     (st) => st.id === activeSubtopicId && (st.contentBlocks?.length ?? 0) > 0,
@@ -103,7 +121,7 @@ export default function SubtopicProgressPanel({
   const isCompleted = completedIds.has(activeSubtopic.id);
 
   return (
-    <div className="border border-lessonBorder rounded-sm overflow-hidden bg-lessonSurface">
+    <div ref={panelRef} className="border border-lessonBorder rounded-sm overflow-hidden bg-lessonSurface">
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-lessonBorder">
         <h3 className="text-sm sm:text-base font-semibold text-lessonText">{activeSubtopic.title}</h3>
         <ProgressBar percent={isCompleted ? 100 : 0} completed={isCompleted} />
@@ -133,7 +151,14 @@ export default function SubtopicProgressPanel({
             type="button"
             disabled={saving}
             onClick={() => onCompleteAndAdvance(activeSubtopic.id)}
-            className="btn-primary text-xs px-3 py-1.5 disabled:opacity-60"
+            // `.btn-primary` itself sets text-ink, which inverts to
+            // near-white in dark mode — on the fixed bright-amber
+            // background that's ~1.8:1 contrast, badly illegible (amber
+            // never inverts, so the text needs to stay dark too, not
+            // follow the theme). text-midnight is a fixed dark navy,
+            // already the established pattern for text on amber
+            // elsewhere in this file (see the module status badges).
+            className="btn-primary text-midnight text-xs px-3 py-1.5 disabled:opacity-60"
           >
             {saving ? t('subtopicSaving') : nextLabel} →
           </button>

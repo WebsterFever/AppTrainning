@@ -32,6 +32,20 @@ export default function VideoComments({
   // pane's light surface (~2:1) — a darker, still-clearly-amber/orange
   // shade keeps the instructor-reply branding while staying legible there.
   const replyNameClass = isReading ? 'text-[#B45309]' : 'text-amber';
+  // The submit button was `.btn-outline` everywhere — border + text-ink
+  // with no fill. On the outer page that's fine (text-ink inverts along
+  // with the page's own dark background in dark mode), but on the reading
+  // pane's fixed light "paper" surface (surface="reading") the same
+  // near-white dark-mode text renders almost invisible against a card
+  // that never goes dark. A solid amber fill sidesteps that — but text
+  // must be a *fixed* dark color (text-midnight), not text-ink: amber
+  // itself never inverts with the theme, so near-white dark-mode text-ink
+  // on it is actually worse (~1.8:1) than the original bug. text-midnight
+  // is the same fixed-dark-on-amber pattern already used for the module
+  // status badges and the Next/Complete button elsewhere in this app.
+  const submitButtonClass = isReading
+    ? 'btn bg-amber text-midnight hover:bg-amber/90 disabled:opacity-60 disabled:cursor-not-allowed text-xs px-4 py-2'
+    : 'btn-outline text-xs';
   const [comments, setComments] = useState<VideoComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState(identity?.name ?? '');
@@ -127,7 +141,7 @@ export default function VideoComments({
           className="input text-sm h-16"
         />
         {status === 'error' && <p className="text-coral text-xs">{error}</p>}
-        <button type="submit" disabled={status === 'loading'} className="btn-outline text-xs">
+        <button type="submit" disabled={status === 'loading'} className={submitButtonClass}>
           {status === 'loading' ? t('posting') : t('postComment')}
         </button>
       </form>
