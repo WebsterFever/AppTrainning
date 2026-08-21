@@ -142,14 +142,26 @@ export default function LessonNav({
                                   aria-current={isActive ? 'true' : undefined}
                                   className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-[12px] leading-snug transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber/70 ${
                                     isActive
-                                      ? 'bg-lessonNavActive border border-lessonNavActiveBorder text-lessonNavText'
-                                      : 'border border-transparent text-lessonNavTextMuted hover:bg-white/5 hover:text-lessonNavText'
+                                      ? 'bg-lessonNavActive border border-lessonNavActiveBorder'
+                                      : 'border border-transparent hover:bg-white/5'
                                   }`}
                                 >
                                   <span className="flex-shrink-0" aria-hidden="true">
                                     {isCompleted ? '✓' : '○'}
                                   </span>
-                                  <span className="truncate flex-1">{st.title}</span>
+                                  {/* Subtopic names only (never Module/Topic
+                                      names) — red-400 rather than the site's
+                                      red-600 "coral" tone since this sidebar
+                                      is a fixed-dark surface in both themes
+                                      (see index.css); a lighter red keeps
+                                      strong contrast there instead of going
+                                      muddy against a near-black background.
+                                      The selected state still comes from the
+                                      background/border above, not a second
+                                      red shade, so it stays a clear but
+                                      distinct step up from the unselected
+                                      (already-red) rows. */}
+                                  <span className="truncate flex-1 font-semibold text-red-400">{st.title}</span>
                                 </button>
                               );
                             })}
