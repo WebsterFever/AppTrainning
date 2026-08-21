@@ -394,13 +394,18 @@ export default function ClassDetail() {
     );
   };
 
-  // Matches either a Markdown link `[label](https://...)` or a bare http(s)
-  // URL, combined into one alternation so a single left-to-right scan
-  // handles both — the bare-URL half never gets a second chance to
-  // re-match the URL already consumed inside a Markdown link's
-  // parentheses, since the Markdown-link alternative starts matching
-  // earlier (at the `[`) and consumes the whole span first.
-  const INLINE_LINK_PATTERN = /(\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s]+)/g;
+  // Matches a Markdown link `[label](https://...)`, a bare http(s) URL, or
+  // an inline `code` span, combined into one alternation so a single
+  // left-to-right scan handles all three — e.g. the bare-URL branch never
+  // gets a second chance to re-match a URL already consumed inside a
+  // Markdown link's parentheses, since that alternative starts matching
+  // earlier (at the `[`) and consumes the whole span first. The code-span
+  // branch here is what makes `` `code` `` work *inside* `**bold**` text
+  // too (see the boldMatch branch below, which routes through this same
+  // function) — at the top level it's a harmless no-op, since FORMATTING_
+  // PATTERN below already splits code spans out before a plain segment
+  // ever reaches this pattern.
+  const INLINE_SPAN_PATTERN = /(\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s]+|`[^`]+`)/g;
   // Sentence punctuation that's almost never actually part of a URL when it
   // trails one ("Visit https://openai.com." — the period belongs to the
   // sentence, not the link). Deliberately excludes closing brackets/parens
@@ -415,6 +420,14 @@ export default function ClassDetail() {
   // stay fixed for unrelated reasons) with an underline only on hover so
   // running text doesn't look cluttered.
   const LINK_CLASS = 'text-blue-600 dark:text-blue-400 hover:underline underline-offset-2 cursor-pointer';
+  // Small "badge" look for inline `code` spans, distinct from the large
+  // fenced code blocks (case 'code' below, untouched). Red/pink text is a
+  // deliberately fixed color (not lessonText/lessonTextMuted) since it
+  // needs to read as "code", not as body text. No dark: variant: this only
+  // ever renders on the reading pane's fixed light "paper" surface (see
+  // index.css), which never turns dark, so a light-mode-only palette is
+  // correct here — the same reasoning as every other reading-pane color.
+  const CODE_CHIP_CLASS = 'rounded-md bg-black/[0.06] border border-black/10 px-1.5 py-0.5 font-mono text-[0.85em] text-rose-700';
 
   // **double asterisks** for bold, `single backticks` for inline code —
   // the two Markdown spans admins are asked to use. Matched together so
@@ -433,10 +446,20 @@ export default function ClassDetail() {
   // `keyPrefix` keeps React keys unique when this runs once per
   // bold/non-bold segment instead of once per whole block.
   const linkifyUrls = (text: string, keyPrefix: string): React.ReactNode[] => {
-    const segments = text.split(INLINE_LINK_PATTERN);
+    const segments = text.split(INLINE_SPAN_PATTERN);
     const nodes: React.ReactNode[] = [];
     segments.forEach((segment, i) => {
       if (!segment) return;
+
+      const codeMatch = segment.match(/^`([^`]+)`$/);
+      if (codeMatch) {
+        nodes.push(
+          <code key={`${keyPrefix}-code-${i}`} className={CODE_CHIP_CLASS}>
+            {codeMatch[1]}
+          </code>,
+        );
+        return;
+      }
 
       const mdLinkMatch = segment.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
       if (mdLinkMatch) {
@@ -499,10 +522,7 @@ export default function ClassDetail() {
       const codeMatch = segment.match(/^`([^`]+)`$/);
       if (codeMatch) {
         nodes.push(
-          <code
-            key={`code-${i}`}
-            className="rounded-md bg-black/[0.06] border border-black/10 px-1.5 py-0.5 font-mono text-[0.85em] text-lessonText"
-          >
+          <code key={`code-${i}`} className={CODE_CHIP_CLASS}>
             {codeMatch[1]}
           </code>,
         );
