@@ -785,6 +785,32 @@ export default function ClassDetail() {
             const moduleProgressPercent =
               moduleSequence.length > 0 ? Math.round((moduleCompletedCount / moduleSequence.length) * 100) : null;
             const activeSubtopicId = getActiveSubtopicId(mod.id, moduleSequence);
+            // The single Topic to actually render in the main reading pane.
+            // The Course Content sidebar (LessonNav) is the only place a
+            // student picks a Topic/Subtopic — so unlike the old behavior,
+            // this main pane must never list every Topic's title/accordion
+            // alongside it (that was duplicate navigation). A Topic with
+            // Subtopics is "active" once it contains the Module's active
+            // Subtopic (mirrors LessonNav's own auto-expand rule); a Topic
+            // with only direct content blocks (the original, subtopic-less
+            // shape) has no per-Subtopic selection to key off, so it falls
+            // back to the student's own manual expand/collapse click.
+            // Falling back to the first Topic with any content at all keeps
+            // a Module from rendering completely blank the first time it's
+            // opened, before any explicit selection exists.
+            const hasTopicContent = (topic: (typeof mod.topics)[number]) =>
+              (topic.contentBlocks?.length ?? 0) > 0 ||
+              (topic.subtopics ?? []).some((st) => (st.contentBlocks?.length ?? 0) > 0);
+            const activeTopic =
+              mod.topics.find((topic) => {
+                const topicSubtopics = (topic.subtopics ?? []).filter(
+                  (st) => (st.contentBlocks?.length ?? 0) > 0,
+                );
+                if (topicSubtopics.length > 0) {
+                  return topicSubtopics.some((st) => st.id === activeSubtopicId);
+                }
+                return (topic.contentBlocks?.length ?? 0) > 0 && openTopics.has(topic.id);
+              }) ?? mod.topics.find(hasTopicContent);
             // Auto-expand a Module once the student has explicitly
             // navigated to one of its Subtopics (e.g. via the lesson nav
             // sidebar jumping into a different Module) on top of their own
@@ -847,111 +873,89 @@ export default function ClassDetail() {
                         </p>
                       </div>
                     )}
-                    {mod.topics.length > 0 && (
+                    {/* Pre-registration marketing preview: Topics never have
+                        real content here (stripped server-side), so there's
+                        no "active Topic" to single out — this is the one
+                        place the full Topic list is still meant to appear,
+                        as the curriculum outline prospective students see
+                        before paying/registering. Left exactly as before. */}
+                    {!allowComments && mod.topics.length > 0 && (
                       <div>
                         <p className="text-xs font-semibold text-lessonTextMuted">{t('moduleTopicsLabel')}</p>
                         <div className="mt-1 space-y-1.5">
-                          {mod.topics.map((topic) => {
-                            // A topic "has content" either directly (the
-                            // original, still fully supported shape) or one
-                            // level deeper via subtopics — either is enough
-                            // to make it collapsible/expandable rather than
-                            // a plain outline bullet.
-                            const hasDirectContent = (topic.contentBlocks?.length ?? 0) > 0;
-                            const hasSubtopicContent = (topic.subtopics ?? []).some(
-                              (st) => (st.contentBlocks?.length ?? 0) > 0,
-                            );
-                            const hasContent = hasDirectContent || hasSubtopicContent;
-                            if (!hasContent) {
-                              return (
-                                <div key={topic.id} className="text-sm text-lessonTextMuted flex items-start gap-2">
-                                  <span className="text-amber mt-1 flex-shrink-0" aria-hidden="true">
-                                    •
-                                  </span>
-                                  <div>
-                                    <span>{topic.title}</span>
-                                    {topic.description && (
-                                      <p className="text-xs text-lessonTextMuted mt-0.5">{topic.description}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            }
-                            const topicSubtopics = (topic.subtopics ?? []).filter(
-                              (st) => (st.contentBlocks?.length ?? 0) > 0,
-                            );
-                            const topicCompletedCount = topicSubtopics.filter((st) =>
-                              completedSubtopicIds.has(st.id),
-                            ).length;
-                            const topicProgressPercent =
-                              topicSubtopics.length > 0
-                                ? Math.round((topicCompletedCount / topicSubtopics.length) * 100)
-                                : null;
-                            // Auto-expand a Topic that contains the Module's
-                            // currently-active Subtopic (e.g. right after Next
-                            // crosses over from the previous Topic), on top of
-                            // the student's own manual toggle.
-                            const containsActive = topicSubtopics.some((st) => st.id === activeSubtopicId);
-                            const topicOpen = openTopics.has(topic.id) || containsActive;
-                            return (
-                              <div
-                                key={topic.id}
-                                className="border border-lessonBorder/70 rounded-sm overflow-hidden bg-black/[0.03]"
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => toggleTopic(topic.id)}
-                                  className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
-                                >
-                                  <span className="text-sm sm:text-base font-medium text-lessonText flex items-center gap-2 flex-wrap">
-                                    {topic.title}
-                                    {topicProgressPercent !== null && (
-                                      <ProgressBar percent={topicProgressPercent} completed={topicProgressPercent === 100} />
-                                    )}
-                                  </span>
-                                  <span
-                                    className={`text-lessonTextMuted/80 text-xs transition-transform flex-shrink-0 ${topicOpen ? 'rotate-180' : ''}`}
-                                    aria-hidden="true"
-                                  >
-                                    ▾
-                                  </span>
-                                </button>
-                                {topicOpen && (
-                                  <div className="border-t border-lessonBorder p-3 space-y-3">
-                                    {topic.description && (
-                                      <p className="text-xs text-lessonTextMuted">{topic.description}</p>
-                                    )}
-                                    {/* A topic's own direct content blocks — the original
-                                        shape, unchanged for every existing course that never
-                                        used subtopics. */}
-                                    {topic.contentBlocks?.map((block, bi) =>
-                                      renderContentBlock(block, `${topic.id}-${bi}`),
-                                    )}
-                                    {/* Subtopics — one nested level deeper, each with its own
-                                        progress bar, rendered via the shared sequential
-                                        viewer (outline + active content + Previous/Next). */}
-                                    {topicSubtopics.length > 0 && (
-                                      <SubtopicProgressPanel
-                                        subtopics={topicSubtopics}
-                                        moduleSequence={moduleSequence}
-                                        activeSubtopicId={activeSubtopicId}
-                                        completedIds={completedSubtopicIds}
-                                        saving={savingSubtopicId !== null}
-                                        onNavigate={(subtopicId) => navigateSubtopic(mod.id, subtopicId)}
-                                        onCompleteAndAdvance={(subtopicId) =>
-                                          completeAndAdvanceSubtopic(mod.id, moduleSequence, subtopicId)
-                                        }
-                                        renderContentBlock={renderContentBlock}
-                                      />
-                                    )}
-                                  </div>
+                          {mod.topics.map((topic) => (
+                            <div key={topic.id} className="text-sm text-lessonTextMuted flex items-start gap-2">
+                              <span className="text-amber mt-1 flex-shrink-0" aria-hidden="true">
+                                •
+                              </span>
+                              <div>
+                                <span>{topic.title}</span>
+                                {topic.description && (
+                                  <p className="text-xs text-lessonTextMuted mt-0.5">{topic.description}</p>
                                 )}
                               </div>
-                            );
-                          })}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
+                    {allowComments && activeTopic &&
+                      (() => {
+                        const topicSubtopics = (activeTopic.subtopics ?? []).filter(
+                          (st) => (st.contentBlocks?.length ?? 0) > 0,
+                        );
+                        const topicCompletedCount = topicSubtopics.filter((st) =>
+                          completedSubtopicIds.has(st.id),
+                        ).length;
+                        const topicProgressPercent =
+                          topicSubtopics.length > 0
+                            ? Math.round((topicCompletedCount / topicSubtopics.length) * 100)
+                            : null;
+                        // No toggle button, no sibling Topic titles — the
+                        // Course Content sidebar is the only place a Topic
+                        // gets picked, so this is just a plain heading for
+                        // context, not a second piece of navigation.
+                        return (
+                          <div className="border border-lessonBorder/70 rounded-sm overflow-hidden bg-black/[0.03]">
+                            <div className="flex items-center justify-between gap-2 px-3 py-2">
+                              <span className="text-sm sm:text-base font-medium text-lessonText flex items-center gap-2 flex-wrap">
+                                {activeTopic.title}
+                                {topicProgressPercent !== null && (
+                                  <ProgressBar percent={topicProgressPercent} completed={topicProgressPercent === 100} />
+                                )}
+                              </span>
+                            </div>
+                            <div className="border-t border-lessonBorder p-3 space-y-3">
+                              {activeTopic.description && (
+                                <p className="text-xs text-lessonTextMuted">{activeTopic.description}</p>
+                              )}
+                              {/* A topic's own direct content blocks — the original
+                                  shape, unchanged for every existing course that never
+                                  used subtopics. */}
+                              {activeTopic.contentBlocks?.map((block, bi) =>
+                                renderContentBlock(block, `${activeTopic.id}-${bi}`),
+                              )}
+                              {/* Subtopics — one nested level deeper, rendered via the
+                                  shared sequential viewer, which itself already shows
+                                  only the one active Subtopic (never its siblings). */}
+                              {topicSubtopics.length > 0 && (
+                                <SubtopicProgressPanel
+                                  subtopics={topicSubtopics}
+                                  moduleSequence={moduleSequence}
+                                  activeSubtopicId={activeSubtopicId}
+                                  completedIds={completedSubtopicIds}
+                                  saving={savingSubtopicId !== null}
+                                  onNavigate={(subtopicId) => navigateSubtopic(mod.id, subtopicId)}
+                                  onCompleteAndAdvance={(subtopicId) =>
+                                    completeAndAdvanceSubtopic(mod.id, moduleSequence, subtopicId)
+                                  }
+                                  renderContentBlock={renderContentBlock}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     {mod.project && (
                       <div>
                         <p className="text-xs font-semibold text-lessonTextMuted">{t('moduleProjectLabel')}</p>
@@ -1047,7 +1051,7 @@ export default function ClassDetail() {
                     )}
 
                     {allowComments && isUnlocked && (
-                      <VideoComments classId={item.id} videoRef={`module-${mod.id}`} />
+                      <VideoComments classId={item.id} videoRef={`module-${mod.id}`} surface="reading" />
                     )}
                   </div>
                 )}
