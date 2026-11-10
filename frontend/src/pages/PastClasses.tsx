@@ -16,13 +16,28 @@ export default function PastClasses() {
     let active = true;
     setLoading(true);
     setError(false);
-    api.listClasses('past', language)
-      .then((items) => {
-        if (active) setClasses(items.filter((item) => item.isPast && item.language === language));
-      })
-      .catch(() => { if (active) setError(true); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+    const refresh = async () => {
+      try {
+        const items = await api.listClasses('past', language);
+        if (active) {
+          setClasses(items.filter((item) => item.isPast && item.language === language));
+          setError(false);
+        }
+      } catch {
+        if (active) setError(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void refresh();
+    const interval = window.setInterval(refresh, 5000);
+    const onFocus = () => { void refresh(); };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [language]);
 
   return (
