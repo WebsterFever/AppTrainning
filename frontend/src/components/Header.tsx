@@ -58,7 +58,7 @@ export default function Header() {
               lg:h-16
               lg:max-w-none
               origin-left
-              scale-[1.2]
+              scale-[1.65]
               sm:scale-[1.35]
               lg:scale-[1.9]
               dark:hidden
