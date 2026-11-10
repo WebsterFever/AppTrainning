@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Pressable, RefreshControl, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, AppState, Image, Linking, Pressable, RefreshControl, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { api, Course, Language, Message, webUrl } from './src/api';
 
 type Page = 'home' | 'detail' | 'chat';
@@ -33,6 +33,13 @@ export default function App() {
     finally { if (!quiet) setLoading(false); }
   }, [status, language]);
   useEffect(() => { void loadCourses(); }, [loadCourses]);
+  // Refresh after returning from the background so admin changes appear without a manual reload.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', next => {
+      if (next === 'active') void loadCourses(true);
+    });
+    return () => subscription.remove();
+  }, [loadCourses]);
   useEffect(() => {
     const interval = setInterval(() => { if (page === 'home') void loadCourses(true); }, 10000);
     return () => clearInterval(interval);
@@ -43,11 +50,12 @@ export default function App() {
     try { setSelected(await api.course(course.id)); } catch { /* list preview remains available */ }
   };
   const register = async () => {
-    if (!selected || !name.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) { Alert.alert('Please enter a valid name and email'); return; }
+    if (!selected) return;
     if (selected.isPaid) {
       await Linking.openURL(webUrl + '/classes/' + encodeURIComponent(selected.id));
       return;
     }
+    if (!name.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) { Alert.alert('Please enter a valid name and email'); return; }
     try {
       const result = await api.register(selected.id, name.trim(), email.trim());
       Alert.alert(result.alreadyRegistered ? 'Already registered' : 'Registration successful');
@@ -90,8 +98,8 @@ export default function App() {
       <Text style={styles.title}>{selected.title}</Text>
       <Text style={styles.body}>{selected.description}</Text>
       {selected.classDate && <Text style={styles.gold}>{new Date(selected.classDate).toLocaleString()}</Text>}
-      <TextInput placeholder={t.name} placeholderTextColor={colors.muted} value={name} onChangeText={setName} style={styles.input} />
-      <TextInput placeholder={t.email} placeholderTextColor={colors.muted} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" style={styles.input} />
+      {!selected.isPaid && <><TextInput placeholder={t.name} placeholderTextColor={colors.muted} value={name} onChangeText={setName} style={styles.input} />
+      <TextInput placeholder={t.email} placeholderTextColor={colors.muted} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" style={styles.input} /></>}
       <Button title={selected.isPaid ? t.paid : t.register} onPress={() => void register()} />
       {selected.isPaid && <Text style={styles.muted}>Paid enrollment is completed securely on the existing website.</Text>}
     </ScrollView>}
