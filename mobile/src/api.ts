@@ -5,7 +5,7 @@ export type Course = {
   priceCents?: number; registrationCount: number; curriculumModules?: unknown[];
 };
 export type Message = { id: string; sender: 'student' | 'admin'; name: string; text: string; createdAt: string };
-const base = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '');
+const base = (process.env.EXPO_PUBLIC_API_URL || 'https://apptrainning-production.up.railway.app').replace(/\/$/, '');
 export const webUrl = process.env.EXPO_PUBLIC_WEB_URL || 'https://webstertechnologyschool.com';
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!base || !/^https:\/\//.test(base)) throw new Error('Set EXPO_PUBLIC_API_URL to your existing HTTPS backend URL in mobile/.env');
