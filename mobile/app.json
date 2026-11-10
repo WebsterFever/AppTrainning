@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Webster Technology School",
+    "slug": "webster-technology-school",
+    "scheme": "websterschool",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "com.webstertechnologyschool.mobile",
+      "versionCode": 1,
+      "permissions": []
+    },
+    "plugins": [],
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
