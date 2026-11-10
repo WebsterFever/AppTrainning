@@ -57,6 +57,10 @@ export default function Header() {
               md:max-w-[200px]
               lg:h-16
               lg:max-w-none
+              origin-left
+              scale-[1.2]
+              sm:scale-[1.35]
+              lg:scale-[1.9]
               dark:hidden
             "
           />
