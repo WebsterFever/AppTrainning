@@ -1249,7 +1249,7 @@ export default function ClassDetail() {
       <img
         src={item.imageUrl}
         alt={item.title}
-        className="w-full h-56 sm:h-72 object-cover rounded-sm border border-line mt-4"
+        className="block w-full h-auto object-contain rounded-sm border border-line mt-4 bg-chalk"
       />
     );
   };
