@@ -289,6 +289,33 @@ export default function Home() {
     fetchClasses();
   }, [fetchClasses]);
 
+  // Keep public course lists current when the teacher changes a class status.
+  // Poll quietly: no loading spinner or page refresh for students.
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const [upcomingClasses, pastClasses] = await Promise.all([
+          api.listClasses('upcoming', language),
+          api.listClasses('past', language),
+        ]);
+        if (!active) return;
+        setUpcoming(upcomingClasses);
+        setPast(pastClasses);
+      } catch (error) {
+        console.error('Unable to refresh class status', error);
+      }
+    };
+    const interval = window.setInterval(refresh, 5000);
+    const onFocus = () => { void refresh(); };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [language]);
+
   const renderLoadingState = () => (
     <div>
       <p className="mb-4 font-mono text-xs uppercase tracking-widest text-ink/40">
