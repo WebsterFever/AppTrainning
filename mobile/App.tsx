@@ -19,6 +19,7 @@ export default function App() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [homeCourses, setHomeCourses] = useState<Course[]>([]);
   const [homePast, setHomePast] = useState<Course[]>([]);
+  const [slide, setSlide] = useState(0);
   const [selected, setSelected] = useState<Course | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -100,9 +101,9 @@ export default function App() {
           <Text style={styles.heroSubtitle}>Patisipe nan kou pratik an dirèk nan entèlijans atifisyèl ak teknoloji modèn.</Text>
           <View style={styles.chips}><Text style={styles.chip}>Kou an dirèk sou Zoom</Text><Text style={styles.chip}>Pwojè pratik</Text><Text style={styles.chip}>Konpetans pwofesyonèl</Text></View>
           <View style={{ alignSelf: 'flex-start', marginTop: 32 }}><Button title="Dekouvri kou k ap vini yo  →" onPress={() => {setStatus('upcoming');setShowCourses(true);}} /></View>
-          <View style={styles.welcome}><Text style={styles.gold}>● BYENVENI                         01 / 10</Text><Text style={[styles.gold, { marginTop: 24, letterSpacing: 2 }]}>APRANN. BATI. GRANDI.</Text><Text style={styles.title}>Webster Technology School</Text><Text style={styles.heroSubtitle}>Aprann konpetans teknolojik pratik atravè kou an dirèk, entèraktif e ki fokis sou karyè.</Text></View>
+          <View style={styles.welcome}><Text style={styles.gold}>● BYENVENI                         {String(slide + 1).padStart(2, '0')} / 10</Text><Text style={[styles.gold, { marginTop: 24, letterSpacing: 2 }]}>APRANN. BATI. GRANDI.</Text><Text style={styles.title}>{['Webster Technology School','Kòmanse Vwayaj Teknolojik Ou','Kou an dirèk sou Zoom','Pwojè pratik','Entèlijans Atifisyèl','Aprann avèk pwofesè','Konpetans pwofesyonèl','Aprann nan lang ou','Bati avni ou','Dekouvri kou nou yo'][slide]}</Text><Text style={styles.heroSubtitle}>Aprann konpetans teknolojik pratik atravè kou an dirèk, entèraktif e ki fokis sou karyè.</Text><View style={{flexDirection:'row',gap:12,marginTop:20}}><Button title="←" secondary onPress={()=>setSlide((slide+9)%10)}/><Button title="→" secondary onPress={()=>setSlide((slide+1)%10)}/></View></View>
         </View>
-        <View style={styles.homeSection}>
+        <View style={styles.homeSection}><View style={styles.card}><Text style={styles.gold}>KONKOU CHAK MWA · GENYEN 100 $</Text><Text style={styles.title}>Gayan mwa a</Text><Text style={styles.body}>Reponn kesyon chak jou a, ranmase pwen, epi monte nan klasman an. Patisipan ki gen plis pwen nan fen chak mwa genyen 100 $.</Text><Text style={styles.muted}>Rezilta konkou yo dwe sòti nan done reyèl yo.</Text></View>
           <Text style={styles.title}>{t.upcoming}</Text>
           <View style={styles.statsRow}>
             <Text style={styles.stat}>{homeCourses.length}  {t.upcoming}</Text>
