@@ -67,10 +67,12 @@ export default function ClassCard({
       <div
         className={`
           relative
-          min-h-[240px]
+          flex
+          items-center
+          justify-center
           overflow-hidden
-          sm:min-h-[300px]
-          md:min-h-full
+          bg-chalk
+          md:h-full
           ${reverse ? 'md:order-2' : 'md:order-1'}
         `}
       >
@@ -78,19 +80,15 @@ export default function ClassCard({
           src={item.imageUrl}
           alt={item.title}
           className="
-            absolute
-            inset-0
-            h-full
+            block
+            h-auto
             w-full
-            object-cover
-            transition-transform
-            duration-500
-            group-hover:scale-105
+            object-contain
           "
           loading="lazy"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/30 via-transparent to-transparent" />
+
 
         {/* DATE */}
         {dateParts && (
