@@ -52,3 +52,8 @@ Visit `http://localhost:5173`. Sign in at `/admin` with the email + password you
 - **Rate limiting:** basic throttling is on (`ThrottlerModule`), worth tightening for the public register endpoint specifically before going live.
 - **Migrations:** `synchronize: true` is convenient for development; switch to TypeORM migrations before deploying with real data.
 - **Admin accounts:** only the seed script creates admins — there's no in-app "add admin" UI. Rerun `npm run seed:admin` with different `ADMIN_EMAIL`/`ADMIN_PASSWORD` values to add more.
+
+## Course module lock badge visibility
+
+- Locked modules display a high-contrast **🔒 Fèmen** badge with a light gray background and dark text in both light and dark mode.
+- The badge is shared across free and paid class lesson views; this is a visual fix only and does not modify registration, payments, or module access rules.
