@@ -9,8 +9,8 @@ const copy = {
   en: { upcoming: 'Upcoming classes', past: 'Past classes', chat: 'Chat with us', register: 'Register', name: 'Your name', email: 'Your email', send: 'Send', back: 'Back', paid: 'Register on website', empty: 'No classes yet.', details: 'Course details', loading: 'Loading...' },
   fr: { upcoming: 'Cours à venir', past: 'Cours passés', chat: 'Discuter avec nous', register: "S'inscrire", name: 'Votre nom', email: 'Votre e-mail', send: 'Envoyer', back: 'Retour', paid: "S'inscrire sur le site", empty: 'Aucun cours.', details: 'Détails du cours', loading: 'Chargement...' },
 };
-function Button({ title, onPress, secondary = false }: { title: string; onPress: () => void; secondary?: boolean }) {
-  return <Pressable onPress={onPress} style={[styles.button, secondary && styles.secondary]}><Text style={[styles.buttonText, secondary && { color: colors.white }]}>{title}</Text></Pressable>;
+function Button({ title, onPress, secondary = false, light = false }: { title: string; onPress: () => void; secondary?: boolean; light?: boolean }) {
+  return <Pressable onPress={onPress} style={[styles.button, secondary && styles.secondary, light && { backgroundColor: secondary ? '#ffffff' : '#eda634', borderColor: '#c9d1e5' }]}><Text style={[styles.buttonText, secondary && { color: light ? '#18213b' : colors.white }]}>{title}</Text></Pressable>;
 }
 export default function App() {
   const [language, setLanguage] = useState<Language>('ht');
@@ -123,17 +123,17 @@ export default function App() {
       <Pressable accessibilityLabel="Open menu" onPress={() => setMenuOpen(!menuOpen)} style={themedStyles.headerAction}><Text style={themedStyles.small}>{menuOpen?'✕':'☰'}</Text></Pressable>
     </View>
     {languageOpen && <View style={themedStyles.languageMenu}>{(['en','fr','ht'] as Language[]).map(l=><Pressable key={l} onPress={()=>{setLanguage(l);setLanguageOpen(false);}} style={themedStyles.languageOption}><Text style={themedStyles.small}>{l==='ht'?'Kreyòl':l==='en'?'English':'Français'}</Text></Pressable>)}</View>}
-    {menuOpen && <View style={themedStyles.nav}><Button title={t.upcoming} secondary onPress={() => {setStatus('upcoming');setShowCourses(true);setPage('home');setMenuOpen(false);}} /><Button title={t.past} secondary onPress={() => {setStatus('past');setShowCourses(true);setPage('home');setMenuOpen(false);}} /><Button title="Rezève yon kou" secondary onPress={()=>{setMenuOpen(false);void Linking.openURL(webUrl+'/book');}} /></View>}
-    {page !== 'home' && <View style={themedStyles.back}><Button title={'← ' + t.back} secondary onPress={() => setPage('home')} /></View>}
+    {menuOpen && <View style={themedStyles.nav}><Button light={lightMode} title={t.upcoming} secondary onPress={() => {setStatus('upcoming');setShowCourses(true);setPage('home');setMenuOpen(false);}} /><Button light={lightMode} title={t.past} secondary onPress={() => {setStatus('past');setShowCourses(true);setPage('home');setMenuOpen(false);}} /><Button light={lightMode} title="Rezève yon kou" secondary onPress={()=>{setMenuOpen(false);void Linking.openURL(webUrl+'/book');}} /></View>}
+    {page !== 'home' && <View style={themedStyles.back}><Button light={lightMode} title={'← ' + t.back} secondary onPress={() => setPage('home')} /></View>}
     {page === 'home' && <>
       {!showCourses && <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 100 }}>
         <View style={themedStyles.hero}>
           <Text style={themedStyles.heroBadge}>🟢  FÒMASYON TEKNOLOJIK AN DIRÈK</Text>
-          <Text style={themedStyles.heroTitle}>Devlope konpetans <Text style={{ color: colors.gold }}>teknolojik demen an.</Text></Text>
+          <Text style={themedStyles.heroTitle}>Devlope konpetans <Text style={{ color: lightMode ? '#a66b00' : colors.gold }}>teknolojik demen an.</Text></Text>
           <Text style={themedStyles.heroSubtitle}>Patisipe nan kou pratik an dirèk nan entèlijans atifisyèl ak teknoloji modèn.</Text>
           <View style={themedStyles.chips}><Text style={themedStyles.chip}>Kou an dirèk sou Zoom</Text><Text style={themedStyles.chip}>Pwojè pratik</Text><Text style={themedStyles.chip}>Konpetans pwofesyonèl</Text></View>
-          <View style={{ alignSelf: 'flex-start', marginTop: 32 }}><Button title="Dekouvri kou k ap vini yo  →" onPress={() => {setStatus('upcoming');setShowCourses(true);}} /></View>
-          <View style={themedStyles.welcome}><Text style={themedStyles.gold}>● BYENVENI                         {String(slide + 1).padStart(2, '0')} / 10</Text><Text style={[themedStyles.gold, { marginTop: 24, letterSpacing: 2 }]}>APRANN. BATI. GRANDI.</Text><Text style={themedStyles.title}>{['Webster Technology School','Kòmanse Vwayaj Teknolojik Ou','Kou an dirèk sou Zoom','Pwojè pratik','Entèlijans Atifisyèl','Aprann avèk pwofesè','Konpetans pwofesyonèl','Aprann nan lang ou','Bati avni ou','Dekouvri kou nou yo'][slide]}</Text><Text style={themedStyles.heroSubtitle}>Aprann konpetans teknolojik pratik atravè kou an dirèk, entèraktif e ki fokis sou karyè.</Text><View style={{flexDirection:'row',gap:12,marginTop:20}}><Button title="←" secondary onPress={()=>setSlide((slide+9)%10)}/><Button title="→" secondary onPress={()=>setSlide((slide+1)%10)}/></View></View>
+          <View style={{ alignSelf: 'flex-start', marginTop: 32 }}><Button light={lightMode} title="Dekouvri kou k ap vini yo  →" onPress={() => {setStatus('upcoming');setShowCourses(true);}} /></View>
+          <View style={themedStyles.welcome}><Text style={themedStyles.gold}>● BYENVENI                         {String(slide + 1).padStart(2, '0')} / 10</Text><Text style={[themedStyles.gold, { marginTop: 24, letterSpacing: 2 }]}>APRANN. BATI. GRANDI.</Text><Text style={themedStyles.title}>{['Webster Technology School','Kòmanse Vwayaj Teknolojik Ou','Kou an dirèk sou Zoom','Pwojè pratik','Entèlijans Atifisyèl','Aprann avèk pwofesè','Konpetans pwofesyonèl','Aprann nan lang ou','Bati avni ou','Dekouvri kou nou yo'][slide]}</Text><Text style={themedStyles.heroSubtitle}>Aprann konpetans teknolojik pratik atravè kou an dirèk, entèraktif e ki fokis sou karyè.</Text><View style={{flexDirection:'row',gap:12,marginTop:20}}><Button light={lightMode} title="←" secondary onPress={()=>setSlide((slide+9)%10)}/><Button light={lightMode} title="→" secondary onPress={()=>setSlide((slide+1)%10)}/></View></View>
         </View>
         <View style={themedStyles.homeSection}><View style={themedStyles.card}><Text style={themedStyles.gold}>KONKOU CHAK MWA · GENYEN 100 $</Text><Text style={themedStyles.displayTitle}>Gayan mwa a</Text><Text style={themedStyles.body}>Reponn kesyon chak jou a, ranmase pwen, epi monte nan klasman an. Patisipan ki gen plis pwen nan fen chak mwa genyen 100 $.</Text>{[{name:'Ana',points:120,image:'https://randomuser.me/api/portraits/women/44.jpg'},{name:'John',points:95,image:'https://randomuser.me/api/portraits/men/35.jpg'},{name:'Maria',points:78,image:'https://randomuser.me/api/portraits/women/68.jpg'}].map((w,i)=><View key={w.name} style={[themedStyles.winner,i===0&&themedStyles.firstWinner]}><Text style={themedStyles.medal}>{['🥇','🥈','🥉'][i]}</Text><Image source={{uri:w.image}} style={themedStyles.avatar}/><Text style={themedStyles.displayTitle}>{w.name}</Text><Text style={themedStyles.muted}>{i+1}YÈM PLAS</Text><View style={themedStyles.score}><Text style={themedStyles.scoreText}>{w.points} pwen</Text><Text style={themedStyles.scoreSub}>Eskò mwa a</Text></View></View>)}<Text style={themedStyles.muted}>Egzanp gayan ki parèt sou sit entènèt la; yo pa klasman an dirèk.</Text><View style={themedStyles.winner}><Text style={themedStyles.title}>🏆 Ou vle vin gayan mwa pwochen an?</Text><Text style={themedStyles.body}>Tounen vin gade chak jou, reponn kesyon an kòrèkteman, epi ranmase kantite pwen posib.</Text></View></View>
           <View style={themedStyles.statsRow}>
@@ -148,7 +148,7 @@ export default function App() {
               {leaderboard.contestants.length===0 ? <Text style={themedStyles.muted}>Poko gen patisipan — se ou ki premye pou enskri.</Text> : leaderboard.contestants.map((person,i)=><View key={person.id} style={themedStyles.leaderRow}><Text style={themedStyles.gold}>{i+1}</Text><Image source={{uri:person.imageUrl}} style={themedStyles.leaderAvatar}/><Text style={[themedStyles.body,{flex:1}]}>{person.name}</Text><Text style={themedStyles.gold}>{person.points} pwen</Text></View>)}
               <Pressable onPress={()=>void toggleHistory()}><Text style={[themedStyles.muted,{textAlign:'center',marginTop:10}]}>{showHistory?'Kache ansyen gayan yo':'Gade ansyen gayan yo'}</Text></Pressable>
               {showHistory && (contestHistory.length ? contestHistory.map(h=><Text key={h.id} style={themedStyles.muted}>{h.periodMonth} · {h.contestantName} · {h.points} pwen</Text>) : <Text style={themedStyles.muted}>Poko gen ansyen gayan.</Text>)}
-              {!leaderboard.periodEnded && <Button title="Patisipe nan konkou a →" onPress={()=>void Linking.openURL(webUrl)} />}
+              {!leaderboard.periodEnded && <Button light={lightMode} title="Patisipe nan konkou a →" onPress={()=>void Linking.openURL(webUrl)} />}
             </>}
           </View>
           <Text style={themedStyles.title}>{t.upcoming}</Text>
@@ -164,13 +164,13 @@ export default function App() {
             {course.classDate && <Text style={themedStyles.gold}>{new Date(course.classDate).toLocaleString()}</Text>}
             <Text style={themedStyles.gold}>{t.details} →</Text>
           </Pressable>)}
-          <Button title={t.past} secondary onPress={() => { setStatus('past'); setShowCourses(true); }} />
-          <Button title={language === 'ht' ? 'Rezève yon kou' : language === 'fr' ? 'Réserver un cours' : 'Book a class'} onPress={() => void Linking.openURL(webUrl + '/book')} />
+          <Button light={lightMode} title={t.past} secondary onPress={() => { setStatus('past'); setShowCourses(true); }} />
+          <Button light={lightMode} title={language === 'ht' ? 'Rezève yon kou' : language === 'fr' ? 'Réserver un cours' : 'Book a class'} onPress={() => void Linking.openURL(webUrl + '/book')} />
         </View>
       </ScrollView>}
       {showCourses && <>
-      <View style={themedStyles.back}><Button title="← Akèy" secondary onPress={() => setShowCourses(false)} /></View>
-      <View style={themedStyles.tabs}><Button title={t.upcoming} secondary={status !== 'upcoming'} onPress={() => setStatus('upcoming')} /><Button title={t.past} secondary={status !== 'past'} onPress={() => setStatus('past')} /></View>
+      <View style={themedStyles.back}><Button light={lightMode} title="← Akèy" secondary onPress={() => setShowCourses(false)} /></View>
+      <View style={themedStyles.tabs}><Button light={lightMode} title={t.upcoming} secondary={status !== 'upcoming'} onPress={() => setStatus('upcoming')} /><Button light={lightMode} title={t.past} secondary={status !== 'past'} onPress={() => setStatus('past')} /></View>
       <ScrollView contentContainerStyle={themedStyles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void loadCourses()} />}>
         {!!error && <Text style={themedStyles.error}>{error}</Text>}
         {!loading && !error && courses.length === 0 && <Text style={themedStyles.muted}>{t.empty}</Text>}
@@ -191,19 +191,19 @@ export default function App() {
       {selected.classDate && <Text style={themedStyles.gold}>{new Date(selected.classDate).toLocaleString()}</Text>}
       {!selected.isPaid && <><TextInput placeholder={t.name} placeholderTextColor={colors.muted} value={name} onChangeText={setName} style={themedStyles.input} />
       <TextInput placeholder={t.email} placeholderTextColor={colors.muted} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" style={themedStyles.input} /></>}
-      <Button title={selected.isPaid ? t.paid : t.register} onPress={() => void register()} />
+      <Button light={lightMode} title={selected.isPaid ? t.paid : t.register} onPress={() => void register()} />
       {selected.isPaid && <Text style={themedStyles.muted}>Paid enrollment is completed securely on the existing website.</Text>}
     </ScrollView>}
     {page === 'chat' && <ScrollView contentContainerStyle={themedStyles.content}>
       <Text style={themedStyles.title}>{t.chat}</Text>
       <TextInput placeholder={t.name} placeholderTextColor={colors.muted} value={name} onChangeText={setName} style={themedStyles.input} />
       <TextInput placeholder={t.email} placeholderTextColor={colors.muted} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" style={themedStyles.input} />
-      <Button title="Load conversation" secondary onPress={() => void loadMessages()} />
+      <Button light={lightMode} title="Load conversation" secondary onPress={() => void loadMessages()} />
       {messages.map(m => <View key={m.id} style={themedStyles.message}><Text style={themedStyles.gold}>{m.sender === 'admin' ? 'Webster Technology School' : m.name}</Text><Text style={themedStyles.body}>{m.text}</Text></View>)}
       <TextInput placeholder={t.chat} placeholderTextColor={colors.muted} multiline value={draft} onChangeText={setDraft} style={[themedStyles.input, { minHeight: 90 }]} />
-      <Button title={t.send} onPress={() => void send()} />
+      <Button light={lightMode} title={t.send} onPress={() => void send()} />
     </ScrollView>}
-    {page !== 'chat' && <View style={themedStyles.chatButton}><Button title={'💬  ' + t.chat} onPress={() => { setPage('chat'); void loadMessages(); }} /></View>}
+    {page !== 'chat' && <View style={themedStyles.chatButton}><Button light={lightMode} title={'💬  ' + t.chat} onPress={() => { setPage('chat'); void loadMessages(); }} /></View>}
   </SafeAreaView>;
 }
 const createStyles = (light: boolean) => {
