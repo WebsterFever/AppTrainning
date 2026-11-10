@@ -48,7 +48,10 @@ export default function ClassCard({
       to={`/classes/${item.id}`}
       className="
         group
+        mx-auto
         block
+        w-full
+        max-w-[1100px]
         overflow-hidden
         rounded-2xl
         border border-line
@@ -59,8 +62,7 @@ export default function ClassCard({
         hover:-translate-y-1
         hover:shadow-xl
         md:grid
-        md:grid-cols-2
-        lg:min-h-[390px]
+        md:grid-cols-[46%_54%]
       "
     >
       {/* IMAGE */}
@@ -131,17 +133,17 @@ export default function ClassCard({
           p-5
           sm:p-7
           md:min-h-full
-          lg:p-9
-          xl:p-10
+          lg:p-6
+          xl:p-7
           ${reverse ? 'md:order-1' : 'md:order-2'}
         `}
       >
         <div>
-          <h3 className="font-display text-2xl font-semibold leading-tight text-ink transition-colors group-hover:text-amber sm:text-3xl lg:text-4xl">
+          <h3 className="font-display text-2xl font-semibold leading-tight text-ink transition-colors group-hover:text-amber sm:text-3xl lg:text-[30px]">
             {item.title}
           </h3>
 
-          <div className="my-5 h-px bg-line/80" />
+          <div className="my-3 h-px bg-line/80" />
 
           {/* TIME / SELF PACED */}
           <p className="font-mono text-sm text-ink/60">
@@ -156,14 +158,14 @@ export default function ClassCard({
           )}
 
           {/* DESCRIPTION */}
-          <p className="mt-5 max-w-2xl whitespace-pre-line break-words text-sm leading-7 text-ink/65 sm:text-base lg:text-lg">
+          <p className="mt-3 max-w-2xl whitespace-pre-line break-words text-sm leading-6 text-ink/65 sm:text-[15px]">
             {item.description}
           </p>
         </div>
 
         {/* BOTTOM */}
-        <div className="mt-auto pt-7">
-          <div className="border-t border-line/70 pt-5">
+        <div className="mt-auto pt-4">
+          <div className="border-t border-line/70 pt-3">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               {/* REGISTRATION COUNT */}
               <span className="flex items-center gap-2 font-mono text-xs text-ink/60 sm:text-sm">
