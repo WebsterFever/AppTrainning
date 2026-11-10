@@ -5,7 +5,6 @@ import { ClassCardSkeleton } from '../components/Skeletons';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import TechnologyAside from '../components/TechnologyAside';
-import ChatWidget from '../components/ChatWidget';
 import WinnerOfMonth from '../components/WinnerOfMonth';
 import { useLanguage, type TranslationKey } from '../lib/i18n';
 
@@ -445,7 +444,6 @@ export default function Home() {
       </main>
 
       <Footer />
-      <ChatWidget />
     </div>
   );
 }
