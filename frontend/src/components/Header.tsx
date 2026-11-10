@@ -11,7 +11,7 @@ export default function Header() {
 
   const navLinks = [
     { href: '/#upcoming-classes', label: t('navUpcoming') },
-    { href: '/#past-classes', label: t('navPast') },
+    { href: '/past', label: t('navPast') },
   ];
 
   return (
