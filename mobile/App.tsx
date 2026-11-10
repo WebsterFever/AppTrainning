@@ -17,6 +17,8 @@ export default function App() {
   const [status, setStatus] = useState<'upcoming' | 'past'>('upcoming');
   const [page, setPage] = useState<Page>('home');
   const [courses, setCourses] = useState<Course[]>([]);
+  const [homeCourses, setHomeCourses] = useState<Course[]>([]);
+  const [homePast, setHomePast] = useState<Course[]>([]);
   const [selected, setSelected] = useState<Course | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,17 +37,25 @@ export default function App() {
     finally { if (!quiet) setLoading(false); }
   }, [status, language]);
   useEffect(() => { void loadCourses(); }, [loadCourses]);
+  const loadHome = useCallback(async () => {
+    try {
+      const [upcoming, past] = await Promise.all([api.courses('upcoming', language), api.courses('past', language)]);
+      setHomeCourses(upcoming.filter(c => c.language === language));
+      setHomePast(past.filter(c => c.language === language));
+    } catch (e) { console.warn('Home course refresh failed', e); }
+  }, [language]);
+  useEffect(() => { void loadHome(); }, [loadHome]);
   // Refresh after returning from the background so admin changes appear without a manual reload.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', next => {
-      if (next === 'active') void loadCourses(true);
+      if (next === 'active') { void loadCourses(true); void loadHome(); }
     });
     return () => subscription.remove();
-  }, [loadCourses]);
+  }, [loadCourses, loadHome]);
   useEffect(() => {
-    const interval = setInterval(() => { if (page === 'home') void loadCourses(true); }, 10000);
+    const interval = setInterval(() => { if (page === 'home') { void loadCourses(true); void loadHome(); } }, 10000);
     return () => clearInterval(interval);
-  }, [loadCourses, page]);
+  }, [loadCourses, loadHome, page]);
 
   const openCourse = async (course: Course) => {
     setSelected(course); setPage('detail');
@@ -92,6 +102,23 @@ export default function App() {
           <View style={{ alignSelf: 'flex-start', marginTop: 32 }}><Button title="Dekouvri kou k ap vini yo  →" onPress={() => {setStatus('upcoming');setShowCourses(true);}} /></View>
           <View style={styles.welcome}><Text style={styles.gold}>● BYENVENI                         01 / 10</Text><Text style={[styles.gold, { marginTop: 24, letterSpacing: 2 }]}>APRANN. BATI. GRANDI.</Text><Text style={styles.title}>Webster Technology School</Text><Text style={styles.heroSubtitle}>Aprann konpetans teknolojik pratik atravè kou an dirèk, entèraktif e ki fokis sou karyè.</Text></View>
         </View>
+        <View style={styles.homeSection}>
+          <Text style={styles.title}>{t.upcoming}</Text>
+          <View style={styles.statsRow}>
+            <Text style={styles.stat}>{homeCourses.length}  {t.upcoming}</Text>
+            <Text style={styles.stat}>{homePast.length}  {t.past}</Text>
+          </View>
+          {homeCourses.length === 0 && <Text style={styles.muted}>{t.empty}</Text>}
+          {homeCourses.map(course => <Pressable key={course.id} style={styles.card} onPress={() => void openCourse(course)}>
+            {!!course.imageUrl && <Image source={{ uri: course.imageUrl }} style={styles.poster} resizeMode="contain" />}
+            <Text style={styles.title}>{course.title}</Text>
+            <Text style={styles.muted}>{course.description}</Text>
+            {course.classDate && <Text style={styles.gold}>{new Date(course.classDate).toLocaleString()}</Text>}
+            <Text style={styles.gold}>{t.details} →</Text>
+          </Pressable>)}
+          <Button title={t.past} secondary onPress={() => { setStatus('past'); setShowCourses(true); }} />
+          <Button title={language === 'ht' ? 'Rezève yon kou' : language === 'fr' ? 'Réserver un cours' : 'Book a class'} onPress={() => void Linking.openURL(webUrl + '/book')} />
+        </View>
       </ScrollView>}
       {showCourses && <>
       <View style={styles.back}><Button title="← Akèy" secondary onPress={() => setShowCourses(false)} /></View>
@@ -132,5 +159,6 @@ export default function App() {
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
+  homeSection: { paddingTop: 28, gap: 16 }, statsRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' }, stat: { color: colors.gold, backgroundColor: colors.surface, padding: 12, borderRadius: 10 },
   root: { flex: 1, backgroundColor: colors.bg }, hero: { backgroundColor: '#141936', borderWidth: 1, borderColor: colors.border, borderRadius: 18, padding: 20, minHeight: 790 }, heroBadge: { color: colors.white, fontSize: 10, letterSpacing: 1, backgroundColor: '#303550', padding: 12, borderRadius: 25, overflow: 'hidden', alignSelf: 'flex-start' }, heroTitle: { color: colors.white, fontSize: 36, fontWeight: 'bold', lineHeight: 42, marginTop: 28 }, heroSubtitle: { color: colors.muted, fontSize: 15, lineHeight: 26, marginTop: 20 }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 28 }, chip: { color: colors.white, fontSize: 11, backgroundColor: '#292d45', padding: 10, borderRadius: 24, overflow: 'hidden' }, welcome: { backgroundColor: '#202a51', borderRadius: 16, padding: 20, marginTop: 44, minHeight: 270, gap: 8 }, header: { padding: 12, borderBottomWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center' }, brand: { color: colors.white, fontSize: 17, fontWeight: 'bold' }, subtitle: { color: colors.gold, fontSize: 10, letterSpacing: 3 }, nav: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8 }, lang: { padding: 9, borderRadius: 8, backgroundColor: colors.surface }, active: { backgroundColor: '#8b641e' }, small: { color: colors.white, fontSize: 12 }, tabs: { flexDirection: 'row', gap: 8, padding: 12 }, back: { alignItems: 'flex-start', padding: 10 }, button: { paddingHorizontal: 15, paddingVertical: 12, backgroundColor: colors.gold, borderRadius: 9, alignItems: 'center' }, secondary: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }, buttonText: { color: colors.bg, fontWeight: 'bold', fontSize: 13 }, content: { padding: 16, paddingBottom: 100, gap: 14 }, card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 15, padding: 14, gap: 12 }, poster: { width: '100%', height: 340 }, detailPoster: { width: '100%', height: 450 }, title: { color: colors.white, fontSize: 24, fontWeight: 'bold' }, body: { color: colors.white, fontSize: 16, lineHeight: 25 }, muted: { color: colors.muted, lineHeight: 22 }, gold: { color: colors.gold, marginTop: 4 }, error: { color: '#ff8585' }, input: { color: colors.white, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, padding: 14, borderRadius: 8 }, message: { backgroundColor: colors.surface, borderRadius: 10, padding: 12, gap: 5 }, chatButton: { position: 'absolute', bottom: 16, right: 16 },
 });
