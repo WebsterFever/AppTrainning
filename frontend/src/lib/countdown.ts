@@ -8,23 +8,27 @@ export function formatCountdown(
 ): string {
   const diffMs = new Date(classDate).getTime() - now.getTime();
   if (diffMs <= 0) return t('startingNow');
-  const totalMinutes = Math.floor(diffMs / 60000);
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const minutes = totalMinutes % 60;
+  const totalSeconds = Math.ceil(diffMs / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
   const parts: string[] = [];
   if (language === 'ht') {
     if (days) parts.push(`${days} jou`);
     if (days || hours) parts.push(`${hours} hr`);
     parts.push(`${minutes} mn`);
+    parts.push(`${seconds} seg`);
   } else if (language === 'fr') {
     if (days) parts.push(`${days} j`);
     if (days || hours) parts.push(`${hours} h`);
     parts.push(`${minutes} min`);
+    parts.push(`${seconds} s`);
   } else {
     if (days) parts.push(`${days}d`);
     if (days || hours) parts.push(`${hours}h`);
     parts.push(`${minutes}m`);
+    parts.push(`${seconds}s`);
   }
   return t('startsIn', { parts: parts.join(' ') });
 }
