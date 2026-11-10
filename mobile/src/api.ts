@@ -18,7 +18,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const body = await response.json().catch(() => null);
     throw new Error(body?.message?.toString() || 'Request failed (' + response.status + ')');
   }
-  return response.json() as Promise<T>;
+  const raw = await response.text();
+  if (!raw.trim()) throw new Error('Backend returned an empty response for ' + path + '. Check the Railway deployment and API URL.');
+  try { return JSON.parse(raw) as T; }
+  catch { throw new Error('Backend returned invalid JSON for ' + path + ' (HTTP ' + response.status + '). Check the Railway deployment and API URL.'); }
 }
 export const api = {
   leaderboard: () => request<Leaderboard>('/contest/leaderboard'),
