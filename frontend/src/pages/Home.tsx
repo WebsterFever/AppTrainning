@@ -311,11 +311,7 @@ export default function Home() {
         emptySubMessage={t('checkBackSoon')}
       />
 
-      {visiblePast.length > 0 && (
-        <div className="mt-12 border-t border-line pt-10" id={SECTION_IDS.PAST}>
-          <ClassListSection title={t('pastClasses')} classes={visiblePast} />
-        </div>
-      )}
+
     </>
   );
 
