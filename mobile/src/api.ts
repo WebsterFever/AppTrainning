@@ -4,6 +4,10 @@ export type Course = {
   classDate?: string; isPast: boolean; isPaid: boolean; language?: Language;
   priceCents?: number; registrationCount: number; curriculumModules?: unknown[];
 };
+export type Contestant = { id: string; name: string; points: number; imageUrl: string; subscribedAt: string };
+export type Leaderboard = { goal: number; periodEnded: boolean; monthWinner?: { name: string; imageUrl: string; points: number }; contestants: Contestant[] };
+export type ContestHistory = { id: string; contestantName: string; contestantImageUrl: string; periodMonth: string; points: number };
+export type ContestQuestion = { id: string; subject: string; questionText: string; answered: boolean; winnerName?: string };
 export type Message = { id: string; sender: 'student' | 'admin'; name: string; text: string; createdAt: string };
 const base = (process.env.EXPO_PUBLIC_API_URL || 'https://apptrainning-production.up.railway.app').replace(/\/$/, '');
 export const webUrl = process.env.EXPO_PUBLIC_WEB_URL || 'https://webstertechnologyschool.com';
@@ -17,6 +21,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 export const api = {
+  leaderboard: () => request<Leaderboard>('/contest/leaderboard'),
+  contestQuestion: (language: Language) => request<ContestQuestion | null>('/contest/question?language=' + language),
+  contestHistory: () => request<ContestHistory[]>('/contest/history'),
   courses: (status: 'upcoming' | 'past', language: Language) =>
     request<Course[]>('/classes?status=' + status + '&language=' + language),
   course: (id: string) => request<Course>('/classes/' + encodeURIComponent(id)),
