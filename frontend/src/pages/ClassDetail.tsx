@@ -882,7 +882,7 @@ export default function ClassDetail() {
                   <ProgressBar percent={moduleProgressPercent} completed={moduleProgressPercent === 100} />
                 )}
                 {allowComments && !isUnlocked && (
-                  <span className="badge bg-line text-lessonTextMuted normal-case tracking-normal">
+                  <span className="badge bg-[#E5E7EB] text-[#172033] border border-[#CBD5E1] font-semibold normal-case tracking-normal">
                     {t('moduleLocked')}
                   </span>
                 )}
