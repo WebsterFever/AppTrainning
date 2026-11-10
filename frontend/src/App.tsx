@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
+import PastClasses from './pages/PastClasses';
 import ClassDetail from './pages/ClassDetail';
 import BookClass from './pages/BookClass';
 import AdminLogin from './pages/AdminLogin';
@@ -10,6 +11,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/past" element={<PastClasses />} />
       <Route path="/classes/:id" element={<ClassDetail />} />
       <Route path="/book" element={<BookClass />} />
       <Route path="/admin" element={<AdminLogin />} />
