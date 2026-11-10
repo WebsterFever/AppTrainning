@@ -152,7 +152,7 @@ export default function ClassCard({
           )}
 
           {/* DESCRIPTION */}
-          <p className="mt-5 line-clamp-3 max-w-2xl text-sm leading-7 text-ink/65 sm:text-base lg:text-lg">
+          <p className="mt-5 max-w-2xl whitespace-pre-line break-words text-sm leading-7 text-ink/65 sm:text-base lg:text-lg">
             {item.description}
           </p>
         </div>
