@@ -151,7 +151,7 @@ export default function ClassCard({
           {/* COUNTDOWN */}
           {!item.isPast && item.classDate && (
             <p className="mt-2 font-mono text-xs font-medium text-amber">
-              {formatCountdown(item.classDate, now, t)}
+              {formatCountdown(item.classDate, now, t, language)}
             </p>
           )}
 
