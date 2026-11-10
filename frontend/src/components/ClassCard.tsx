@@ -84,6 +84,10 @@ export default function ClassCard({
             h-auto
             w-full
             object-contain
+            md:absolute
+            md:inset-0
+            md:h-full
+            md:object-fill
           "
           loading="lazy"
         />
