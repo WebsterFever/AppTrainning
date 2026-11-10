@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom';
+import ChatWidget from './components/ChatWidget';
 import Home from './pages/Home';
 import PastClasses from './pages/PastClasses';
 import ClassDetail from './pages/ClassDetail';
@@ -9,7 +10,8 @@ import NotFound from './pages/NotFound';
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/past" element={<PastClasses />} />
       <Route path="/classes/:id" element={<ClassDetail />} />
@@ -17,6 +19,8 @@ export default function App() {
       <Route path="/admin" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
       <Route path="*" element={<NotFound />} />
-    </Routes>
+      </Routes>
+      <ChatWidget />
+    </>
   );
 }
