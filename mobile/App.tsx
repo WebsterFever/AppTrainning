@@ -23,6 +23,8 @@ export default function App() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [draft, setDraft] = useState('');
+  const [showCourses, setShowCourses] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const t = copy[language];
 
@@ -74,12 +76,25 @@ export default function App() {
   };
   return <SafeAreaView style={styles.root}>
     <StatusBar barStyle="light-content" />
-    <View style={styles.header}><Text style={styles.brand}>ⓦ  WEBSTER</Text><Text style={styles.subtitle}>TECHNOLOGY SCHOOL</Text></View>
+    <View style={styles.header}><View style={{ flex: 1 }}><Text style={styles.brand}>ⓦ  WEBSTER</Text><Text style={styles.subtitle}>TECHNOLOGY SCHOOL</Text></View><Pressable onPress={() => setMenuOpen(!menuOpen)} style={styles.secondary}><Text style={styles.small}>{menuOpen ? '✕' : '☰'}</Text></Pressable></View>
+    {menuOpen && <View style={styles.nav}><Button title={t.upcoming} secondary onPress={() => {setStatus('upcoming');setShowCourses(true);setPage('home');setMenuOpen(false);}} /><Button title={t.past} secondary onPress={() => {setStatus('past');setShowCourses(true);setPage('home');setMenuOpen(false);}} /></View>}
     <View style={styles.nav}>
       {(['ht', 'en', 'fr'] as Language[]).map(l => <Pressable key={l} onPress={() => setLanguage(l)} style={[styles.lang, l === language && styles.active]}><Text style={styles.small}>{l === 'ht' ? 'Kreyòl' : l.toUpperCase()}</Text></Pressable>)}
     </View>
     {page !== 'home' && <View style={styles.back}><Button title={'← ' + t.back} secondary onPress={() => setPage('home')} /></View>}
     {page === 'home' && <>
+      {!showCourses && <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 100 }}>
+        <View style={styles.hero}>
+          <Text style={styles.heroBadge}>🟢  FÒMASYON TEKNOLOJIK AN DIRÈK</Text>
+          <Text style={styles.heroTitle}>Devlope konpetans <Text style={{ color: colors.gold }}>teknolojik demen an.</Text></Text>
+          <Text style={styles.heroSubtitle}>Patisipe nan kou pratik an dirèk nan entèlijans atifisyèl ak teknoloji modèn.</Text>
+          <View style={styles.chips}><Text style={styles.chip}>Kou an dirèk sou Zoom</Text><Text style={styles.chip}>Pwojè pratik</Text><Text style={styles.chip}>Konpetans pwofesyonèl</Text></View>
+          <View style={{ alignSelf: 'flex-start', marginTop: 32 }}><Button title="Dekouvri kou k ap vini yo  →" onPress={() => {setStatus('upcoming');setShowCourses(true);}} /></View>
+          <View style={styles.welcome}><Text style={styles.gold}>● BYENVENI                         01 / 10</Text><Text style={[styles.gold, { marginTop: 24, letterSpacing: 2 }]}>APRANN. BATI. GRANDI.</Text><Text style={styles.title}>Webster Technology School</Text><Text style={styles.heroSubtitle}>Aprann konpetans teknolojik pratik atravè kou an dirèk, entèraktif e ki fokis sou karyè.</Text></View>
+        </View>
+      </ScrollView>}
+      {showCourses && <>
+      <View style={styles.back}><Button title="← Akèy" secondary onPress={() => setShowCourses(false)} /></View>
       <View style={styles.tabs}><Button title={t.upcoming} secondary={status !== 'upcoming'} onPress={() => setStatus('upcoming')} /><Button title={t.past} secondary={status !== 'past'} onPress={() => setStatus('past')} /></View>
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void loadCourses()} />}>
         {!!error && <Text style={styles.error}>{error}</Text>}
@@ -92,6 +107,7 @@ export default function App() {
           <Text style={styles.gold}>{t.details} →</Text>
         </Pressable>)}
       </ScrollView>
+      </>}
     </>}
     {page === 'detail' && selected && <ScrollView contentContainerStyle={styles.content}>
       {!!selected.imageUrl && <Image source={{ uri: selected.imageUrl }} style={styles.detailPoster} resizeMode="contain" />}
@@ -116,5 +132,5 @@ export default function App() {
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg }, header: { padding: 18, borderBottomWidth: 1, borderColor: colors.border }, brand: { color: colors.white, fontSize: 26, fontWeight: 'bold' }, subtitle: { color: colors.gold, fontSize: 10, letterSpacing: 3 }, nav: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8 }, lang: { padding: 9, borderRadius: 8, backgroundColor: colors.surface }, active: { backgroundColor: '#8b641e' }, small: { color: colors.white, fontSize: 12 }, tabs: { flexDirection: 'row', gap: 8, padding: 12 }, back: { alignItems: 'flex-start', padding: 10 }, button: { paddingHorizontal: 15, paddingVertical: 12, backgroundColor: colors.gold, borderRadius: 9, alignItems: 'center' }, secondary: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }, buttonText: { color: colors.bg, fontWeight: 'bold', fontSize: 13 }, content: { padding: 16, paddingBottom: 100, gap: 14 }, card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 15, padding: 14, gap: 12 }, poster: { width: '100%', height: 340 }, detailPoster: { width: '100%', height: 450 }, title: { color: colors.white, fontSize: 24, fontWeight: 'bold' }, body: { color: colors.white, fontSize: 16, lineHeight: 25 }, muted: { color: colors.muted, lineHeight: 22 }, gold: { color: colors.gold, marginTop: 4 }, error: { color: '#ff8585' }, input: { color: colors.white, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, padding: 14, borderRadius: 8 }, message: { backgroundColor: colors.surface, borderRadius: 10, padding: 12, gap: 5 }, chatButton: { position: 'absolute', bottom: 16, right: 16 },
+  root: { flex: 1, backgroundColor: colors.bg }, hero: { backgroundColor: '#141936', borderWidth: 1, borderColor: colors.border, borderRadius: 18, padding: 20, minHeight: 790 }, heroBadge: { color: colors.white, fontSize: 10, letterSpacing: 1, backgroundColor: '#303550', padding: 12, borderRadius: 25, overflow: 'hidden', alignSelf: 'flex-start' }, heroTitle: { color: colors.white, fontSize: 36, fontWeight: 'bold', lineHeight: 42, marginTop: 28 }, heroSubtitle: { color: colors.muted, fontSize: 15, lineHeight: 26, marginTop: 20 }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 28 }, chip: { color: colors.white, fontSize: 11, backgroundColor: '#292d45', padding: 10, borderRadius: 24, overflow: 'hidden' }, welcome: { backgroundColor: '#202a51', borderRadius: 16, padding: 20, marginTop: 44, minHeight: 270, gap: 8 }, header: { padding: 12, borderBottomWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center' }, brand: { color: colors.white, fontSize: 17, fontWeight: 'bold' }, subtitle: { color: colors.gold, fontSize: 10, letterSpacing: 3 }, nav: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8 }, lang: { padding: 9, borderRadius: 8, backgroundColor: colors.surface }, active: { backgroundColor: '#8b641e' }, small: { color: colors.white, fontSize: 12 }, tabs: { flexDirection: 'row', gap: 8, padding: 12 }, back: { alignItems: 'flex-start', padding: 10 }, button: { paddingHorizontal: 15, paddingVertical: 12, backgroundColor: colors.gold, borderRadius: 9, alignItems: 'center' }, secondary: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }, buttonText: { color: colors.bg, fontWeight: 'bold', fontSize: 13 }, content: { padding: 16, paddingBottom: 100, gap: 14 }, card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 15, padding: 14, gap: 12 }, poster: { width: '100%', height: 340 }, detailPoster: { width: '100%', height: 450 }, title: { color: colors.white, fontSize: 24, fontWeight: 'bold' }, body: { color: colors.white, fontSize: 16, lineHeight: 25 }, muted: { color: colors.muted, lineHeight: 22 }, gold: { color: colors.gold, marginTop: 4 }, error: { color: '#ff8585' }, input: { color: colors.white, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, padding: 14, borderRadius: 8 }, message: { backgroundColor: colors.surface, borderRadius: 10, padding: 12, gap: 5 }, chatButton: { position: 'absolute', bottom: 16, right: 16 },
 });
