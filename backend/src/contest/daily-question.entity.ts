@@ -48,6 +48,11 @@ export class DailyQuestion {
   @Column({ name: 'answered_at', type: 'timestamptz', nullable: true })
   answeredAt?: Date;
 
+  // Null for legacy questions, which remain eligible until the first
+  // scheduled question reaches its publication time.
+  @Column({ name: 'scheduled_at', type: 'timestamptz', nullable: true })
+  scheduledAt?: Date;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
