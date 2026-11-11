@@ -287,8 +287,10 @@ export default function AdminContest() {
                     </p>
                     <div className="mt-2 flex gap-2">
                       <button type="button" className="btn-outline text-xs px-3 py-1"
+                        disabled={!!q.winnerName} title={q.winnerName ? 'Answered questions are locked' : 'Edit question'}
                         onClick={() => beginEdit(q)}>Edit</button>
                       <button type="button" className="btn-danger-outline text-xs px-3 py-1"
+                        disabled={!!q.winnerName} title={q.winnerName ? 'Answered questions are locked' : 'Delete question'}
                         onClick={() => setDeletingId(q.id)}>Delete</button>
                     </div>
                     <div className="mt-2 space-y-2">
