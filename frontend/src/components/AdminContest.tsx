@@ -27,6 +27,9 @@ function emptyForm(): Record<`subject${LangCode}` | `questionText${LangCode}` | 
 export default function AdminContest() {
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
 
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
@@ -61,13 +64,49 @@ export default function AdminContest() {
     setSaving(true);
     setError('');
     try {
-      await api.createContestQuestion(form);
+      if (editingId) {
+        await api.updateContestQuestion(editingId, form);
+      } else {
+        await api.createContestQuestion(form);
+      }
+      setEditingId(null);
       setForm(emptyForm());
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to post question');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const beginEdit = (q: AdminQuestion) => {
+    setEditingId(q.id);
+    setError('');
+    setForm({
+      subjectEn: q.subject, questionTextEn: q.questionText, correctAnswerEn: q.correctAnswer,
+      subjectFr: q.subjectFr ?? '', questionTextFr: q.questionTextFr ?? '', correctAnswerFr: q.correctAnswerFr ?? '',
+      subjectHt: q.subjectHt ?? '', questionTextHt: q.questionTextHt ?? '', correctAnswerHt: q.correctAnswerHt ?? '',
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    setDeleting(true);
+    setError('');
+    try {
+      await api.deleteContestQuestion(deletingId);
+      if (editingId === deletingId) {
+        setEditingId(null);
+        setForm(emptyForm());
+      }
+      setDeletingId(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete question');
+      setDeletingId(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -120,9 +159,9 @@ export default function AdminContest() {
           </div>
         ) : (
           <form onSubmit={submit} className="bg-surface border border-line rounded-sm p-5 h-fit">
-            <h3 className="font-display text-lg text-ink mb-1">Queue next daily question</h3>
+            <h3 className="font-display text-lg text-ink mb-1">{editingId ? 'Edit question' : 'Queue next daily question'}</h3>
             <p className="text-xs text-ink/50 mb-4">
-              Each question is queued for the next available 12:00 PM New York slot. The new question automatically replaces the old one. Enter all three languages —
+              {editingId ? 'Update all three languages. The existing publication time stays unchanged.' : 'Each question is queued for the next available 12:00 PM New York slot.'} The new question automatically replaces the old one. Enter all three languages —
               it's one question that visitors see in whichever language they've selected.
             </p>
             <div className="space-y-4">
@@ -177,8 +216,14 @@ export default function AdminContest() {
               </p>
               {error && <p className="text-coral text-xs">{error}</p>}
               <button disabled={saving} className="btn-primary w-full text-sm">
-                {saving ? 'Scheduling…' : 'Add to daily queue'}
+                {saving ? 'Saving…' : editingId ? 'Save changes' : 'Add to daily queue'}
               </button>
+              {editingId && (
+                <button type="button" className="btn-outline w-full text-sm"
+                  onClick={() => { setEditingId(null); setForm(emptyForm()); setError(''); }}>
+                  Cancel editing
+                </button>
+              )}
             </div>
           </form>
         )}
@@ -240,6 +285,14 @@ export default function AdminContest() {
                         <span className="text-ink/40"> · not yet answered</span>
                       )}
                     </p>
+                    <div className="mt-2 flex gap-2">
+                      <button type="button" className="btn-outline text-xs px-3 py-1"
+                        disabled={!!q.winnerName} title={q.winnerName ? 'Answered questions are locked' : 'Edit question'}
+                        onClick={() => beginEdit(q)}>Edit</button>
+                      <button type="button" className="btn-danger-outline text-xs px-3 py-1"
+                        disabled={!!q.winnerName} title={q.winnerName ? 'Answered questions are locked' : 'Delete question'}
+                        onClick={() => setDeletingId(q.id)}>Delete</button>
+                    </div>
                     <div className="mt-2 space-y-2">
                       {[
                         { label: 'English', subject: q.subject, question: q.questionText, answer: q.correctAnswer },
@@ -277,6 +330,16 @@ export default function AdminContest() {
         </div>
       </div>
 
+      {deletingId && (
+        <ConfirmDialog
+          title="Delete this question?"
+          message="This permanently deletes the question. If it is queued, its publication slot becomes available for a future question. Questions with submitted answers cannot be deleted."
+          confirmLabel={deleting ? 'Deleting…' : 'Delete question'}
+          danger
+          onConfirm={confirmDelete}
+          onCancel={() => setDeletingId(null)}
+        />
+      )}
       {pendingReset && (
         <ConfirmDialog
           title="Reset the contest?"
