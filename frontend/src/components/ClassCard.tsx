@@ -4,211 +4,64 @@ import type { ClassItem } from '../lib/api';
 import { formatCountdown } from '../lib/countdown';
 import { useLanguage, localeFor } from '../lib/i18n';
 
-function formatDateParts(iso: string | undefined, locale: string) {
-  if (!iso) return null;
-
-  const date = new Date(iso);
-
-  return {
-    day: date.toLocaleDateString(locale, {
-      day: '2-digit',
-    }),
-    month: date
-      .toLocaleDateString(locale, {
-        month: 'short',
-      })
-      .toUpperCase(),
-    time: date.toLocaleTimeString(locale, {
-      hour: 'numeric',
-      minute: '2-digit',
-    }),
-  };
-}
-
-export default function ClassCard({
-  item,
-  reverse = false,
-  compactMobile = false,
-}: {
-  item: ClassItem;
-  reverse?: boolean;
-  compactMobile?: boolean;
-}) {
+// Responsive course catalog card: compact Udemy-inspired layout on mobile and web.
+// Keep navigation, actual course data, multilingual copy and registration flow intact.
+export default function ClassCard({ item }: { item: ClassItem; reverse?: boolean; compactMobile?: boolean }) {
   const { language, t } = useLanguage();
   const locale = localeFor(language);
-  const dateParts = formatDateParts(item.classDate, locale);
   const [now, setNow] = useState(() => new Date());
-
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    if (item.isPast || !item.classDate) return;
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, [item.isPast, item.classDate]);
 
-    return () => clearInterval(timer);
-  }, []);
+  const date = item.classDate ? new Date(item.classDate) : null;
+  const dateLabel = date ? date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }) : t('selfPaced');
+  const timeLabel = date ? date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' }) : '';
+  const viewLabel = language === 'ht' ? 'Gade kou a' : language === 'fr' ? 'Voir le cours' : 'View course';
 
   return (
     <Link
       to={`/classes/${item.id}`}
-      className="
-        group
-        mx-auto
-        block
-        w-full
-        max-w-[1100px]
-        overflow-hidden
-        rounded-2xl
-        border border-line
-        bg-surface
-        shadow-sm
-        transition-all
-        duration-300
-        hover:-translate-y-1
-        hover:shadow-xl
-        md:grid
-        md:grid-cols-[46%_54%]
-      "
+      className="group flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-amber/70 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
     >
-      {/* IMAGE */}
-      <div
-        className={`
-          relative
-          flex
-          items-center
-          justify-center
-          overflow-hidden
-          bg-chalk
-          ${compactMobile ? 'aspect-[4/3] sm:aspect-auto md:aspect-auto' : ''}
-          md:h-full
-          ${reverse ? 'md:order-2' : 'md:order-1'}
-        `}
-      >
-        <img
-          src={item.imageUrl}
-          alt={item.title}
-          className="
-            block
-            h-auto
-            w-full
-            ${compactMobile ? 'h-full object-cover md:object-fill' : 'object-contain'}
-            md:absolute
-            md:inset-0
-            md:h-full
-            md:object-fill
-          "
-          loading="lazy"
-        />
-
-
-
-        {/* DATE */}
-        {dateParts && (
-          <div className="absolute left-4 top-4 -rotate-2 rounded-md bg-ink text-center font-mono text-chalk shadow-md transition-transform duration-200 group-hover:rotate-0">
-            <div className="px-4 pt-2 text-2xl leading-none tabular-nums">
-              {dateParts.day}
-            </div>
-
-            <div className="px-4 pb-2 text-[10px] tracking-widest">
-              {dateParts.month}
-            </div>
-          </div>
-        )}
-
-        {/* PAST */}
-        {item.isPast && (
-          <div className="absolute right-4 top-4 rounded-md bg-sage px-3 py-2 font-mono text-[10px] tracking-wide text-chalk">
-            {t('past')}
-          </div>
-        )}
-
-        {/* PAID */}
+      <div className="relative aspect-video w-full overflow-hidden bg-chalk">
+        <img src={item.imageUrl} alt={item.title} loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+        <span className={`absolute left-3 top-3 rounded-md px-2.5 py-1 text-[11px] font-bold shadow-sm ${item.isPast ? 'bg-sage text-chalk' : 'bg-amber text-midnight'}`}>
+          {item.isPast ? t('past') : dateLabel}
+        </span>
         {item.isPaid && (
-          <div className="absolute bottom-4 right-4 rounded-md bg-amber px-3 py-2 font-mono text-[10px] font-semibold tracking-wide text-midnight">
+          <span className="absolute right-3 top-3 rounded-md bg-ink px-2.5 py-1 text-[11px] font-semibold text-chalk">
             {t('paid')}
-          </div>
+          </span>
         )}
       </div>
-
-      {/* CONTENT */}
-      <div
-        className={`
-          flex
-          ${compactMobile ? 'min-h-0 md:min-h-[330px]' : 'min-h-[330px]'}
-          flex-col
-          ${compactMobile ? 'p-4 md:p-5' : 'p-5'}
-          sm:p-7
-          md:min-h-full
-          lg:p-6
-          xl:p-7
-          ${reverse ? 'md:order-1' : 'md:order-2'}
-        `}
-      >
-        <div>
-          <h3 className={`font-display ${compactMobile ? 'text-lg md:text-2xl' : 'text-2xl'} font-semibold leading-tight text-ink transition-colors group-hover:text-amber ${compactMobile ? 'sm:text-xl md:text-3xl' : 'sm:text-3xl'} lg:text-[30px]`}>
-            {item.title}
-          </h3>
-
-          <div className="my-3 h-px bg-line/80" />
-
-          {/* TIME / SELF PACED */}
-          <p className="font-mono text-sm text-ink/60">
-            {dateParts ? dateParts.time : t('selfPaced')}
+      <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
+        <h3 className="line-clamp-2 min-h-[3.25rem] font-display text-lg font-bold leading-snug text-ink transition-colors group-hover:text-amber sm:text-xl">
+          {item.title}
+        </h3>
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink/65">
+          <span>{dateLabel}</span>
+          {timeLabel && <><span aria-hidden="true">·</span><span>{timeLabel}</span></>}
+        </p>
+        {!item.isPast && item.classDate && (
+          <p className="mt-2 text-xs font-semibold text-amber">
+            {formatCountdown(item.classDate, now, t, language)}
           </p>
-
-          {/* COUNTDOWN */}
-          {!item.isPast && item.classDate && (
-            <p className="mt-2 font-mono text-xs font-medium text-amber">
-              {formatCountdown(item.classDate, now, t, language)}
-            </p>
-          )}
-
-          {/* DESCRIPTION */}
-          <p className={`mt-3 max-w-2xl whitespace-pre-line break-words text-sm leading-6 text-ink/65 sm:text-[15px] ${compactMobile ? 'line-clamp-3 md:line-clamp-none' : ''}`}>
-            {item.description}
-          </p>
-        </div>
-
-        {/* BOTTOM */}
+        )}
+        <p className="mt-3 line-clamp-3 whitespace-pre-line break-words text-sm leading-6 text-ink/70">
+          {item.description}
+        </p>
         <div className="mt-auto pt-4">
-          <div className="border-t border-line/70 pt-3">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              {/* REGISTRATION COUNT */}
-              <span className="flex items-center gap-2 font-mono text-xs text-ink/60 sm:text-sm">
-                <span className="h-2 w-2 flex-shrink-0 rounded-full bg-sage" />
-
-                {t('registered', {
-                  count: item.registrationCount,
-                })}
-              </span>
-
-              {/* ACTION */}
-              {!item.isPast && (
-                <span
-                  className="
-                    inline-flex
-                    min-h-11
-                    items-center
-                    justify-center
-                    rounded-lg
-                    bg-amber
-                    px-5
-                    text-sm
-                    font-semibold
-                    text-midnight
-                    transition-all
-                    duration-200
-                    group-hover:bg-coral
-                  "
-                >
-                  {t('registerArrow')}
-                </span>
-              )}
-
-              {item.isPast && (
-                <span className="inline-flex min-h-11 items-center justify-center rounded-lg border border-line px-5 text-sm font-semibold text-ink">
-                  {compactMobile ? (language === 'ht' ? 'Gade kou a →' : language === 'fr' ? 'Voir le cours →' : 'View course →') : t('past')}
-                </span>
-              )}
-            </div>
+          <div className="mb-3 flex items-center gap-2 border-t border-line pt-3 text-xs text-ink/60">
+            <span className="h-2 w-2 rounded-full bg-sage" aria-hidden="true" />
+            {t('registered', { count: item.registrationCount })}
           </div>
+          <span className={`inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-bold transition-colors ${item.isPast ? 'border border-line bg-chalk text-ink group-hover:border-amber' : 'bg-amber text-midnight group-hover:bg-coral'}`}>
+            {item.isPast ? viewLabel : t('registerArrow')}
+          </span>
         </div>
       </div>
     </Link>
