@@ -44,8 +44,8 @@ function nextNoonNewYork(now: Date): Date {
 
 
 function currentPeriodMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const now = newYorkParts(new Date());
+  return `${now.year}-${String(now.month).padStart(2, '0')}`;
 }
 
 // Case/whitespace/accent-insensitive comparison so "Inde", "inde", "  INDE "
