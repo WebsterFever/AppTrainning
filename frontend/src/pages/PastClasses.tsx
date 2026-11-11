@@ -46,7 +46,7 @@ export default function PastClasses() {
       <main className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="mb-8 font-display text-3xl sm:text-4xl">{t('pastClasses')}</h1>
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-5 md:gap-8">{[0, 1].map((i) => <ClassCardSkeleton key={i} />)}</div>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{[0, 1].map((i) => <ClassCardSkeleton key={i} />)}</div>
         ) : error ? (
           <p className="text-ink/70">{t('loadingClasses')}</p>
         ) : classes.length === 0 ? (
