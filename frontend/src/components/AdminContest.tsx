@@ -120,9 +120,9 @@ export default function AdminContest() {
           </div>
         ) : (
           <form onSubmit={submit} className="bg-surface border border-line rounded-sm p-5 h-fit">
-            <h3 className="font-display text-lg text-ink mb-1">Post today's question</h3>
+            <h3 className="font-display text-lg text-ink mb-1">Queue next daily question</h3>
             <p className="text-xs text-ink/50 mb-4">
-              Posting a new question replaces today's active one. Enter it in all three languages —
+              Each question is queued for the next available 12:00 PM New York slot. The new question automatically replaces the old one. Enter all three languages —
               it's one question that visitors see in whichever language they've selected.
             </p>
             <div className="space-y-4">
@@ -177,7 +177,7 @@ export default function AdminContest() {
               </p>
               {error && <p className="text-coral text-xs">{error}</p>}
               <button disabled={saving} className="btn-primary w-full text-sm">
-                {saving ? 'Posting…' : 'Post question'}
+                {saving ? 'Scheduling…' : 'Add to daily queue'}
               </button>
             </div>
           </form>
@@ -229,8 +229,12 @@ export default function AdminContest() {
                 {questions.map((q) => (
                   <div key={q.id} className="bg-surface border border-line rounded-sm p-3">
                     <p className="text-[11px] font-mono uppercase tracking-wide text-ink/40">
-                      {new Date(q.createdAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}
-                      {q.winnerName ? (
+                      {q.scheduledAt
+                        ? 'Scheduled: ' + new Date(q.scheduledAt).toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'medium', timeStyle: 'short' }) + ' NY'
+                        : new Date(q.createdAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}
+                      {q.scheduledAt && new Date(q.scheduledAt) > new Date() ? (
+                        <span className="text-amber"> · queued</span>
+                      ) : q.winnerName ? (
                         <span className="text-sage"> · won by {q.winnerName}</span>
                       ) : (
                         <span className="text-ink/40"> · not yet answered</span>
