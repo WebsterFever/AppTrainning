@@ -292,6 +292,33 @@ export class ContestService {
     return this.questionsRepo.save(question);
   }
 
+  // Questions with a winner or any submitted answers are locked to protect
+  // contest fairness and historical scores.
+  private async editableQuestion(id: string): Promise<DailyQuestion> {
+    const question = await this.questionsRepo.findOne({ where: { id } });
+    if (!question) throw new NotFoundException('Question not found.');
+    if (question.winnerContestantId || await this.attemptsRepo.count({ where: { questionId: id } })) {
+      throw new ConflictException('Questions with answers cannot be edited or deleted.');
+    }
+    return question;
+  }
+
+  async updateQuestion(id: string, dto: CreateQuestionDto): Promise<DailyQuestion> {
+    const question = await this.editableQuestion(id);
+    Object.assign(question, {
+      subject: dto.subjectEn, questionText: dto.questionTextEn, correctAnswer: dto.correctAnswerEn,
+      subjectFr: dto.subjectFr, questionTextFr: dto.questionTextFr, correctAnswerFr: dto.correctAnswerFr,
+      subjectHt: dto.subjectHt, questionTextHt: dto.questionTextHt, correctAnswerHt: dto.correctAnswerHt,
+    });
+    // Preserve the scheduled time; editing must not publish early or move slots.
+    return this.questionsRepo.save(question);
+  }
+
+  async deleteQuestion(id: string): Promise<void> {
+    await this.editableQuestion(id);
+    await this.questionsRepo.delete(id);
+  }
+
   async listQuestionsForAdmin(): Promise<DailyQuestion[]> {
     return this.questionsRepo.find({ order: { createdAt: 'DESC' } });
   }
