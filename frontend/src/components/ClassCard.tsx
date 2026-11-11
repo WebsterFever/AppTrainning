@@ -28,9 +28,11 @@ function formatDateParts(iso: string | undefined, locale: string) {
 export default function ClassCard({
   item,
   reverse = false,
+  compactMobile = false,
 }: {
   item: ClassItem;
   reverse?: boolean;
+  compactMobile?: boolean;
 }) {
   const { language, t } = useLanguage();
   const locale = localeFor(language);
@@ -74,6 +76,7 @@ export default function ClassCard({
           justify-center
           overflow-hidden
           bg-chalk
+          ${compactMobile ? 'aspect-[4/3] sm:aspect-auto md:aspect-auto' : ''}
           md:h-full
           ${reverse ? 'md:order-2' : 'md:order-1'}
         `}
@@ -85,7 +88,7 @@ export default function ClassCard({
             block
             h-auto
             w-full
-            object-contain
+            ${compactMobile ? 'h-full object-cover md:object-fill' : 'object-contain'}
             md:absolute
             md:inset-0
             md:h-full
@@ -128,9 +131,9 @@ export default function ClassCard({
       <div
         className={`
           flex
-          min-h-[330px]
+          ${compactMobile ? 'min-h-0 md:min-h-[330px]' : 'min-h-[330px]'}
           flex-col
-          p-5
+          ${compactMobile ? 'p-4 md:p-5' : 'p-5'}
           sm:p-7
           md:min-h-full
           lg:p-6
@@ -139,7 +142,7 @@ export default function ClassCard({
         `}
       >
         <div>
-          <h3 className="font-display text-2xl font-semibold leading-tight text-ink transition-colors group-hover:text-amber sm:text-3xl lg:text-[30px]">
+          <h3 className={`font-display ${compactMobile ? 'text-lg md:text-2xl' : 'text-2xl'} font-semibold leading-tight text-ink transition-colors group-hover:text-amber ${compactMobile ? 'sm:text-xl md:text-3xl' : 'sm:text-3xl'} lg:text-[30px]`}>
             {item.title}
           </h3>
 
@@ -158,7 +161,7 @@ export default function ClassCard({
           )}
 
           {/* DESCRIPTION */}
-          <p className="mt-3 max-w-2xl whitespace-pre-line break-words text-sm leading-6 text-ink/65 sm:text-[15px]">
+          <p className={`mt-3 max-w-2xl whitespace-pre-line break-words text-sm leading-6 text-ink/65 sm:text-[15px] ${compactMobile ? 'line-clamp-3 md:line-clamp-none' : ''}`}>
             {item.description}
           </p>
         </div>
@@ -201,7 +204,7 @@ export default function ClassCard({
 
               {item.isPast && (
                 <span className="inline-flex min-h-11 items-center justify-center rounded-lg border border-line px-5 text-sm font-semibold text-ink">
-                  {t('past')}
+                  {compactMobile ? (language === 'ht' ? 'Gade kou a →' : language === 'fr' ? 'Voir le cours →' : 'View course →') : t('past')}
                 </span>
               )}
             </div>
