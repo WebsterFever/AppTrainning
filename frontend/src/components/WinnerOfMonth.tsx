@@ -221,8 +221,12 @@ export default function WinnerOfMonth() {
       </div>
       <p className="text-xs text-ink/60 mt-1">{t('contestIntro')}</p>
       {!periodEnded && (
-        <p className="text-[11px] font-mono text-ink/40 mt-1">
-          {t('newQuestionAt', { countdown: countdownText })}
+        <p className="text-xs font-mono text-ink/80 mt-2 flex flex-wrap items-center gap-1.5">
+          <span>{t('newQuestionAt', { countdown: '__COUNTDOWN__' }).split('__COUNTDOWN__')[0]}</span>
+          <span className="inline-block rounded bg-amber px-2 py-0.5 font-bold tabular-nums text-midnight">
+            {countdownText}
+          </span>
+          <span>{t('newQuestionAt', { countdown: '__COUNTDOWN__' }).split('__COUNTDOWN__')[1]}</span>
         </p>
       )}
 
