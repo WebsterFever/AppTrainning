@@ -215,7 +215,7 @@ const ClassListSection: React.FC<{
         <span className="font-mono text-xs text-ink/40">{t('classCount', { count: classes.length })}</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {classes.map((classItem, index) => (
           <ClassCard
             key={classItem.id}
