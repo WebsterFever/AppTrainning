@@ -922,6 +922,19 @@ export const api = {
       body: JSON.stringify(input),
     }).then((r) => handle<AdminQuestion>(r)),
 
+  updateContestQuestion: (id: string, input: CreateQuestionInput) =>
+    fetch(`${BASE_URL}/admin/contest/questions/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(input),
+    }).then((r) => handle<AdminQuestion>(r)),
+
+  deleteContestQuestion: (id: string) =>
+    fetch(`${BASE_URL}/admin/contest/questions/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: authHeader(),
+    }).then((r) => handle<void>(r)),
+
   listContestQuestions: () =>
     fetch(`${BASE_URL}/admin/contest/questions`, { headers: authHeader() }).then((r) =>
       handle<AdminQuestion[]>(r),
