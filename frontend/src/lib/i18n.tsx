@@ -398,7 +398,7 @@ const dict = {
   contestIntro: {
     en: "Answer the daily question first to score points. Most points by month's end wins $100.",
     fr: "Répondez le premier à la question du jour pour marquer des points. Le plus de points à la fin du mois gagne 100 $.",
-    ht: "Reponn premye a kesyon chak jou a pou fè pwen. Moun ki gen plis pwen nan fen mwa a genyen $100.",
+    ht: "Reponn kesyon a an premye chak jou pou fè pwen. Moun ki gen plis pwen nan fen mwa a ap resevwa  $100.",
   },
   newQuestionAt: {
     en: (v: Vars) => `New question at 12pm ET · next in ${v.countdown}`,
