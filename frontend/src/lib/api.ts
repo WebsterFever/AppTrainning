@@ -319,6 +319,7 @@ export interface MonthlyWinnerEntry {
 
 export interface AdminQuestion {
   id: string;
+  scheduledAt?: string;
   subject: string;
   questionText: string;
   correctAnswer: string;
