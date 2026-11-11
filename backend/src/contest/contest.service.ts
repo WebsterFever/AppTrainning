@@ -1,6 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { Contestant } from './contestant.entity';
 import { DailyQuestion } from './daily-question.entity';
 import { QuestionAttempt } from './question-attempt.entity';
@@ -14,6 +14,34 @@ const FIRST_CORRECT_POINTS = 10;
 const CLOSED_MESSAGE = 'This month\'s contest has ended — the admin needs to reset it before a new one can start.';
 
 type ContestLanguage = 'en' | 'fr' | 'ht';
+
+const CONTEST_TIME_ZONE = 'America/New_York';
+
+// Compute noon in New York with DST awareness, without depending on the
+// server's own time zone (Railway normally runs in UTC).
+function newYorkParts(date: Date): { year: number; month: number; day: number; hour: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: CONTEST_TIME_ZONE, year: 'numeric', month: '2-digit',
+    day: '2-digit', hour: '2-digit', hourCycle: 'h23',
+  }).formatToParts(date);
+  const value = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return { year: value('year'), month: value('month'), day: value('day'), hour: value('hour') };
+}
+
+function noonNewYork(year: number, month: number, day: number): Date {
+  const date = new Date(Date.UTC(year, month - 1, day, 12));
+  // New York is UTC-4 in daylight time, UTC-5 otherwise.
+  const offset = newYorkParts(date).hour - 12;
+  return new Date(date.getTime() - offset * 60 * 60 * 1000);
+}
+
+function nextNoonNewYork(now: Date): Date {
+  const { year, month, day } = newYorkParts(now);
+  const today = noonNewYork(year, month, day);
+  if (now < today) return today;
+  return noonNewYork(year, month, day + 1);
+}
+
 
 function currentPeriodMonth(): string {
   const now = new Date();
@@ -221,10 +249,13 @@ export class ContestService {
   }
 
   private async getLatestQuestion(): Promise<DailyQuestion | null> {
-    const [question] = await this.questionsRepo.find({
-      order: { createdAt: 'DESC' },
-      take: 1,
-    });
+    const [question] = await this.questionsRepo
+      .createQueryBuilder('q')
+      .where('(q.scheduled_at IS NULL OR q.scheduled_at <= :now)', { now: new Date() })
+      .orderBy('COALESCE(q.scheduled_at, q.created_at)', 'DESC')
+      .addOrderBy('q.created_at', 'DESC')
+      .limit(1)
+      .getMany();
     return question ?? null;
   }
 
@@ -234,7 +265,20 @@ export class ContestService {
     const settings = await this.getSettings();
     if (this.isPeriodEnded(settings)) throw new ForbiddenException(CLOSED_MESSAGE);
 
+    // Each submission reserves the next unoccupied noon slot. Publishing is
+    // determined by scheduledAt on every read; no cron job or admin action.
+    const queued = await this.questionsRepo.find({
+      where: { scheduledAt: MoreThan(new Date()) },
+      order: { scheduledAt: 'DESC' },
+      take: 1,
+    });
+    let scheduledAt = nextNoonNewYork(new Date());
+    if (queued[0]?.scheduledAt && queued[0].scheduledAt >= scheduledAt) {
+      const last = newYorkParts(queued[0].scheduledAt);
+      scheduledAt = noonNewYork(last.year, last.month, last.day + 1);
+    }
     const question = this.questionsRepo.create({
+      scheduledAt,
       subject: dto.subjectEn,
       questionText: dto.questionTextEn,
       correctAnswer: dto.correctAnswerEn,
