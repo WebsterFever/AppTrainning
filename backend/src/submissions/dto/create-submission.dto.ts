@@ -1,9 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
-
-// https://github.com/{username}/{repository} — optionally with a trailing
-// slash. Deliberately doesn't accept random websites as the project URL.
-const GITHUB_REPO_PATTERN = /^https:\/\/github\.com\/[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\/[A-Za-z0-9._-]+\/?$/;
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
 export class CreateSubmissionDto {
   @IsString()
@@ -13,10 +9,9 @@ export class CreateSubmissionDto {
   @IsEmail()
   email: string;
 
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim().replace(/\/+$/, '') : value))
-  @Matches(GITHUB_REPO_PATTERN, {
-    message: 'Enter a valid GitHub repository URL, e.g. https://github.com/username/project-name',
-  })
+  @Transform(({ value }) => typeof value === 'string' ? (value.trim() || undefined) : value)
+  @IsOptional()
+  @IsUrl({ require_protocol: true, protocols: ['http', 'https'] }, { message: 'Enter a valid link starting with https:// or leave it blank' })
   githubUrl: string;
 
   @IsOptional()

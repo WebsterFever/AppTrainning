@@ -377,7 +377,10 @@ export default function ClassDetail() {
   const submitProject = async (moduleId: string) => {
     if (!id) return;
     const draft = projectDrafts[moduleId] ?? { githubUrl: '', notes: '' };
-    if (!draft.githubUrl.trim()) return;
+    if (!draft.githubUrl.trim() && !draft.notes.trim()) {
+      setSubmitErrors((current) => ({ ...current, [moduleId]: 'Ekri repons devwa ou nan bwat Nòt la, oswa ajoute yon lyen.' }));
+      return;
+    }
     setSubmittingModuleId(moduleId);
     setSubmitErrors((current) => ({ ...current, [moduleId]: '' }));
     try {
@@ -1168,10 +1171,10 @@ export default function ClassDetail() {
                               </div>
                             )}
                             <label className="block text-xs font-medium text-lessonTextMuted mb-1">
-                              {t('githubUrlLabel')}
+                              Lyen (opsyonèl)
                             </label>
                             <input
-                              placeholder="https://github.com/username/project-name"
+                              placeholder="https://example.com/lyen-ou (opsyonèl)"
                               value={projectDrafts[mod.id]?.githubUrl ?? submission?.githubUrl ?? ''}
                               onChange={(e) =>
                                 setProjectDrafts((current) => ({
@@ -1185,7 +1188,7 @@ export default function ClassDetail() {
                               className="input text-sm bg-lessonSurface border-lessonBorder text-lessonText placeholder:text-lessonTextMuted/60"
                             />
                             <label className="block text-xs font-medium text-lessonTextMuted mb-1 mt-2">
-                              {t('optionalNotesToInstructor')}
+                              Repons devwa ou / Nòt pou pwofesè a
                             </label>
                             <textarea
                               value={projectDrafts[mod.id]?.notes ?? submission?.studentNotes ?? ''}
@@ -1198,7 +1201,9 @@ export default function ClassDetail() {
                                   },
                                 }))
                               }
-                              className="input text-sm h-16 bg-lessonSurface border-lessonBorder text-lessonText placeholder:text-lessonTextMuted/60"
+                              rows={8}
+                              placeholder="Ekri repons ou yo isit la: 1. ... 2. ..."
+                              className="input text-sm min-h-40 bg-lessonSurface border-lessonBorder text-lessonText placeholder:text-lessonTextMuted/60"
                             />
                             {submitErrors[mod.id] && (
                               <p className="text-coral text-xs mt-1">{submitErrors[mod.id]}</p>
@@ -1208,7 +1213,8 @@ export default function ClassDetail() {
                               onClick={() => submitProject(mod.id)}
                               disabled={
                                 submittingModuleId === mod.id ||
-                                !(projectDrafts[mod.id]?.githubUrl ?? submission?.githubUrl ?? '').trim()
+                                !(projectDrafts[mod.id]?.githubUrl ?? submission?.githubUrl ?? '').trim() &&
+                                !(projectDrafts[mod.id]?.notes ?? submission?.studentNotes ?? '').trim()
                               }
                               className="btn-primary text-sm mt-2"
                             >

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ModuleSubmission } from './module-submission.entity';
@@ -74,6 +74,9 @@ export class SubmissionsService {
     const moduleExists = trainingClass.curriculumModules?.some((m) => m.id === moduleId);
     if (!moduleExists) throw new NotFoundException('Module not found');
 
+    if (!dto.githubUrl?.trim() && !dto.studentNotes?.trim()) {
+      throw new BadRequestException('Write your homework answers in the notes field or provide a link.');
+    }
     const email = dto.email.toLowerCase();
     const isRegistered = await this.registrationsRepo.exist({
       where: { trainingClass: { id: classId }, email },
@@ -99,7 +102,7 @@ export class SubmissionsService {
       // Resubmission — resets to pending for another review pass. Prior
       // admin feedback is left in place until the admin reviews again.
       submission.name = dto.name;
-      submission.githubUrl = dto.githubUrl;
+      submission.githubUrl = dto.githubUrl ?? '';
       submission.studentNotes = dto.studentNotes;
       submission.status = 'pending';
       submission.submittedAt = new Date();
@@ -109,7 +112,7 @@ export class SubmissionsService {
         moduleId,
         name: dto.name,
         email,
-        githubUrl: dto.githubUrl,
+        githubUrl: dto.githubUrl ?? '',
         studentNotes: dto.studentNotes,
         status: 'pending',
         submittedAt: new Date(),
