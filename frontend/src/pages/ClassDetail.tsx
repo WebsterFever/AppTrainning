@@ -1025,22 +1025,15 @@ export default function ClassDetail() {
                               {/* Subtopics — one nested level deeper, rendered via the
                                   shared sequential viewer, which itself already shows
                                   only the one active Subtopic (never its siblings). */}
-                              {/* Legacy subtopic lessons remain readable during the
-                                  non-destructive transition to topic completion. */}
-                              {topicSubtopics.length > 0 && (
-                                <SubtopicProgressPanel
-                                  subtopics={topicSubtopics}
-                                  moduleSequence={moduleSequence}
-                                  activeSubtopicId={activeSubtopicId}
-                                  completedIds={completedSubtopicIds}
-                                  saving={savingSubtopicId !== null}
-                                  onNavigate={(subtopicId) => navigateSubtopic(mod.id, subtopicId)}
-                                  onCompleteAndAdvance={(subtopicId) =>
-                                    completeAndAdvanceSubtopic(mod.id, moduleSequence, subtopicId)
-                                  }
-                                  renderContentBlock={renderContentBlock}
-                                />
-                              )}
+                              {/* Preserve legacy lesson blocks inline until an
+                                  audited data migration is available. */}
+                              {topicSubtopics.map((st) => (
+                                <section key={st.id} className="space-y-3">
+                                  {st.title && <h3 className="text-sm font-semibold text-lessonText">{st.title}</h3>}
+                                  {st.description && <p className="text-xs text-lessonTextMuted">{st.description}</p>}
+                                  {st.contentBlocks?.map((block, bi) => renderContentBlock(block, `${st.id}-${bi}`))}
+                                </section>
+                              ))}
                               <button type="button"
                                 disabled={savingTopicId === activeTopic.id}
                                 onClick={() => completeAndAdvanceTopic(mod.id, activeTopic.id)}
