@@ -96,6 +96,8 @@ export default function ClassDetail() {
   const toggleTopic = (moduleId: string, id: string) => {
     setSelectedModuleId(moduleId);
     setSelectedTopicByModule((current) => ({ ...current, [moduleId]: id }));
+    // Selecting a topic from the mobile drawer should immediately show the lesson.
+    setMobileNavOpen(false);
     setOpenTopics((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
