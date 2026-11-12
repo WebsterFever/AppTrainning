@@ -44,6 +44,7 @@ export default function ClassDetail() {
   const [openVideos, setOpenVideos] = useState<Set<number>>(new Set());
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
   const [openTopics, setOpenTopics] = useState<Set<string>>(new Set());
+  const [selectedTopicByModule, setSelectedTopicByModule] = useState<Record<string, string>>({});
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
@@ -92,7 +93,9 @@ export default function ClassDetail() {
     setSelectedModuleId(id);
   };
 
-  const toggleTopic = (id: string) => {
+  const toggleTopic = (moduleId: string, id: string) => {
+    setSelectedModuleId(moduleId);
+    setSelectedTopicByModule((current) => ({ ...current, [moduleId]: id }));
     setOpenTopics((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -133,6 +136,8 @@ export default function ClassDetail() {
 
   const navigateSubtopic = (moduleId: string, subtopicId: string) => {
     setActiveSubtopicByModule((current) => ({ ...current, [moduleId]: subtopicId }));
+    const parentTopic = item?.curriculumModules?.find((mod) => mod.id === moduleId)?.topics.find((topic) => topic.subtopics?.some((st) => st.id === subtopicId));
+    if (parentTopic) setSelectedTopicByModule((current) => ({ ...current, [moduleId]: parentTopic.id }));
     // Navigating to a Subtopic always means that Subtopic's Module is the
     // one being viewed, even if the student jumped there without first
     // clicking the Module header itself (e.g. Previous/Next crossing into
@@ -848,16 +853,11 @@ export default function ClassDetail() {
               (topic.contentBlocks?.length ?? 0) > 0 ||
               (topic.subtopics ?? []).some((st) => (st.contentBlocks?.length ?? 0) > 0) ||
               (topic.title?.trim().length ?? 0) > 0;
+            const selectedTopicId = selectedTopicByModule[mod.id];
             const activeTopic =
-              mod.topics.find((topic) => {
-                const topicSubtopics = (topic.subtopics ?? []).filter(
-                  (st) => (st.contentBlocks?.length ?? 0) > 0,
-                );
-                if (topicSubtopics.length > 0) {
-                  return topicSubtopics.some((st) => st.id === activeSubtopicId);
-                }
-                return openTopics.has(topic.id) && hasTopicContent(topic);
-              }) ?? mod.topics.find(hasTopicContent);
+              mod.topics.find((topic) => topic.id === selectedTopicId && hasTopicContent(topic)) ??
+              mod.topics.find((topic) => (topic.subtopics ?? []).some((st) => st.id === activeSubtopicId)) ??
+              mod.topics.find(hasTopicContent);
             // Auto-expand a Module once the student has explicitly
             // navigated to one of its Subtopics (e.g. via the lesson nav
             // sidebar jumping into a different Module) on top of their own
@@ -1184,6 +1184,7 @@ export default function ClassDetail() {
                     onToggleModule={toggleModule}
                     openTopics={openTopics}
                     onToggleTopic={toggleTopic}
+                    selectedTopicId={selectedTopicByModule[selectedModuleId ?? '']}
                     getModuleSequence={getModuleSequence}
                     getActiveSubtopicId={getActiveSubtopicId}
                     onNavigateSubtopic={navigateSubtopicFromNav}
@@ -1200,6 +1201,7 @@ export default function ClassDetail() {
                 onToggleModule={toggleModule}
                 openTopics={openTopics}
                 onToggleTopic={toggleTopic}
+                    selectedTopicId={selectedTopicByModule[selectedModuleId ?? '']}
                 getModuleSequence={getModuleSequence}
                 getActiveSubtopicId={getActiveSubtopicId}
                 onNavigateSubtopic={navigateSubtopicFromNav}
