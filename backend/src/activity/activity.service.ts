@@ -5,6 +5,7 @@ import { IsEmail, IsInt, IsOptional, IsString, IsUUID, Max, Min, validateOrRejec
 import { StudentActivity } from './student-activity.entity';
 import { Registration } from '../registrations/registration.entity';
 import { TrainingClass } from '../classes/class.entity';
+import { SubtopicProgress } from '../progress/subtopic-progress.entity';
 
 export class ActivityHeartbeatDto {
   @IsEmail() email: string;
@@ -21,6 +22,7 @@ export class ActivityService {
     @InjectRepository(StudentActivity) private readonly activities: Repository<StudentActivity>,
     @InjectRepository(Registration) private readonly registrations: Repository<Registration>,
     @InjectRepository(TrainingClass) private readonly classes: Repository<TrainingClass>,
+    @InjectRepository(SubtopicProgress) private readonly completions: Repository<SubtopicProgress>,
   ) {}
 
   async heartbeat(classId: string, dto: ActivityHeartbeatDto) {
@@ -65,17 +67,26 @@ export class ActivityService {
   async dashboard(classId: string) {
     const registrations = await this.registrations.find({ where: { trainingClass: { id: classId } } });
     const sessions = await this.activities.find({ where: { classId } });
+    const completedRows = await this.completions.find({ where: { trainingClass: { id: classId } } });
+    const trainingClass = await this.classes.findOne({ where: { id: classId } });
+    const topics = (trainingClass?.curriculumModules ?? []).flatMap((m) => m.topics ?? []);
     const now = Date.now();
     return registrations.map((student) => {
       const records = sessions.filter((session) => session.email === student.email.toLowerCase());
       const latest = records.sort((a, b) => +new Date(b.lastSeenAt) - +new Date(a.lastSeenAt))[0];
       const online = records.some((s) => now - +new Date(s.lastSeenAt) < 90000);
       const totalSeconds = records.reduce((sum, s) => sum + s.activeSeconds, 0);
+      const done = new Set(completedRows.filter((row) => row.email === student.email.toLowerCase()).map((row) => row.subtopicId));
+      const completedTopics = topics.filter((topic) => {
+        const subtopics = (topic.subtopics ?? []).filter((st) => !!st.title?.trim() || !!st.description?.trim() || (st.contentBlocks?.length ?? 0) > 0);
+        return subtopics.length ? subtopics.every((st) => done.has(st.id)) : done.has(`topic:${topic.id}`);
+      }).length;
+      const progressPercent = topics.length ? Math.round(100 * completedTopics / topics.length) : 0;
       return {
         name: student.name, email: student.email, registeredAt: student.registeredAt,
         online, lastSeenAt: latest?.lastSeenAt ?? null,
         moduleId: latest?.moduleId ?? null, topicId: latest?.topicId ?? null,
-        subtopicId: latest?.subtopicId ?? null, activeSeconds: totalSeconds,
+        subtopicId: latest?.subtopicId ?? null, activeSeconds: totalSeconds, progressPercent,
       };
     });
   }
