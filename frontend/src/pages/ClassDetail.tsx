@@ -860,7 +860,12 @@ export default function ClassDetail() {
             // of contentBlocks), so the progress badge naturally doesn't
             // appear until there's real, unlocked lesson content to track.
             const moduleSequence = getModuleSequence(mod);
-            const moduleCompletedCount = mod.topics.filter((topic) => completedTopicIds.has(topic.id)).length;
+            const moduleCompletedCount = mod.topics.filter((topic) => {
+              const subtopics = (topic.subtopics ?? []).filter((st) => (st.contentBlocks?.length ?? 0) > 0);
+              return subtopics.length > 0
+                ? subtopics.every((st) => completedSubtopicIds.has(st.id))
+                : completedTopicIds.has(topic.id);
+            }).length;
             const moduleProgressPercent =
               mod.topics.length > 0 ? Math.round((moduleCompletedCount / mod.topics.length) * 100) : null;
             const activeSubtopicId = getActiveSubtopicId(mod.id, moduleSequence);
@@ -997,7 +1002,9 @@ export default function ClassDetail() {
                         const topicSubtopics = (activeTopic.subtopics ?? []).filter(
                           (st) => (st.contentBlocks?.length ?? 0) > 0,
                         );
-                        const topicProgressPercent = completedTopicIds.has(activeTopic.id) ? 100 : 0;
+                        const topicProgressPercent = topicSubtopics.length > 0
+                          ? Math.round(100 * topicSubtopics.filter((st) => completedSubtopicIds.has(st.id)).length / topicSubtopics.length)
+                          : completedTopicIds.has(activeTopic.id) ? 100 : 0;
                         // No toggle button, no sibling Topic titles — the
                         // Course Content sidebar is the only place a Topic
                         // gets picked, so this is just a plain heading for
@@ -1025,23 +1032,30 @@ export default function ClassDetail() {
                               {/* Subtopics — one nested level deeper, rendered via the
                                   shared sequential viewer, which itself already shows
                                   only the one active Subtopic (never its siblings). */}
-                              {/* Preserve legacy lesson blocks inline until an
-                                  audited data migration is available. */}
-                              {topicSubtopics.map((st) => (
-                                <section key={st.id} className="space-y-3">
-                                  {st.title && <h3 className="text-sm font-semibold text-lessonText">{st.title}</h3>}
-                                  {st.description && <p className="text-xs text-lessonTextMuted">{st.description}</p>}
-                                  {st.contentBlocks?.map((block, bi) => renderContentBlock(block, `${st.id}-${bi}`))}
-                                </section>
-                              ))}
-                              <button type="button"
+                              {/* Legacy subtopic lessons remain readable during the
+                                  non-destructive transition to topic completion. */}
+                              {topicSubtopics.length > 0 && (
+                                <SubtopicProgressPanel
+                                  subtopics={topicSubtopics}
+                                  moduleSequence={moduleSequence}
+                                  activeSubtopicId={activeSubtopicId}
+                                  completedIds={completedSubtopicIds}
+                                  saving={savingSubtopicId !== null}
+                                  onNavigate={(subtopicId) => navigateSubtopic(mod.id, subtopicId)}
+                                  onCompleteAndAdvance={(subtopicId) =>
+                                    completeAndAdvanceSubtopic(mod.id, moduleSequence, subtopicId)
+                                  }
+                                  renderContentBlock={renderContentBlock}
+                                />
+                              )}
+                              {topicSubtopics.length === 0 && <button type="button"
                                 disabled={savingTopicId === activeTopic.id}
                                 onClick={() => completeAndAdvanceTopic(mod.id, activeTopic.id)}
                                 className="btn-primary text-midnight text-sm px-4 py-2 disabled:opacity-60">
                                 {savingTopicId === activeTopic.id ? 'Saving…' :
                                   language === 'ht' ? 'Fini sijè a epi kontinye →' :
                                   language === 'fr' ? 'Terminer et continuer →' : 'Complete & Next Topic →'}
-                              </button>
+                              </button>}
                             </div>
                           </div>
                         );

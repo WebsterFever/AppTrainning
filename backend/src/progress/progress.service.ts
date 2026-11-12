@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SubtopicProgress } from './subtopic-progress.entity';
@@ -95,6 +95,10 @@ export class ProgressService {
       (m.topics ?? []).some((topic) => topic.id === topicId),
     );
     if (!mod) throw new NotFoundException('Topic not found');
+    const topic = mod.topics.find((entry) => entry.id === topicId);
+    if ((topic?.subtopics ?? []).some((st) => (st.contentBlocks?.length ?? 0) > 0)) {
+      throw new BadRequestException('Complete all subtopics to finish this topic');
+    }
     const normalizedEmail = email.toLowerCase();
     await this.courseAccessService.assertStudentAccess(classId, mod.id, normalizedEmail);
     const progressId = `topic:${topicId}`;
