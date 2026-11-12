@@ -83,7 +83,7 @@ export class ProgressService {
         if (completed.has(`topic:${topic.id}`)) return true;
         // Preserve progress from the old system: a topic with all of its
         // former subtopics complete is already complete.
-        const legacy = (topic.subtopics ?? []).filter((st) => (st.contentBlocks?.length ?? 0) > 0);
+        const legacy = (topic.subtopics ?? []).filter((st) => ((st.contentBlocks?.length ?? 0) > 0 || !!st.title?.trim() || !!st.description?.trim()));
         return legacy.length > 0 && legacy.every((st) => completed.has(st.id));
       }).map((topic) => topic.id),
     );
@@ -96,7 +96,7 @@ export class ProgressService {
     );
     if (!mod) throw new NotFoundException('Topic not found');
     const topic = mod.topics.find((entry) => entry.id === topicId);
-    if ((topic?.subtopics ?? []).some((st) => (st.contentBlocks?.length ?? 0) > 0)) {
+    if ((topic?.subtopics ?? []).some((st) => ((st.contentBlocks?.length ?? 0) > 0 || !!st.title?.trim() || !!st.description?.trim()))) {
       throw new BadRequestException('Complete all subtopics to finish this topic');
     }
     const normalizedEmail = email.toLowerCase();
