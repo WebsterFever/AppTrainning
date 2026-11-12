@@ -117,7 +117,7 @@ export default function ClassDetail() {
   const getModuleSequence = (mod: NonNullable<ClassItem['curriculumModules']>[number]): SubtopicSeqEntry[] =>
     mod.topics.flatMap((topic) =>
       (topic.subtopics ?? [])
-        .filter((st) => (st.contentBlocks?.length ?? 0) > 0)
+        .filter((st) => ((st.contentBlocks?.length ?? 0) > 0 || !!st.title?.trim() || !!st.description?.trim()))
         .map((st) => ({
           id: st.id,
           topicId: topic.id,
@@ -861,7 +861,7 @@ export default function ClassDetail() {
             // appear until there's real, unlocked lesson content to track.
             const moduleSequence = getModuleSequence(mod);
             const moduleCompletedCount = mod.topics.filter((topic) => {
-              const subtopics = (topic.subtopics ?? []).filter((st) => (st.contentBlocks?.length ?? 0) > 0);
+              const subtopics = (topic.subtopics ?? []).filter((st) => ((st.contentBlocks?.length ?? 0) > 0 || !!st.title?.trim() || !!st.description?.trim()));
               return subtopics.length > 0
                 ? subtopics.every((st) => completedSubtopicIds.has(st.id))
                 : completedTopicIds.has(topic.id);
@@ -884,7 +884,7 @@ export default function ClassDetail() {
             // opened, before any explicit selection exists.
             const hasTopicContent = (topic: (typeof mod.topics)[number]) =>
               (topic.contentBlocks?.length ?? 0) > 0 ||
-              (topic.subtopics ?? []).some((st) => (st.contentBlocks?.length ?? 0) > 0) ||
+              (topic.subtopics ?? []).some((st) => ((st.contentBlocks?.length ?? 0) > 0 || !!st.title?.trim() || !!st.description?.trim())) ||
               (topic.title?.trim().length ?? 0) > 0;
             const selectedTopicId = selectedTopicByModule[mod.id];
             const activeTopic =
@@ -1000,7 +1000,7 @@ export default function ClassDetail() {
                     {allowComments && activeTopic &&
                       (() => {
                         const topicSubtopics = (activeTopic.subtopics ?? []).filter(
-                          (st) => (st.contentBlocks?.length ?? 0) > 0,
+                          (st) => ((st.contentBlocks?.length ?? 0) > 0 || !!st.title?.trim() || !!st.description?.trim()),
                         );
                         const topicProgressPercent = topicSubtopics.length > 0
                           ? Math.round(100 * topicSubtopics.filter((st) => completedSubtopicIds.has(st.id)).length / topicSubtopics.length)
@@ -1064,7 +1064,7 @@ export default function ClassDetail() {
                       const visibleTopics = mod.topics.filter((topic) =>
                         Boolean(topic.title?.trim()) ||
                         (topic.contentBlocks?.length ?? 0) > 0 ||
-                        (topic.subtopics ?? []).some((st) => (st.contentBlocks?.length ?? 0) > 0),
+                        (topic.subtopics ?? []).some((st) => ((st.contentBlocks?.length ?? 0) > 0 || !!st.title?.trim() || !!st.description?.trim())),
                       );
                       const currentIndex = visibleTopics.findIndex((topic) => topic.id === activeTopic.id);
                       const previousTopic = currentIndex > 0 ? visibleTopics[currentIndex - 1] : undefined;
