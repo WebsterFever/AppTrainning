@@ -220,7 +220,7 @@ export default function WinnerOfMonth() {
         <span className="badge bg-amber text-midnight">$100</span>
       </div>
       <p className="text-xs text-ink/60 mt-1">{t('contestIntro')}</p>
-      {!periodEnded && (
+      {!periodEnded && !question?.answered && (
         <p className="text-xs font-mono text-ink/80 mt-2 flex flex-wrap items-center gap-1.5">
           <span>{t('newQuestionAt', { countdown: '__COUNTDOWN__' }).split('__COUNTDOWN__')[0]}</span>
           <span className="inline-block rounded bg-amber px-2 py-0.5 font-bold tabular-nums text-midnight">
@@ -309,9 +309,30 @@ export default function WinnerOfMonth() {
               <p className="text-sm text-ink mt-0.5">{question.questionText}</p>
 
               {question.answered ? (
-                <p className="text-xs text-ink/50 mt-2">
-                  {t('alreadyAnsweredBy', { winner: question.winnerName ?? '' })}
-                </p>
+                <div className="mt-3">
+                  <p className="text-xs text-ink/60">
+                    {t('alreadyAnsweredBy', { winner: question.winnerName ?? '' }).split('.')[0]}.
+                  </p>
+                  <div className="mt-3 border-t border-line pt-3" role="timer" aria-label={language === 'ht' ? 'Tan ki rete pou pwochen kesyon an' : language === 'fr' ? 'Temps avant la prochaine question' : 'Time until next question'}>
+                    <p className="text-xs font-semibold text-ink mb-2">
+                      ⏳ {language === 'ht' ? 'Pwochen kesyon an ap disponib nan:'
+                        : language === 'fr' ? 'La prochaine question sera disponible dans :'
+                        : 'Next question available in:'}
+                    </p>
+                    <div className="flex gap-2">
+                      {[
+                        { value: String(Math.floor(Math.max(0, (nextQuestionTime.getTime() - now.getTime()) / 3600000))).padStart(2, '0'), label: language === 'ht' ? 'Èdtan' : language === 'fr' ? 'Heures' : 'Hours' },
+                        { value: String(Math.floor(Math.max(0, (nextQuestionTime.getTime() - now.getTime()) % 3600000) / 60000)).padStart(2, '0'), label: language === 'ht' ? 'Minit' : language === 'fr' ? 'Minutes' : 'Minutes' },
+                        { value: String(Math.floor(Math.max(0, (nextQuestionTime.getTime() - now.getTime()) % 60000) / 1000)).padStart(2, '0'), label: language === 'ht' ? 'Segonn' : language === 'fr' ? 'Secondes' : 'Seconds' },
+                      ].map((part) => (
+                        <div key={part.label} className="bg-black/5 border border-line rounded-md px-3 py-2 min-w-[68px] text-center">
+                          <p className="font-bold text-lg tabular-nums text-ink">{part.value}</p>
+                          <p className="text-[10px] text-ink/60">{part.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               ) : answerResult ? (
                 <p className="text-sm text-ink mt-2">{answerResult}</p>
               ) : alreadyAttempted ? (
