@@ -1155,6 +1155,19 @@ export default function ClassDetail() {
                               {t('moduleApproved')} — {t('projectApprovedMessage')}
                             </p>
                           </div>
+                        ) : submission?.status === 'pending' ? (
+                          <div className="border border-lessonBorder rounded-sm p-4 bg-black/[0.03]" role="status">
+                            <p className="text-sm font-semibold text-lessonText">
+                              {language === 'ht' ? '⏳ Devwa ou soumèt — ap tann koreksyon pwofesè a'
+                                : language === 'fr' ? '⏳ Devoir envoyé — en attente de correction du professeur'
+                                : '⏳ Homework submitted — awaiting teacher review'}
+                            </p>
+                            <p className="text-xs text-lessonTextMuted mt-2">
+                              {language === 'ht' ? 'Ou pa bezwen soumèt devwa a ankò. Pwofesè a ap verifye repons ou yo.'
+                                : language === 'fr' ? 'Vous n’avez pas besoin de renvoyer votre devoir. Le professeur examinera vos réponses.'
+                                : 'You do not need to submit again. Your teacher will review your answers.'}
+                            </p>
+                          </div>
                         ) : (
                           <div className="border border-lessonBorder rounded-sm p-3 bg-black/[0.03]">
                             <p className="text-xs font-mono uppercase tracking-wide text-lessonTextMuted/80 mb-2">
