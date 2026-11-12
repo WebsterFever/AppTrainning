@@ -80,6 +80,7 @@ export default function StudentActivityDashboard({ classes }: { classes: ClassIt
             </div>
             <div className="text-xs text-ink/70 text-right">
               <p>Active study: <strong>{duration(s.activeSeconds)}</strong></p>
+              <p>Course progress: <strong>{s.progressPercent}%</strong></p>
               <p>Last seen: {s.lastSeenAt ? new Date(s.lastSeenAt).toLocaleString() : 'Never'}</p>
             </div>
           </div>
