@@ -69,6 +69,7 @@ export class RegistrationsService {
     // always reflects the true persisted state rather than a stale local
     // snapshot.
     const completedSubtopicIds = await this.progressService.getCompletedSubtopicIds(classId, email);
+    const completedTopicIds = await this.progressService.getCompletedTopicIds(classId, email);
 
     return {
       success: true,
@@ -77,6 +78,7 @@ export class RegistrationsService {
       curriculumModules,
       moduleAccess,
       completedSubtopicIds,
+      completedTopicIds,
       alreadyRegistered: !!existing,
     };
   }
