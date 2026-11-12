@@ -73,4 +73,40 @@ export class ProgressService {
 
     return this.getCompletedSubtopicIds(classId, normalizedEmail);
   }
+  // Topic completion shares the existing progress table without destructive
+  // schema changes. The prefix distinguishes topic ids from legacy subtopic ids.
+  async getCompletedTopicIds(classId: string, email: string): Promise<string[]> {
+    const trainingClass = await this.classesService.getEntity(classId);
+    const completed = new Set(await this.getCompletedSubtopicIds(classId, email));
+    return (trainingClass.curriculumModules ?? []).flatMap((mod) =>
+      (mod.topics ?? []).filter((topic) => {
+        if (completed.has(`topic:${topic.id}`)) return true;
+        // Preserve progress from the old system: a topic with all of its
+        // former subtopics complete is already complete.
+        const legacy = (topic.subtopics ?? []).filter((st) => (st.contentBlocks?.length ?? 0) > 0);
+        return legacy.length > 0 && legacy.every((st) => completed.has(st.id));
+      }).map((topic) => topic.id),
+    );
+  }
+
+  async markTopicComplete(classId: string, topicId: string, email: string): Promise<string[]> {
+    const trainingClass = await this.classesService.getEntity(classId);
+    const mod = (trainingClass.curriculumModules ?? []).find((m) =>
+      (m.topics ?? []).some((topic) => topic.id === topicId),
+    );
+    if (!mod) throw new NotFoundException('Topic not found');
+    const normalizedEmail = email.toLowerCase();
+    await this.courseAccessService.assertStudentAccess(classId, mod.id, normalizedEmail);
+    const progressId = `topic:${topicId}`;
+    const existing = await this.progressRepo.findOne({
+      where: { trainingClass: { id: classId }, subtopicId: progressId, email: normalizedEmail },
+    });
+    if (!existing) {
+      await this.progressRepo.save(this.progressRepo.create({
+        trainingClass, subtopicId: progressId, email: normalizedEmail, completedAt: new Date(),
+      }));
+    }
+    return this.getCompletedTopicIds(classId, normalizedEmail);
+  }
+
 }

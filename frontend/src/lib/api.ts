@@ -572,6 +572,7 @@ export const api = {
         // treatment as moduleAccess) so a refresh always reflects the true
         // persisted state.
         completedSubtopicIds?: string[];
+        completedTopicIds?: string[];
         alreadyRegistered: boolean;
       }>(r),
     ),
@@ -580,6 +581,13 @@ export const api = {
   // Next/Complete at the end of it, never just from opening it. The
   // server independently re-verifies registration + module-unlock before
   // writing anything, same as every other progress-affecting endpoint.
+  completeTopic: (classId: string, topicId: string, email: string) =>
+    fetch(`${BASE_URL}/classes/${classId}/topics/${topicId}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).then((r) => handle<{ completedTopicIds: string[] }>(r)),
+
   completeSubtopic: (classId: string, subtopicId: string, email: string) =>
     fetch(`${BASE_URL}/classes/${classId}/subtopics/${subtopicId}/complete`, {
       method: 'POST',

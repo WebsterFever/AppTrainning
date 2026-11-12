@@ -2,13 +2,13 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SubtopicProgress } from './subtopic-progress.entity';
 import { ProgressService } from './progress.service';
-import { ProgressController } from './progress.controller';
+import { ProgressController, TopicProgressController } from './progress.controller';
 import { ClassesModule } from '../classes/classes.module';
 import { CourseAccessModule } from '../classes/course-access/course-access.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([SubtopicProgress]), ClassesModule, CourseAccessModule],
-  controllers: [ProgressController],
+  controllers: [ProgressController, TopicProgressController],
   providers: [ProgressService],
   exports: [ProgressService],
 })

@@ -59,6 +59,8 @@ export default function ClassDetail() {
   // Module's sequence, which is why progress still "resumes" naturally
   // after a refresh even though the exact scroll position isn't saved.
   const [completedSubtopicIds, setCompletedSubtopicIds] = useState<Set<string>>(new Set());
+  const [completedTopicIds, setCompletedTopicIds] = useState<Set<string>>(new Set());
+  const [savingTopicId, setSavingTopicId] = useState<string | null>(null);
   const [activeSubtopicByModule, setActiveSubtopicByModule] = useState<Record<string, string>>({});
   const [savingSubtopicId, setSavingSubtopicId] = useState<string | null>(null);
   // Which Module the main reading pane currently shows — the Course
@@ -159,6 +161,27 @@ export default function ClassDetail() {
   // Marks the given Subtopic complete server-side, then advances to the
   // next one in the Module's sequence (or stays put if it was the last —
   // the button becomes a harmless re-confirm at that point).
+  const completeAndAdvanceTopic = async (moduleId: string, topicId: string) => {
+    if (!id || !email) return;
+    setSavingTopicId(topicId);
+    try {
+      const result = await api.completeTopic(id, topicId, email);
+      setCompletedTopicIds(new Set(result.completedTopicIds));
+      const topics = item?.curriculumModules?.find((mod) => mod.id === moduleId)?.topics ?? [];
+      const currentIndex = topics.findIndex((topic) => topic.id === topicId);
+      const next = topics[currentIndex + 1];
+      if (next) {
+        setSelectedTopicByModule((current) => ({ ...current, [moduleId]: next.id }));
+        setSelectedModuleId(moduleId);
+        setMobileNavOpen(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('somethingWentWrong'));
+    } finally {
+      setSavingTopicId(null);
+    }
+  };
+
   const completeAndAdvanceSubtopic = async (moduleId: string, sequence: SubtopicSeqEntry[], subtopicId: string) => {
     if (!id) return;
     setSavingSubtopicId(subtopicId);
@@ -222,6 +245,7 @@ export default function ClassDetail() {
             );
             setModuleAccess(res.moduleAccess ?? []);
             setCompletedSubtopicIds(new Set(res.completedSubtopicIds ?? []));
+      setCompletedTopicIds(new Set(res.completedTopicIds ?? []));
             setUnlocked(true);
             setConfirmingPayment(false);
           })
@@ -298,6 +322,7 @@ export default function ClassDetail() {
       );
       setModuleAccess(res.moduleAccess ?? []);
       setCompletedSubtopicIds(new Set(res.completedSubtopicIds ?? []));
+      setCompletedTopicIds(new Set(res.completedTopicIds ?? []));
       setUnlocked(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : t('somethingWentWrong');
@@ -329,6 +354,7 @@ export default function ClassDetail() {
       );
       setModuleAccess(res.moduleAccess ?? []);
       setCompletedSubtopicIds(new Set(res.completedSubtopicIds ?? []));
+      setCompletedTopicIds(new Set(res.completedTopicIds ?? []));
     } catch (err) {
       setSubmitErrors((current) => ({
         ...current,
@@ -834,9 +860,9 @@ export default function ClassDetail() {
             // of contentBlocks), so the progress badge naturally doesn't
             // appear until there's real, unlocked lesson content to track.
             const moduleSequence = getModuleSequence(mod);
-            const moduleCompletedCount = moduleSequence.filter((e) => completedSubtopicIds.has(e.id)).length;
+            const moduleCompletedCount = mod.topics.filter((topic) => completedTopicIds.has(topic.id)).length;
             const moduleProgressPercent =
-              moduleSequence.length > 0 ? Math.round((moduleCompletedCount / moduleSequence.length) * 100) : null;
+              mod.topics.length > 0 ? Math.round((moduleCompletedCount / mod.topics.length) * 100) : null;
             const activeSubtopicId = getActiveSubtopicId(mod.id, moduleSequence);
             // The single Topic to actually render in the main reading pane.
             // The Course Content sidebar (LessonNav) is the only place a
@@ -971,13 +997,7 @@ export default function ClassDetail() {
                         const topicSubtopics = (activeTopic.subtopics ?? []).filter(
                           (st) => (st.contentBlocks?.length ?? 0) > 0,
                         );
-                        const topicCompletedCount = topicSubtopics.filter((st) =>
-                          completedSubtopicIds.has(st.id),
-                        ).length;
-                        const topicProgressPercent =
-                          topicSubtopics.length > 0
-                            ? Math.round((topicCompletedCount / topicSubtopics.length) * 100)
-                            : null;
+                        const topicProgressPercent = completedTopicIds.has(activeTopic.id) ? 100 : 0;
                         // No toggle button, no sibling Topic titles — the
                         // Course Content sidebar is the only place a Topic
                         // gets picked, so this is just a plain heading for
@@ -1005,6 +1025,8 @@ export default function ClassDetail() {
                               {/* Subtopics — one nested level deeper, rendered via the
                                   shared sequential viewer, which itself already shows
                                   only the one active Subtopic (never its siblings). */}
+                              {/* Legacy subtopic lessons remain readable during the
+                                  non-destructive transition to topic completion. */}
                               {topicSubtopics.length > 0 && (
                                 <SubtopicProgressPanel
                                   subtopics={topicSubtopics}
@@ -1019,6 +1041,14 @@ export default function ClassDetail() {
                                   renderContentBlock={renderContentBlock}
                                 />
                               )}
+                              <button type="button"
+                                disabled={savingTopicId === activeTopic.id}
+                                onClick={() => completeAndAdvanceTopic(mod.id, activeTopic.id)}
+                                className="btn-primary text-midnight text-sm px-4 py-2 disabled:opacity-60">
+                                {savingTopicId === activeTopic.id ? 'Saving…' :
+                                  language === 'ht' ? 'Fini sijè a epi kontinye →' :
+                                  language === 'fr' ? 'Terminer et continuer →' : 'Complete & Next Topic →'}
+                              </button>
                             </div>
                           </div>
                         );
@@ -1220,6 +1250,7 @@ export default function ClassDetail() {
                     modules={item.curriculumModules}
                     moduleAccess={moduleAccess}
                     completedSubtopicIds={completedSubtopicIds}
+                completedTopicIds={completedTopicIds}
                     openModules={openModules}
                     onToggleModule={toggleModule}
                     openTopics={openTopics}
@@ -1237,6 +1268,7 @@ export default function ClassDetail() {
                 modules={item.curriculumModules}
                 moduleAccess={moduleAccess}
                 completedSubtopicIds={completedSubtopicIds}
+                completedTopicIds={completedTopicIds}
                 openModules={openModules}
                 onToggleModule={toggleModule}
                 openTopics={openTopics}
