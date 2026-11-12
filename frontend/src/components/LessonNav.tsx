@@ -22,6 +22,7 @@ export default function LessonNav({
   modules,
   moduleAccess,
   completedSubtopicIds,
+  completedTopicIds,
   openModules,
   onToggleModule,
   openTopics,
@@ -35,6 +36,7 @@ export default function LessonNav({
   modules: Module[];
   moduleAccess: ModuleAccess[];
   completedSubtopicIds: Set<string>;
+  completedTopicIds: Set<string>;
   openModules: Set<string>;
   onToggleModule: (id: string) => void;
   openTopics: Set<string>;
@@ -69,8 +71,8 @@ export default function LessonNav({
           const isUnlocked = !access || access.unlocked;
           const isOpen = openModules.has(mod.id);
           const sequence = getModuleSequence(mod);
-          const completedCount = sequence.filter((e) => completedSubtopicIds.has(e.id)).length;
-          const percent = sequence.length > 0 ? Math.round((completedCount / sequence.length) * 100) : null;
+          const completedCount = mod.topics.filter((topic) => completedTopicIds.has(topic.id)).length;
+          const percent = mod.topics.length > 0 ? Math.round((completedCount / mod.topics.length) * 100) : null;
           const activeId = isUnlocked ? getActiveSubtopicId(mod.id, sequence) : null;
 
           return (
@@ -124,7 +126,7 @@ export default function LessonNav({
                           aria-current={selectedTopicId === topic.id ? 'true' : undefined}
                           className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-left transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber/70"
                         >
-                          <span className="text-[13px] text-lessonNavText truncate">{topic.title}</span>
+                          <span className="text-[13px] text-lessonNavText truncate">{completedTopicIds.has(topic.id) ? '✓ ' : '○ '}{topic.title}</span>
                           {topicSubtopics.length > 0 && (
                             <span
                               className={`text-lessonNavTextMuted text-[10px] transition-transform flex-shrink-0 ${topicOpen ? 'rotate-180' : ''}`}
