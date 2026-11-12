@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, ClassItem, ContentBlock, ModuleAccess, visitorIdentity } from '../lib/api';
 import Header from '../components/Header';
@@ -73,6 +73,43 @@ export default function ClassDetail() {
   // Mobile/tablet Course Content drawer — the sidebar is `hidden lg:flex`
   // below that breakpoint, so this is the only way to reach it there.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Activity tracking starts only after registration succeeds. A browser
+  // session is anonymous until the learner supplies their registered email.
+  const activitySessionId = useRef<string>(crypto.randomUUID());
+  const lastInteractionAt = useRef<number>(Date.now());
+  const activityLocation = useRef<{ moduleId?: string; topicId?: string; subtopicId?: string }>({});
+  activityLocation.current = {
+    moduleId: selectedModuleId ?? undefined,
+    topicId: selectedModuleId ? selectedTopicByModule[selectedModuleId] : undefined,
+    subtopicId: selectedModuleId ? activeSubtopicByModule[selectedModuleId] : undefined,
+  };
+
+  useEffect(() => {
+    if (!id || !unlocked || !email) return;
+    let lastTick = Date.now();
+    const markInteraction = () => { lastInteractionAt.current = Date.now(); };
+    const events = ['pointerdown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach((event) => window.addEventListener(event, markInteraction, { passive: true }));
+    // First heartbeat marks the session online, without claiming study time.
+    void api.sendActivity(id, {
+      email, sessionId: activitySessionId.current, ...activityLocation.current, activeSeconds: 0,
+    }).catch(() => {});
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      const elapsed = Math.min(30, Math.max(0, Math.floor((now - lastTick) / 1000)));
+      lastTick = now;
+      if (document.visibilityState !== 'visible') return;
+      const activeSeconds = now - lastInteractionAt.current < 60000 ? elapsed : 0;
+      void api.sendActivity(id, {
+        email, sessionId: activitySessionId.current, ...activityLocation.current, activeSeconds,
+      }).catch(() => {});
+    }, 30000);
+    return () => {
+      window.clearInterval(timer);
+      events.forEach((event) => window.removeEventListener(event, markInteraction));
+    };
+  }, [id, unlocked, email]);
+
 
   const toggleVideo = (i: number) => {
     setOpenVideos((current) => {
