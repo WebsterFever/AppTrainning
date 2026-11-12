@@ -16,6 +16,6 @@ export class CreateSubmissionDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(20000)
   studentNotes?: string;
 }
