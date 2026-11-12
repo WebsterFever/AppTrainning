@@ -1068,8 +1068,7 @@ export default function ClassDetail() {
                       );
                       const currentIndex = visibleTopics.findIndex((topic) => topic.id === activeTopic.id);
                       const previousTopic = currentIndex > 0 ? visibleTopics[currentIndex - 1] : undefined;
-                      const nextTopic = currentIndex >= 0 ? visibleTopics[currentIndex + 1] : undefined;
-                      if (!previousTopic && !nextTopic) return null;
+                      if (!previousTopic) return null;
                       const selectTopic = (topicId: string) => {
                         setSelectedTopicByModule((current) => ({ ...current, [mod.id]: topicId }));
                         setSelectedModuleId(mod.id);
@@ -1089,12 +1088,7 @@ export default function ClassDetail() {
                               {language === 'ht' ? '← Sijè anvan' : language === 'fr' ? '← Sujet précédent' : '← Previous topic'}
                             </button>
                           ) : <span />}
-                          {nextTopic && (
-                            <button type="button" className="rounded-lg bg-amber px-4 py-2 text-sm font-bold text-midnight hover:opacity-90"
-                              onClick={() => selectTopic(nextTopic.id)}>
-                              {language === 'ht' ? 'Pwochen sijè →' : language === 'fr' ? 'Sujet suivant →' : 'Next topic →'}
-                            </button>
-                          )}
+
                         </nav>
                       );
                     })()}
