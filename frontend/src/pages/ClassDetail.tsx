@@ -846,7 +846,8 @@ export default function ClassDetail() {
             // opened, before any explicit selection exists.
             const hasTopicContent = (topic: (typeof mod.topics)[number]) =>
               (topic.contentBlocks?.length ?? 0) > 0 ||
-              (topic.subtopics ?? []).some((st) => (st.contentBlocks?.length ?? 0) > 0);
+              (topic.subtopics ?? []).some((st) => (st.contentBlocks?.length ?? 0) > 0) ||
+              topic.title.trim().length > 0;
             const activeTopic =
               mod.topics.find((topic) => {
                 const topicSubtopics = (topic.subtopics ?? []).filter(
@@ -855,7 +856,7 @@ export default function ClassDetail() {
                 if (topicSubtopics.length > 0) {
                   return topicSubtopics.some((st) => st.id === activeSubtopicId);
                 }
-                return (topic.contentBlocks?.length ?? 0) > 0 && openTopics.has(topic.id);
+                return openTopics.has(topic.id) && hasTopicContent(topic);
               }) ?? mod.topics.find(hasTopicContent);
             // Auto-expand a Module once the student has explicitly
             // navigated to one of its Subtopics (e.g. via the lesson nav
