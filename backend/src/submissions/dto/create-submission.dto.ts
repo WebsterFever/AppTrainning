@@ -9,7 +9,7 @@ export class CreateSubmissionDto {
   @IsEmail()
   email: string;
 
-  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @Transform(({ value }) => typeof value === 'string' ? (value.trim() || undefined) : value)
   @IsOptional()
   @IsUrl({ require_protocol: true, protocols: ['http', 'https'] }, { message: 'Enter a valid link starting with https:// or leave it blank' })
   githubUrl: string;
