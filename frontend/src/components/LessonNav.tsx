@@ -107,7 +107,7 @@ export default function LessonNav({
                     const hasDirectContent = (topic.contentBlocks?.length ?? 0) > 0;
                     // A topic title is valid curriculum content even before the
                     // teacher adds text, videos or subtopics. Keep it visible.
-                    if (!topic.title.trim() && topicSubtopics.length === 0 && !hasDirectContent) return null;
+                    if (!topic.title?.trim() && topicSubtopics.length === 0 && !hasDirectContent) return null;
                     // Same auto-expand-if-it-contains-the-active-Subtopic
                     // rule the main reading pane's accordion uses, so the
                     // sidebar never shows a Topic collapsed while its
