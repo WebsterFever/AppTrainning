@@ -1055,7 +1055,7 @@ export default function ClassDetail() {
                                 {savingTopicId === activeTopic.id ? 'Saving…' :
                                   language === 'ht' ? 'Fini sijè a epi kontinye →' :
                                   language === 'fr' ? 'Terminer et continuer →' : 'Complete & Next Topic →'}
-                              </button>
+                              </button>}
                             </div>
                           </div>
                         );
