@@ -72,7 +72,7 @@ export default function LessonNav({
           const isOpen = openModules.has(mod.id);
           const sequence = getModuleSequence(mod);
           const completedCount = mod.topics.filter((topic) => {
-            const subtopics = (topic.subtopics ?? []).filter((st) => (st.contentBlocks?.length ?? 0) > 0);
+            const subtopics = (topic.subtopics ?? []).filter((st) => ((st.contentBlocks?.length ?? 0) > 0 || !!st.title?.trim() || !!st.description?.trim()));
             return subtopics.length > 0
               ? subtopics.every((st) => completedSubtopicIds.has(st.id))
               : completedTopicIds.has(topic.id);
@@ -111,7 +111,7 @@ export default function LessonNav({
                 <div className="ml-2.5 pl-2.5 border-l border-lessonNavBorder space-y-0.5 mb-1.5">
                   {mod.topics.map((topic) => {
                     const topicSubtopics = (topic.subtopics ?? []).filter(
-                      (st) => (st.contentBlocks?.length ?? 0) > 0,
+                      (st) => ((st.contentBlocks?.length ?? 0) > 0 || !!st.title?.trim() || !!st.description?.trim()),
                     );
                     const hasDirectContent = (topic.contentBlocks?.length ?? 0) > 0;
                     // A topic title is valid curriculum content even before the

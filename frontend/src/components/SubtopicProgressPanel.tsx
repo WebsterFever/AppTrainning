@@ -100,7 +100,7 @@ export default function SubtopicProgressPanel({
   }, [activeSubtopicId]);
 
   const activeSubtopic = subtopics.find(
-    (st) => st.id === activeSubtopicId && (st.contentBlocks?.length ?? 0) > 0,
+    (st) => st.id === activeSubtopicId && ((st.contentBlocks?.length ?? 0) > 0 || !!st.title?.trim() || !!st.description?.trim()),
   );
 
   if (!activeSubtopic) {
