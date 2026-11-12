@@ -847,7 +847,7 @@ export default function ClassDetail() {
             const hasTopicContent = (topic: (typeof mod.topics)[number]) =>
               (topic.contentBlocks?.length ?? 0) > 0 ||
               (topic.subtopics ?? []).some((st) => (st.contentBlocks?.length ?? 0) > 0) ||
-              topic.title.trim().length > 0;
+              (topic.title?.trim().length ?? 0) > 0;
             const activeTopic =
               mod.topics.find((topic) => {
                 const topicSubtopics = (topic.subtopics ?? []).filter(
