@@ -26,6 +26,7 @@ export default function LessonNav({
   onToggleModule,
   openTopics,
   onToggleTopic,
+  selectedTopicId,
   getModuleSequence,
   getActiveSubtopicId,
   onNavigateSubtopic,
@@ -37,7 +38,8 @@ export default function LessonNav({
   openModules: Set<string>;
   onToggleModule: (id: string) => void;
   openTopics: Set<string>;
-  onToggleTopic: (id: string) => void;
+  onToggleTopic: (moduleId: string, id: string) => void;
+  selectedTopicId?: string;
   getModuleSequence: (mod: Module) => SubtopicSeqEntry[];
   getActiveSubtopicId: (moduleId: string, sequence: SubtopicSeqEntry[]) => string | null;
   onNavigateSubtopic: (moduleId: string, subtopicId: string) => void;
@@ -118,7 +120,8 @@ export default function LessonNav({
                       <div key={topic.id}>
                         <button
                           type="button"
-                          onClick={() => onToggleTopic(topic.id)}
+                          onClick={() => onToggleTopic(mod.id, topic.id)}
+                          aria-current={selectedTopicId === topic.id ? 'true' : undefined}
                           className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-left transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber/70"
                         >
                           <span className="text-[13px] text-lessonNavText truncate">{topic.title}</span>
