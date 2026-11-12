@@ -48,6 +48,8 @@ export default function LessonNav({
   variant?: 'desktop' | 'drawer';
 }) {
   const { t } = useLanguage();
+  void openTopics;
+  void onNavigateSubtopic;
 
   return (
     <nav
@@ -73,7 +75,7 @@ export default function LessonNav({
           const sequence = getModuleSequence(mod);
           const completedCount = mod.topics.filter((topic) => completedTopicIds.has(topic.id)).length;
           const percent = mod.topics.length > 0 ? Math.round((completedCount / mod.topics.length) * 100) : null;
-          const activeId = isUnlocked ? getActiveSubtopicId(mod.id, sequence) : null;
+          void getActiveSubtopicId;
 
           return (
             <div key={mod.id}>
@@ -105,19 +107,9 @@ export default function LessonNav({
               {isOpen && isUnlocked && (
                 <div className="ml-2.5 pl-2.5 border-l border-lessonNavBorder space-y-0.5 mb-1.5">
                   {mod.topics.map((topic) => {
-                    const topicSubtopics = (topic.subtopics ?? []).filter(
-                      (st) => (st.contentBlocks?.length ?? 0) > 0,
-                    );
                     const hasDirectContent = (topic.contentBlocks?.length ?? 0) > 0;
-                    // A topic title is valid curriculum content even before the
-                    // teacher adds text, videos or subtopics. Keep it visible.
-                    if (!topic.title?.trim() && topicSubtopics.length === 0 && !hasDirectContent) return null;
-                    // Same auto-expand-if-it-contains-the-active-Subtopic
-                    // rule the main reading pane's accordion uses, so the
-                    // sidebar never shows a Topic collapsed while its
-                    // content is already open in the reading pane.
-                    const containsActive = topicSubtopics.some((st) => st.id === activeId);
-                    const topicOpen = openTopics.has(topic.id) || containsActive;
+                    const hasLegacyContent = (topic.subtopics ?? []).some((st) => (st.contentBlocks?.length ?? 0) > 0);
+                    if (!topic.title?.trim() && !hasDirectContent && !hasLegacyContent) return null;
                     return (
                       <div key={topic.id}>
                         <button
@@ -127,53 +119,16 @@ export default function LessonNav({
                           className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-left transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber/70"
                         >
                           <span className="text-[13px] text-lessonNavText truncate">{completedTopicIds.has(topic.id) ? '✓ ' : '○ '}{topic.title}</span>
-                          {topicSubtopics.length > 0 && (
+                          {false && (
                             <span
-                              className={`text-lessonNavTextMuted text-[10px] transition-transform flex-shrink-0 ${topicOpen ? 'rotate-180' : ''}`}
+                              className={`text-lessonNavTextMuted text-[10px] transition-transform flex-shrink-0 ${false ? 'rotate-180' : ''}`}
                               aria-hidden="true"
                             >
                               ▾
                             </span>
                           )}
                         </button>
-                        {topicOpen && topicSubtopics.length > 0 && (
-                          <div className="ml-2 pl-2 border-l border-lessonNavBorder space-y-0.5">
-                            {topicSubtopics.map((st) => {
-                              const isActive = st.id === activeId;
-                              const isCompleted = completedSubtopicIds.has(st.id);
-                              return (
-                                <button
-                                  key={st.id}
-                                  type="button"
-                                  onClick={() => onNavigateSubtopic(mod.id, st.id)}
-                                  aria-current={isActive ? 'true' : undefined}
-                                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-[12px] leading-snug transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber/70 ${
-                                    isActive
-                                      ? 'bg-lessonNavActive border border-lessonNavActiveBorder'
-                                      : 'border border-transparent hover:bg-white/5'
-                                  }`}
-                                >
-                                  <span className="flex-shrink-0" aria-hidden="true">
-                                    {isCompleted ? '✓' : '○'}
-                                  </span>
-                                  {/* Subtopic names only (never Module/Topic
-                                      names) — red-400 rather than the site's
-                                      red-600 "coral" tone since this sidebar
-                                      is a fixed-dark surface in both themes
-                                      (see index.css); a lighter red keeps
-                                      strong contrast there instead of going
-                                      muddy against a near-black background.
-                                      The selected state still comes from the
-                                      background/border above, not a second
-                                      red shade, so it stays a clear but
-                                      distinct step up from the unselected
-                                      (already-red) rows. */}
-                                  <span className="truncate flex-1 font-semibold text-red-400">{st.title}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
+
                       </div>
                     );
                   })}
