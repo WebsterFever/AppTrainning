@@ -8,6 +8,7 @@ import AdminChat from '../components/AdminChat';
 import ClassManager from '../components/ClassManager';
 import AdminContest from '../components/AdminContest';
 import AdminSubmissions from '../components/AdminSubmissions';
+import StudentActivityDashboard from '../components/StudentActivityDashboard';
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | undefined>(undefined);
@@ -80,6 +81,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </header>
+
+      <StudentActivityDashboard classes={classes} />
 
       <ClassManager
         isPaid={false}

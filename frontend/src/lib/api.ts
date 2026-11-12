@@ -416,6 +416,19 @@ export interface ChatThread {
   unreadCount: number;
 }
 
+export interface StudentActivitySummary {
+  name: string;
+  email: string;
+  registeredAt: string;
+  online: boolean;
+  lastSeenAt: string | null;
+  moduleId: string | null;
+  topicId: string | null;
+  subtopicId: string | null;
+  activeSeconds: number;
+  progressPercent: number;
+}
+
 export interface RegistrationDetail {
   id: string;
   name: string;
@@ -745,6 +758,18 @@ export const api = {
     }).then((r) => handle<{ url: string }>(r)),
 
   // Admin only: full registrant list (name, email, registration date) for a class.
+  studentActivity: (classId: string) =>
+    fetch(`${BASE_URL}/admin/classes/${classId}/activity`, { headers: authHeader() })
+      .then((r) => handle<StudentActivitySummary[]>(r)),
+
+  sendActivity: (classId: string, payload: {
+    email: string; sessionId: string; moduleId?: string; topicId?: string;
+    subtopicId?: string; activeSeconds: number;
+  }) => fetch(`${BASE_URL}/classes/${classId}/activity/heartbeat`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).then((r) => handle<{ ok: boolean }>(r)),
+
   listRegistrations: (classId: string) =>
     fetch(`${BASE_URL}/admin/classes/${classId}/registrations`, { headers: authHeader() }).then(
       (r) => handle<RegistrationDetail[]>(r),

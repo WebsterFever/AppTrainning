@@ -15,6 +15,7 @@ import { SubmissionsModule } from './submissions/submissions.module';
 import { AiTeacherModule } from './classes/ai-teacher/ai-teacher.module';
 import { VideoRenderModule } from './classes/video-render/video-render.module';
 import { ProgressModule } from './progress/progress.module';
+import { ActivityModule } from './activity/activity.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { ProgressModule } from './progress/progress.module';
     AiTeacherModule,
     VideoRenderModule,
     ProgressModule,
+    ActivityModule,
   ],
 })
 export class AppModule {}
