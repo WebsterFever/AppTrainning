@@ -65,14 +65,14 @@ export default function AdminSubmissions() {
                 {statusBadge(s.status)}
               </div>
 
-              <a
+              {s.githubUrl && <a
                 href={s.githubUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-outline text-xs px-3 py-1.5 inline-block mt-3"
               >
-                Open GitHub repository ↗
-              </a>
+                Open submitted link ↗
+              </a>}
 
               {s.studentNotes && (
                 <p className="text-sm text-ink/70 mt-2 whitespace-pre-line">{s.studentNotes}</p>
