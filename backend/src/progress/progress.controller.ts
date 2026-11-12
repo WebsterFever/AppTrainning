@@ -19,3 +19,14 @@ export class ProgressController {
     return { completedSubtopicIds };
   }
 }
+
+@Controller('classes/:classId/topics/:topicId')
+export class TopicProgressController {
+  constructor(private readonly progressService: ProgressService) {}
+
+  @Post('complete')
+  async complete(@Param('classId') classId: string, @Param('topicId') topicId: string,
+    @Body() dto: CompleteSubtopicDto) {
+    return { completedTopicIds: await this.progressService.markTopicComplete(classId, topicId, dto.email) };
+  }
+}
