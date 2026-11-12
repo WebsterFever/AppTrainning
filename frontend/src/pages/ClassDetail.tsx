@@ -1372,6 +1372,15 @@ export default function ClassDetail() {
       <Header />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10 w-full flex-1 animate-fade-in">
+        {unlocked && (
+          <p className="mb-3 text-xs text-ink/60" role="note">
+            {language === 'ht'
+              ? 'Lekòl la anrejistre prezans ou, dènye aktivite ou, sijè ou ap etidye ak yon estimasyon tan etid ou pou pwofesè a ka swiv pwogrè ou.'
+              : language === 'fr'
+                ? 'L’école enregistre votre présence, votre dernière activité, la leçon consultée et une estimation du temps d’étude pour suivre votre progression.'
+                : 'The school records your course presence, last activity, current lesson and estimated active study time to monitor learning progress.'}
+          </p>
+        )}
         <Link to="/" className="text-xs font-mono text-ink/50 hover:text-ink">
           {t('allClasses')}
         </Link>
