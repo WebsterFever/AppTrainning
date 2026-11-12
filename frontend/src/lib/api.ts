@@ -426,6 +426,7 @@ export interface StudentActivitySummary {
   topicId: string | null;
   subtopicId: string | null;
   activeSeconds: number;
+  progressPercent: number;
 }
 
 export interface RegistrationDetail {
