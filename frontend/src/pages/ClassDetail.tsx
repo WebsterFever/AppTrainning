@@ -1023,6 +1023,44 @@ export default function ClassDetail() {
                           </div>
                         );
                       })()}
+                    {allowComments && activeTopic && (() => {
+                      const visibleTopics = mod.topics.filter((topic) =>
+                        Boolean(topic.title?.trim()) ||
+                        (topic.contentBlocks?.length ?? 0) > 0 ||
+                        (topic.subtopics ?? []).some((st) => (st.contentBlocks?.length ?? 0) > 0),
+                      );
+                      const currentIndex = visibleTopics.findIndex((topic) => topic.id === activeTopic.id);
+                      const previousTopic = currentIndex > 0 ? visibleTopics[currentIndex - 1] : undefined;
+                      const nextTopic = currentIndex >= 0 ? visibleTopics[currentIndex + 1] : undefined;
+                      if (!previousTopic && !nextTopic) return null;
+                      const selectTopic = (topicId: string) => {
+                        setSelectedTopicByModule((current) => ({ ...current, [mod.id]: topicId }));
+                        setSelectedModuleId(mod.id);
+                        setMobileNavOpen(false);
+                        // Reset the subtopic pointer when moving to a different topic.
+                        setActiveSubtopicByModule((current) => {
+                          const updated = { ...current };
+                          delete updated[mod.id];
+                          return updated;
+                        });
+                      };
+                      return (
+                        <nav aria-label="Topic navigation" className="flex flex-wrap items-center justify-between gap-3 border-t border-lessonBorder pt-4">
+                          {previousTopic ? (
+                            <button type="button" className="rounded-lg border border-lessonBorder px-4 py-2 text-sm font-semibold text-lessonText hover:bg-black/5"
+                              onClick={() => selectTopic(previousTopic.id)}>
+                              {language === 'ht' ? '← Sijè anvan' : language === 'fr' ? '← Sujet précédent' : '← Previous topic'}
+                            </button>
+                          ) : <span />}
+                          {nextTopic && (
+                            <button type="button" className="rounded-lg bg-amber px-4 py-2 text-sm font-bold text-midnight hover:opacity-90"
+                              onClick={() => selectTopic(nextTopic.id)}>
+                              {language === 'ht' ? 'Pwochen sijè →' : language === 'fr' ? 'Sujet suivant →' : 'Next topic →'}
+                            </button>
+                          )}
+                        </nav>
+                      );
+                    })()}
                     {mod.project && (
                       <div>
                         <p className="text-xs font-semibold text-lessonTextMuted">{t('moduleProjectLabel')}</p>
