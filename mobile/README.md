@@ -1,9 +1,9 @@
-# Webster Technology School — Android app (Expo)
+# Webster Technology School — Mobile app — iPhone and Android (Expo)
 
 This is a **React Native / Expo TypeScript starter**, separate from the existing React website. It uses the **existing NestJS backend** and database; do not create a second backend.
 
 ## Implemented in this starter
-- Native Android UI, Haitian Creole / English / French selector
+- Native iOS / Android UI, Haitian Creole / English / French selector
 - Upcoming and past course lists, refreshed every 10 seconds and on pull-to-refresh
 - Full course poster, course details, and free-class registration
 - Existing student chat API (load/send messages); manual refresh, not yet socket realtime
@@ -18,9 +18,9 @@ Full curriculum lesson playback and progress, admin/teacher dashboard, contest, 
 2. Clone: `git clone https://github.com/WebsterFever/AppTrainning.git`
 3. `cd AppTrainning/mobile`
 4. `npm install`
-5. Copy `.env.example` to `.env` and replace `YOUR-EXISTING-BACKEND-URL` with the existing HTTPS NestJS API address (not the website frontend URL).
+5. Copy `.env.example` to `.env` and use the prefilled existing Railway backend URL `https://apptrainning-production.up.railway.app` (not the website frontend URL). The same public API URL is also the app's default if `.env` is missing.
 6. `npx expo start`
-7. Install **Expo Go** on your Android phone and scan the QR code, or run an Android emulator.
+7. Install **Expo Go** on your iPhone or Android phone and scan the QR code, or run an Android emulator. On iPhone, use the Camera app to scan the QR code. Ensure Expo Go and the project's SDK are compatible.
 
 ### Android build
 Install EAS CLI: `npm install -g eas-cli`; then `eas login`, `eas build:configure`, `eas build -p android --profile preview` for a test APK. For Play Store use `eas build -p android --profile production` (AAB), then configure the Play Console listing, privacy policy, data safety, account requirements and app review.
