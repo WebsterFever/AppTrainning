@@ -1,4 +1,4 @@
-import { Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { LiveClassroomService } from './live-classroom.service';
 
@@ -6,6 +6,11 @@ import { LiveClassroomService } from './live-classroom.service';
 @UseGuards(JwtAuthGuard)
 export class LiveClassroomController {
   constructor(private readonly live: LiveClassroomService) {}
+
+  @Get('status')
+  status(@Param('classId') classId: string) {
+    return this.live.configurationStatus(classId);
+  }
 
   /** Admin-only token. Never accept a user-selected role or room name. */
   @Post('teacher-token')
