@@ -16,6 +16,17 @@ export class LiveClassroomService {
     private readonly classes: ClassesService,
   ) {}
 
+  async configurationStatus(classId: string) {
+    await this.classes.getEntity(classId);
+    const serverUrl = this.config.get<string>('LIVEKIT_URL');
+    const apiKey = this.config.get<string>('LIVEKIT_API_KEY');
+    const apiSecret = this.config.get<string>('LIVEKIT_API_SECRET');
+    return {
+      configured: Boolean(serverUrl && /^wss:\/\//.test(serverUrl) && apiKey && apiSecret),
+      roomName: `webster-class-${classId}`,
+    };
+  }
+
   async teacherConnection(classId: string, adminId: string) {
     // Check that the requested class actually exists.
     await this.classes.getEntity(classId);
