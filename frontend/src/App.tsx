@@ -7,6 +7,7 @@ import BookClass from './pages/BookClass';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
+import LiveClassroom from './pages/LiveClassroom';
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/past" element={<PastClasses />} />
       <Route path="/classes/:id" element={<ClassDetail />} />
+      <Route path="/classes/:id/live" element={<LiveClassroom />} />
       <Route path="/book" element={<BookClass />} />
       <Route path="/admin" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
