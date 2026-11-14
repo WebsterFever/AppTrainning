@@ -9,6 +9,7 @@ import ClassManager from '../components/ClassManager';
 import AdminContest from '../components/AdminContest';
 import AdminSubmissions from '../components/AdminSubmissions';
 import StudentActivityDashboard from '../components/StudentActivityDashboard';
+import LiveClassroomAdmin from '../components/LiveClassroomAdmin';
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | undefined>(undefined);
@@ -81,6 +82,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </header>
+
+      <LiveClassroomAdmin classes={classes} />
 
       <StudentActivityDashboard classes={classes} />
 
