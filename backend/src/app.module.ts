@@ -16,6 +16,7 @@ import { AiTeacherModule } from './classes/ai-teacher/ai-teacher.module';
 import { VideoRenderModule } from './classes/video-render/video-render.module';
 import { ProgressModule } from './progress/progress.module';
 import { ActivityModule } from './activity/activity.module';
+import { LiveClassroomModule } from './live-classroom/live-classroom.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { ActivityModule } from './activity/activity.module';
     VideoRenderModule,
     ProgressModule,
     ActivityModule,
+    LiveClassroomModule,
   ],
 })
 export class AppModule {}
