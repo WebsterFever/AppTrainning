@@ -33,6 +33,11 @@ export class AdminContestController {
     return this.contestService.listContestantsForAdmin();
   }
 
+  @Delete('contestants/:id')
+  deleteContestant(@Param('id') id: string) {
+    return this.contestService.deleteContestant(id);
+  }
+
   @Delete('reset')
   reset() {
     return this.contestService.resetContest();

@@ -978,6 +978,11 @@ export const api = {
       handle<AdminContestant[]>(r),
     ),
 
+  deleteContestant: (id: string) =>
+    fetch(`${BASE_URL}/admin/contest/contestants/${encodeURIComponent(id)}`, {
+      method: 'DELETE', headers: authHeader(),
+    }).then((r) => handle<void>(r)),
+
   resetContest: () =>
     fetch(`${BASE_URL}/admin/contest/reset`, {
       method: 'DELETE',

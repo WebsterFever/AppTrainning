@@ -323,6 +323,20 @@ export class ContestService {
     return this.questionsRepo.find({ order: { createdAt: 'DESC' } });
   }
 
+  async deleteContestant(id: string): Promise<void> {
+    await this.contestantsRepo.manager.transaction(async (manager) => {
+      const contestant = await manager.findOne(Contestant, { where: { id } });
+      if (!contestant) throw new NotFoundException('Contestant not found.');
+      // Remove the participant's answers and clear any question they won.
+      // Never delete other contestants or reset the entire competition.
+      await manager.delete(QuestionAttempt, { contestantId: id });
+      await manager.createQueryBuilder().update(DailyQuestion)
+        .set({ winnerContestantId: () => 'NULL', winnerName: () => 'NULL', answeredAt: () => 'NULL' })
+        .where('winner_contestant_id = :id', { id }).execute();
+      await manager.delete(Contestant, id);
+    });
+  }
+
   async listContestantsForAdmin(): Promise<Contestant[]> {
     return this.contestantsRepo.find({ order: { points: 'DESC', createdAt: 'ASC' } });
   }
