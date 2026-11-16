@@ -36,6 +36,8 @@ export default function AdminContest() {
   const [contestants, setContestants] = useState<AdminContestant[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingReset, setPendingReset] = useState(false);
+  const [pendingContestant, setPendingContestant] = useState<AdminContestant | null>(null);
+  const [removingContestant, setRemovingContestant] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [periodEnded, setPeriodEnded] = useState(false);
   const [monthWinner, setMonthWinner] = useState<{ name: string; imageUrl: string; points: number } | undefined>(
@@ -107,6 +109,21 @@ export default function AdminContest() {
       setDeletingId(null);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const confirmContestantRemoval = async () => {
+    if (!pendingContestant || removingContestant) return;
+    setRemovingContestant(true);
+    setError('');
+    try {
+      await api.deleteContestant(pendingContestant.id);
+      setPendingContestant(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete participant');
+    } finally {
+      setRemovingContestant(false);
     }
   };
 
@@ -255,6 +272,9 @@ export default function AdminContest() {
                     <span className="text-sm font-mono text-amber flex-shrink-0">
                       {c.points} pts
                     </span>
+                    <button type="button" className="btn-danger-outline text-xs px-2 py-1 flex-shrink-0" onClick={() => setPendingContestant(c)} aria-label={`Delete ${c.name}`}>
+                      Delete
+                    </button>
                   </div>
                 ))}
               </div>
@@ -330,6 +350,16 @@ export default function AdminContest() {
         </div>
       </div>
 
+      {pendingContestant && (
+        <ConfirmDialog
+          title="Delete this participant?"
+          message={`Remove ${pendingContestant.name} from the contest? Their points and answers will be deleted, and questions they won will be reopened. Other participants will remain unchanged. This cannot be undone.`}
+          confirmLabel={removingContestant ? 'Deleting…' : 'Delete participant'}
+          danger
+          onConfirm={confirmContestantRemoval}
+          onCancel={() => { if (!removingContestant) setPendingContestant(null); }}
+        />
+      )}
       {deletingId && (
         <ConfirmDialog
           title="Delete this question?"
