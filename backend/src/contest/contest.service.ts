@@ -331,7 +331,7 @@ export class ContestService {
       // Never delete other contestants or reset the entire competition.
       await manager.delete(QuestionAttempt, { contestantId: id });
       await manager.createQueryBuilder().update(DailyQuestion)
-        .set({ winnerContestantId: null, winnerName: null, answeredAt: null })
+        .set({ winnerContestantId: () => 'NULL', winnerName: () => 'NULL', answeredAt: () => 'NULL' })
         .where('winner_contestant_id = :id', { id }).execute();
       await manager.delete(Contestant, id);
     });
