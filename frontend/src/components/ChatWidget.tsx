@@ -330,9 +330,16 @@ export default function ChatWidget() {
 
       <div className="flex items-center justify-end gap-2 sm:gap-2.5">
         {!open && (
-          <span className="rounded-full border border-line bg-chalk px-2.5 py-1.5 text-[11px] font-medium text-ink shadow-md sm:px-3.5 sm:py-2 sm:text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              primeNotificationSound();
+              setOpen(true);
+            }}
+            className="rounded-full border border-line bg-chalk px-2.5 py-1.5 text-[11px] font-medium text-ink shadow-md transition hover:border-amber sm:px-3.5 sm:py-2 sm:text-xs"
+          >
             {t('haveQuestion')}
-          </span>
+          </button>
         )}
         <button
           onClick={() => {
@@ -343,8 +350,11 @@ export default function ChatWidget() {
           className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-amber text-midnight shadow-lg transition hover:-translate-y-0.5 hover:bg-coral"
         >
           {open ? '✕' : '💬'}
-          {!open && unread && (
-            <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-chalk bg-coral" />
+          {!open && (
+            <span
+              aria-hidden="true"
+              className="absolute -right-0.5 -top-0.5 h-4 w-4 rounded-full border-2 border-chalk bg-red-600 shadow-sm"
+            />
           )}
         </button>
       </div>
