@@ -25,6 +25,14 @@ function emptyForm(): Record<`subject${LangCode}` | `questionText${LangCode}` | 
 }
 
 export default function AdminContest() {
+  const [contestPanel, setContestPanel] = useState<string | null>(null);
+  const panelButton = (id: string, label: string) => (
+    <button type="button" aria-expanded={contestPanel === id}
+      onClick={() => setContestPanel((current) => current === id ? null : id)}
+      className="w-full flex items-center justify-between rounded-md border border-line bg-surface px-4 py-3 text-left font-display text-lg text-ink hover:border-amber">
+      {label}<span aria-hidden="true" className="text-amber">{contestPanel === id ? '−' : '+'}</span>
+    </button>
+  );
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -89,6 +97,7 @@ export default function AdminContest() {
       subjectFr: q.subjectFr ?? '', questionTextFr: q.questionTextFr ?? '', correctAnswerFr: q.correctAnswerFr ?? '',
       subjectHt: q.subjectHt ?? '', questionTextHt: q.questionTextHt ?? '', correctAnswerHt: q.correctAnswerHt ?? '',
     });
+    setContestPanel('question');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -152,7 +161,9 @@ export default function AdminContest() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-[420px_1fr] gap-6">
+      <div className="space-y-4">
+        {panelButton('question', editingId ? 'Edit daily question' : 'Add to daily queue')}
+        {contestPanel === 'question' && <div className="max-w-2xl">
         {periodEnded ? (
           <div className="bg-surface border border-line rounded-sm p-5 h-fit text-center">
             <p className="text-2xl">🏆</p>
@@ -245,9 +256,9 @@ export default function AdminContest() {
           </form>
         )}
 
-        <div className="space-y-6">
-          <div>
-            <h3 className="font-display text-lg text-ink mb-3">Contestants</h3>
+        </div>}
+        {panelButton('contestants', `Contestants (${contestants.length})`)}
+        {contestPanel === 'contestants' && <div>
             {loading ? (
               <p className="text-sm text-ink/40">Loading…</p>
             ) : contestants.length === 0 ? (
@@ -279,10 +290,9 @@ export default function AdminContest() {
                 ))}
               </div>
             )}
-          </div>
-
-          <div>
-            <h3 className="font-display text-lg text-ink mb-3">Past questions</h3>
+        </div>}
+        {panelButton('past', `Past questions (${questions.length})`)}
+        {contestPanel === 'past' && <div>
             {loading ? (
               <p className="text-sm text-ink/40">Loading…</p>
             ) : questions.length === 0 ? (
@@ -346,8 +356,7 @@ export default function AdminContest() {
                 ))}
               </div>
             )}
-          </div>
-        </div>
+        </div>}
       </div>
 
       {pendingContestant && (
