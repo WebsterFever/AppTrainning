@@ -351,10 +351,10 @@ export default function ChatWidget() {
         >
           {open ? '✕' : '💬'}
           {!open && (
-            <span
-              aria-hidden="true"
-              className="absolute -right-0.5 -top-0.5 h-4 w-4 rounded-full border-2 border-chalk bg-red-600 shadow-sm"
-            />
+            <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-80 motion-reduce:animate-none" />
+              <span className="relative inline-flex h-4 w-4 animate-pulse rounded-full border-2 border-chalk bg-red-600 shadow-[0_0_10px_3px_rgba(239,68,68,0.65)] motion-reduce:animate-none" />
+            </span>
           )}
         </button>
       </div>
