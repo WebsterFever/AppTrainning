@@ -10,7 +10,35 @@ import AdminContest from '../components/AdminContest';
 import AdminSubmissions from '../components/AdminSubmissions';
 import StudentActivityDashboard from '../components/StudentActivityDashboard';
 
+function AdminSection({ id, title, active, onToggle, children }: {
+  id: string;
+  title: string;
+  active: string | null;
+  onToggle: (id: string) => void;
+  children: React.ReactNode;
+}) {
+  const expanded = active === id;
+  return (
+    <section className="max-w-5xl mx-auto px-4 sm:px-6 mb-3">
+      <button type="button" aria-expanded={expanded} aria-controls={`admin-section-${id}`}
+        onClick={() => onToggle(id)}
+        className="w-full flex items-center justify-between gap-3 rounded-md border border-line bg-surface px-4 py-4 text-left text-ink hover:border-amber transition">
+        <span className="font-display text-lg sm:text-xl">{title}</span>
+        <span aria-hidden="true" className="text-amber text-xl">{expanded ? '−' : '+'}</span>
+      </button>
+      <div id={`admin-section-${id}`} hidden={!expanded} className="pt-5">
+        {expanded ? children : null}
+      </div>
+    </section>
+  );
+}
+
 export default function AdminDashboard() {
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const toggleSection = (id: string) => setActiveSection((current) => current === id ? null : id);
+  const section = (id: string, title: string, content: React.ReactNode) => (
+    <AdminSection id={id} title={title} active={activeSection} onToggle={toggleSection}>{content}</AdminSection>
+  );
   const [authed, setAuthed] = useState<boolean | undefined>(undefined);
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -82,31 +110,27 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <StudentActivityDashboard classes={classes} />
+      {section('activity', 'Student activity', <StudentActivityDashboard classes={classes} />)}
 
-      <ClassManager
+      {section('free-classes', 'Free classes', <ClassManager
         isPaid={false}
         heading="Add a class"
         listHeading="All classes"
         emptyStateLabel="No classes yet — publish your first one on the left."
         classes={freeClasses}
         onChanged={load}
-      />
+      />)}
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="border-t border-line pt-8 sm:pt-10" />
-      </div>
-
-      <ClassManager
+      {section('paid-classes', 'Paid classes', <ClassManager
         isPaid
         heading="Add a paid class"
         listHeading="Paid classes"
         emptyStateLabel="No paid classes yet — publish your first one on the left."
         classes={paidClasses}
         onChanged={load}
-      />
+      />)}
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-10 sm:pb-14">
+      {section('bookings', 'Class booking requests', <div className="pb-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-xl text-ink">Class booking requests</h2>
           <span className="text-xs font-mono text-ink/50">{bookings.length} total</span>
@@ -152,15 +176,15 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
-      </div>
+      </div>)}
 
-      <AdminSubmissions />
+      {section('submissions', 'Student submissions', <AdminSubmissions />)}
 
-      <AdminContest />
+      {section('contest', 'Daily contest · Questions & contestants', <AdminContest />)}
 
-      <AdminChat />
+      {section('chat', 'Student chat', <AdminChat />)}
 
-      <AdminComments />
+      {section('comments', 'Comments', <AdminComments />)}
 
       {pendingBookingDelete && (
         <ConfirmDialog
